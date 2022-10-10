@@ -18,3 +18,6 @@ end
 j_index = 2
 
 B = f_bp(A, pᵢ, wᵢ, ϕᵢ, j_index)
+C = mpem2(B)
+sweep_LtoR!(C)
+

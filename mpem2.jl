@@ -12,6 +12,13 @@ struct MPEM2{q,T,F<:Real}
     end
 end
 
+# construct a random mpem with given bond dimensions
+function mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1])
+    @assert bondsizes[1] == bondsizes[end] == 1
+    tensors = [ rand(bondsizes[t], bondsizes[t+1], q, q) for t in 1:T+1]
+    return MPEM2(tensors)
+end
+
 function check_bond_dims2(tensors::Vector{<:Array})
     for t in 1:lastindex(tensors)-1
         dᵗ = size(tensors[t],2)

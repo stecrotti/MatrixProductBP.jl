@@ -11,15 +11,16 @@ function kron2(A₁::Array{F,4}, A₂::Array{F,4}, A₃::Array{F,4}) where F
         A₁[m₁, n₁, x₁, xᵢ] * A₂[m₂, n₂, x₂, xᵢ] * A₃[m₃, n₃, x₃, xᵢ]
 end
 
-function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ, wᵢ, ϕᵢ, j_index) where {q,T,F}
-    @assert length(pᵢ) == q
+function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, j_index::Integer) where {q,T,F}
+    @assert length(pᵢ⁰) == q
     @assert length(wᵢ) == T
     @assert length(ϕᵢ) == T
-    z = length(A) + 1      # z = |∂i|
-    x_neigs = Iterators.product(fill(1:q, z-1)...) .|> collect
+    @assert j_index in eachindex(A)
+    z = length(A)      # z = |∂i|
+    x_neigs = Iterators.product(fill(1:q, z)...) .|> collect
 
     B = Vector{Array{F,5}}(undef, T+1)
-    A⁰ = kron2([Aₖ[begin] for Aₖ in A]...)
+    A⁰ = kron2([A[k][begin] for k in eachindex(A) if k != j_index]...)
     nrows = size(A⁰, 1); ncols = size(A⁰, 2)
     B⁰ = zeros(q, q, nrows, ncols, q)
     
@@ -32,12 +33,13 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ, wᵢ, ϕᵢ, j_index) where {q,T,F}
                     A⁰[1,a¹,xᵢ⁰,xₙᵢ₋ⱼ⁰...]
             end
         end
-        B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= ϕᵢ[1][xᵢ¹] * pᵢ[xᵢ⁰] 
+        B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= ϕᵢ[1][xᵢ¹] * pᵢ⁰[xᵢ⁰] 
     end
     B[1] = B⁰
 
     for t in 1:T-1
-        Aᵗ = kron2([Aₖ[begin+t] for Aₖ in A]...)
+        # select incoming A's but not the j-th one
+        Aᵗ = kron2([A[k][begin+t] for k in eachindex(A) if k != j_index]...)
         nrows = size(Aᵗ, 1); ncols = size(Aᵗ, 2)
         Bᵗ = zeros(q, q, nrows, ncols, q)
 
@@ -57,14 +59,18 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ, wᵢ, ϕᵢ, j_index) where {q,T,F}
         B[t+1] = Bᵗ
     end
 
-    Aᵀ = kron2([Aₖ[end] for Aₖ in A]...)
+    Aᵀ = kron2([A[k][end] for k in eachindex(A) if k != j_index]...)
     nrows = size(Aᵀ, 1); ncols = size(Aᵀ, 2)
     Bᵀ = zeros(q, q, nrows, ncols, q)
     Aᵀ_reshaped = reshape(Aᵀ, size(Aᵀ)[1:3]..., prod(size(Aᵀ)[4:end]))
     Aᵀ_reshaped_summed = sum(Aᵀ_reshaped, dims=4)[:,1,:,1]
+    # Bᵀ has some redundant dimensions, like the 5-th. We decided that it should 
+    #  take the same values no matter the 5-th index
+    # Same goes for the 2nd index, i.e. xⱼᵀ, on which Bᵀ does not depend.
+    # Transpose to match indices aᵀ and xᵢᵀ.
     for xⱼᵀ in 1:q, xᵢᵀ⁺¹ in 1:q
         Bᵀ[:,xⱼᵀ,:,1,xᵢᵀ⁺¹] .= Aᵀ_reshaped_summed'
     end
     B[end] = Bᵀ
-    return B
+    return MPEM3(B)
 end
