@@ -41,6 +41,14 @@ end
     @test e2 ≈ e1
 end
 
+@testset "Accumulators" begin
+    tensors = [rand(1,3,2,2), rand(3,4,2,2), rand(4,10,2,2), rand(10,1,2,2)]
+    A = MPEM2(tensors)
+    L = accumulate_L(A)
+    R = accumulate_R(A)
+    @test L[end] ≈ R[begin]
+end
+
 
 tensors = [rand(1,3,2,2), rand(3,4,2,2), rand(4,10,2,2), rand(10,1,2,2)]
 C = MPEM2(tensors)

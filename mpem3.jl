@@ -1,7 +1,7 @@
 # Matrix [Bᵗᵢⱼ(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 5-array B[xᵢᵗ,xⱼᵗ,m,n,xᵢᵗ⁺¹]
 # T is the final time
 # The last matrix should have the same values no matter what xᵢᵀ⁺¹ is
-struct MPEM3{q,T,F<:Real}
+struct MPEM3{q,T,F<:Real} <: MPEM
     tensors :: Vector{Array{F,5}}     # Vector of length T+1
     function MPEM3(tensors::Vector{Array{F,5}}) where {F<:Real}
         T = length(tensors)-1
@@ -10,7 +10,7 @@ struct MPEM3{q,T,F<:Real}
         @assert size(tensors[1],3) == size(tensors[end],4) == 1
         @assert check_bond_dims3(tensors)
         t = tensors[end][:,:,:,:,1]
-        @assert all(tensors[end][:,:,:,:,x] == t for x in 2:q)
+        @assert all(tensors[end][:,:,:,:,x] == t for x in 2:q) "$([tensors[end][:,:,:,:,x] for x in 1:q])"
         new{q,T,F}(tensors)
     end
 end

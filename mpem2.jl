@@ -1,6 +1,6 @@
 # Matrix [Aᵗᵢⱼ(xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 4-array A[m,n,xᵢᵗ,xⱼᵗ]
 # T is the final time
-struct MPEM2{q,T,F<:Real}
+struct MPEM2{q,T,F<:Real} <: MPEM
     tensors :: Vector{Array{F,4}}     # Vector of length T+1
     function MPEM2(tensors::Vector{Array{F,4}}) where {F<:Real}
         T = length(tensors)-1
@@ -36,7 +36,7 @@ function bond_dims(A::MPEM2{q,T,F}) where {q,T,F}
 end
 
 @forward MPEM2.tensors Base.getindex, Base.iterate, Base.firstindex, 
-    Base.lastindex, Base.setindex!,
+    Base.lastindex, Base.setindex!, Base.length,
     check_bond_dims2
 
 getq(::MPEM2{q,T,F}) where {q,T,F} = q
@@ -64,14 +64,12 @@ function sweep_RtoL!(C::MPEM2{q,T,F}; ε=1e-6) where {q,T,F}
         U, λ, V = svd(M)
         λ_max = λ[1]
         mprime = findlast(λₖ > ε*λ_max for λₖ in λ)
-        # @show λ
-        # println("t=$t. m=$(length(λ)). m'=$mprime")
+        @assert mprime !== nothing
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
         M_trunc = U_trunc * Diagonal(λ_trunc) * V_trunc'
 
         X = norm(M - M_trunc)^2
         Y = sum(abs2, λ[mprime+1:end])
-        @assert isapprox(X, Y, atol=1e-8) "$X, $Y"
         
         @cast Aᵗ[m, n, xᵢ, xⱼ] := V_trunc'[m, (n, xᵢ, xⱼ)] m in 1:mprime, xᵢ in 1:q, xⱼ in 1:q
         C[t] = Aᵗ
@@ -145,4 +143,64 @@ function norm_fast_R(A::MPEM2{q,T,F}) where {q,T,F}
     @reduce N2 := sum(xᵢᵀ, xⱼᵀ, n) A⁰[1, n, xᵢᵀ, xⱼᵀ] * A⁰[1, n, xᵢᵀ, xⱼᵀ] 
     @assert N2 ≈ norm(A)^2 "N2=$N2, norm=$(norm(A)^2)"
     return sqrt( N2 )
+end
+
+
+function accumulate_L(A::MPEM2{q,T,F}) where {q,T,F}
+    L = [zeros(0) for t in 0:T]
+    A⁰ = A[begin]
+    @reduce L⁰[a¹] := sum(xᵢ⁰,xⱼ⁰) A⁰[1,a¹,xᵢ⁰,xⱼ⁰]
+    L[1] = L⁰
+
+    Lᵗ = L⁰
+    for t in 1:T
+        Aᵗ = A[t+1]
+        @reduce Lᵗ[aᵗ⁺¹] |= sum(xᵢᵗ,xⱼᵗ,aᵗ) Lᵗ[aᵗ] * Aᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] 
+        L[t+1] = Lᵗ
+    end
+    return L
+end
+
+function accumulate_R(A::MPEM2{q,T,F}) where {q,T,F}
+    R = [zeros(0) for t in 0:T]
+    Aᵀ = A[end]
+    @reduce Rᵀ[aᵀ] := sum(xᵢᵀ,xⱼᵀ) Aᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ]
+    R[end] = Rᵀ
+
+    Rᵗ = Rᵀ
+    for t in T:-1:1
+        Aᵗ = A[t]
+        @reduce Rᵗ[aᵗ] |= sum(xᵢᵗ,xⱼᵗ,aᵗ⁺¹) Aᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] * Rᵗ[aᵗ⁺¹] 
+        R[t] = Rᵗ
+    end
+    return R
+end
+
+function pair_marginals(A::MPEM2{q,T,F}) where {q,T,F}
+    L = accumulate_L(A)
+    R = accumulate_R(A)
+
+    A⁰ = A[begin]; R¹ = R[2]
+    @reduce p⁰[xᵢ⁰,xⱼ⁰] := sum(a¹) A⁰[1,a¹,xᵢ⁰,xⱼ⁰] * R¹[a¹]
+    p⁰ ./= sum(p⁰)
+
+    Aᵀ = A[end]; Lᵀ⁻¹ = L[end-1]
+    @reduce pᵀ[xᵢᵀ,xⱼᵀ] := sum(aᵀ) Lᵀ⁻¹[aᵀ] * Aᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ]
+    pᵀ ./= sum(pᵀ)
+
+    p = map(2:T) do t 
+        Lᵗ⁻¹ = L[t-1]
+        Aᵗ = A[t]
+        Rᵗ⁺¹ = R[t+1]
+        @reduce pᵗ[xᵢᵗ,xⱼᵗ] := sum(aᵗ,aᵗ⁺¹) Lᵗ⁻¹[aᵗ] * Aᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] * Rᵗ⁺¹[aᵗ⁺¹]  
+        pᵗ ./= sum(pᵗ)
+    end
+
+    return [p⁰, p..., pᵀ]
+end
+
+function firstvar_marginals(A::MPEM2{q,T,F}; p = pair_marginals(A)) where {q,T,F}
+    map(p) do pₜ
+        sum(pₜ, dims=1) |> vec
+    end
 end

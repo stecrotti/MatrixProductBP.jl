@@ -1,32 +1,31 @@
 using Graphs
 include("../mpdbp.jl")
 
-q = q_glauber
-T = 3
+# q = q_glauber
+# T = 4
+# ε = 1e-6
 
-J = [0 1 0 1 1;
-     1 0 1 1 0;
-     0 1 0 0 1;
-     1 1 0 0 0;
-     1 0 1 0 0] .|> float
-gg = SimpleGraph(J)
-h = ones(nv(gg))
+# J = [0 1 0;
+#      1 0 1;
+#      0 1 0] .|> float
+# N = 3
+# h = zeros(N)
+# β = 1.0
 
-w = map(1:nv(gg)) do i
-    map(1:T) do t
-        GlauberFactor([J[i,j] for j in neighbors(gg, i)], h[i])
-    end
-end
+# p⁰ = map(1:N) do i
+#     # r = rand()
+#     r = 0.5
+#     [r, 1-r]
+# end
+# ϕ = [[[0.5,0.5] for t in 1:T] for i in 1:N]
 
-g = IndexedBiDiGraph(gg)
+# ising = Ising(J, h, β)
+# gl = ExactGlauber(ising, p⁰, ϕ)
+# m = site_marginals(gl)
+# mm = site_time_marginals(gl; m)
 
+bp = mpdbp(gl)
+cb = CB_BP(bp)
+iterate!(bp, maxiter=15, ε=0.0; cb)
 
-A = [ mpem2(q, T) for e in edges(g) ]
-
-bp = mpdbp(g, w, q, T)
-
-i = 1
-j_index = rand(1:indegree(g,i))
-j = neighbors(g,i)[j_index]
-A = bp.μ[inedges(bp.g, i) .|> idx]
-f_bp(A, bp.p⁰[i], bp.w[i], bp.ϕ[i], j_index)
+b = beliefs(bp, ε=0.0)

@@ -1,4 +1,5 @@
 include("utils.jl")
+include("exact/exact_glauber.jl")
 
 abstract type dBP_Factor; end
 
@@ -16,6 +17,18 @@ function (fᵢ::GlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integ
     hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.J))
     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.h)
     exp( -E )
+end
+
+# construct an array of GlauberFactors corresponding to gl
+function glauber_factors(gl::ExactGlauber{T,N,F}) where {T,N,F}
+    map(1:N) do i
+        ei = outedges(gl.ising.g, i)
+        ∂i = idx.(ei)
+        J = gl.ising.J[∂i]
+        h = gl.ising.h[i]
+        wᵢᵗ = GlauberFactor(J, h)
+        fill(wᵢᵗ, T)
+    end
 end
 
 
