@@ -64,7 +64,7 @@ function sweep_RtoL!(C::MPEM2{q,T,F}; ε=1e-6) where {q,T,F}
         U, λ, V = svd(M)
         λ_max = λ[1]
         mprime = findlast(λₖ > ε*λ_max for λₖ in λ)
-        @assert mprime !== nothing
+        @assert mprime !== nothing "λ=$λ, M=$M"
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
         M_trunc = U_trunc * Diagonal(λ_trunc) * V_trunc'
 

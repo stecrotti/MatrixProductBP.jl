@@ -1,6 +1,7 @@
 import IndexedGraphs: IndexedGraph, outedges, neighbors
 import SparseArrays: nzrange
 import ProgressMeter: Progress, next!
+import Base.Threads: @threads
 
 include("../utils.jl")
 
@@ -70,8 +71,9 @@ function fill_p(ising::Ising, p⁰, ϕ, T::Integer, N::Integer;
         p = ones(2^(N*(T+1))))
     
     prog = Progress(2^(N*(T+1)), desc="Computing joint probability")
+    X = zeros(Int, T+1, N)
     for x in 1:2^(N*(T+1))
-        X = int_to_matrix(x-1, (T+1,N))
+        X .= int_to_matrix(x-1, (T+1,N))
         for i in 1:N
             p[x] *= p⁰[i][X[1,i]]
             ∂i = neighbors(ising.g, i)
@@ -90,8 +92,9 @@ end
 function site_marginals(gl::ExactGlauber{T, N, F}; 
         m = [zeros(fill(2,T+1)...) for i in 1:N]) where {T,N,F}
     prog = Progress(2^(N*(T+1)), desc="Computing site marginals")
+    X = zeros(Int, T+1, N)
     for x in 1:2^(N*(T+1))
-        X = int_to_matrix(x-1, (T+1,N))
+        X .= int_to_matrix(x-1, (T+1,N))
         for i in 1:N
             m[i][X[:,i]...] += gl.p[x]
         end

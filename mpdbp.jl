@@ -42,7 +42,6 @@ function onebpiter!(bp::MPdBP, i::Integer; ε=1e-6)
     for (j_ind, e_out) in enumerate( outedges(g, i) )
         B = f_bp(A, p⁰[i], w[i], ϕ[i], j_ind)
         C = mpem2(B)
-        # @show norm( μ[idx(e_out)] -  normalize!(sweep_RtoL!(deepcopy(C); ε)))
         μ[idx(e_out)] = sweep_RtoL!(C; ε)
         normalize!(μ[idx(e_out)], norm_fast_R)
     end

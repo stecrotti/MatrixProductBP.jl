@@ -66,6 +66,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, j_index::Integer) w
             Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+1][xᵢᵗ⁺¹]
         end
         B[t+1] = Bᵗ
+        any(isnan, Bᵗ) && println("NaN in tensor at time $t")
     end
 
     Aᵀ = kron2([A[k][end] for k in eachindex(A)[Not(j_index)]]...)

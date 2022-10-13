@@ -21,11 +21,12 @@ end
 
 # construct an array of GlauberFactors corresponding to gl
 function glauber_factors(gl::ExactGlauber{T,N,F}) where {T,N,F}
+    β = gl.ising.β
     map(1:N) do i
         ei = outedges(gl.ising.g, i)
         ∂i = idx.(ei)
-        J = gl.ising.J[∂i]
-        h = gl.ising.h[i]
+        J = gl.ising.J[∂i] .* β
+        h = gl.ising.h[i] * β
         wᵢᵗ = GlauberFactor(J, h)
         fill(wᵢᵗ, T)
     end
