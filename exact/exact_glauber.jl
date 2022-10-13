@@ -22,11 +22,12 @@ end
 function local_w(g::IndexedGraph, J::Vector, h::Vector, i::Integer, xᵢ::Integer, 
         xₙᵢ::Vector{<:Integer}, β::Real)
     ei = outedges(g, i)
+    isempty(ei) && return exp( β * potts2spin(xᵢ) * h[i] )
     ∂i = idx.(ei)
     @assert length(∂i) == length(xₙᵢ)
     Js = @view J[∂i]
-    hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼ) for (xⱼ, Jᵢⱼ) in zip(xₙᵢ, Js))
-    exp( - β * potts2spin(xᵢ) * (hⱼᵢ + h[i]) )
+    hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼ) for (xⱼ, Jᵢⱼ) in zip(xₙᵢ, Js), init=0.0)
+    exp( β * potts2spin(xᵢ) * (hⱼᵢ + h[i]) )
 end
 
 

@@ -40,7 +40,7 @@ function onebpiter!(bp::MPdBP, i::Integer; ε=1e-6)
     @unpack g, w, ϕ, p⁰, μ = bp
     A = μ[inedges(g,i).|>idx]
     for (j_ind, e_out) in enumerate( outedges(g, i) )
-        B = f_bp(A, p⁰[i], w[i], ϕ[i], j_ind:j_ind)
+        B = f_bp(A, p⁰[i], w[i], ϕ[i], j_ind)
         C = mpem2(B)
         # @show norm( μ[idx(e_out)] -  normalize!(sweep_RtoL!(deepcopy(C); ε)))
         μ[idx(e_out)] = sweep_RtoL!(C; ε)
@@ -86,7 +86,7 @@ end
 function belief(bp::MPdBP, i::Integer; ε=1e-6)
     @unpack g, w, ϕ, p⁰, μ = bp
     A = μ[inedges(g,i).|>idx]
-    B = f_bp(A, p⁰[i], w[i], ϕ[i], 1:0)
+    B = f_bp(A, p⁰[i], w[i], ϕ[i])
     C = mpem2(B)
     sweep_RtoL!(C; ε)
     return firstvar_marginals(C)

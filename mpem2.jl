@@ -15,7 +15,7 @@ end
 # construct a random mpem with given bond dimensions
 function mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1])
     @assert bondsizes[1] == bondsizes[end] == 1
-    tensors = [ rand(bondsizes[t], bondsizes[t+1], q, q) for t in 1:T+1]
+    tensors = [ ones(bondsizes[t], bondsizes[t+1], q, q) for t in 1:T+1]
     return MPEM2(tensors)
 end
 
@@ -176,6 +176,7 @@ function accumulate_R(A::MPEM2{q,T,F}) where {q,T,F}
     return R
 end
 
+# at each time t, return p(xᵢᵗ, xⱼᵗ)
 function pair_marginals(A::MPEM2{q,T,F}) where {q,T,F}
     L = accumulate_L(A)
     R = accumulate_R(A)
@@ -201,6 +202,7 @@ end
 
 function firstvar_marginals(A::MPEM2{q,T,F}; p = pair_marginals(A)) where {q,T,F}
     map(p) do pₜ
-        sum(pₜ, dims=1) |> vec
+        pᵢᵗ =  sum(pₜ, dims=2) |> vec
+        pᵢᵗ ./= sum(pᵢᵗ)
     end
 end
