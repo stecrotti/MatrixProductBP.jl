@@ -1,5 +1,6 @@
 # maps (1,2) -> (1,-1)
-potts2spin(x::Integer) = 3-2x
+potts2spin(x) = 3-2x
+spin2potts(σ) = (3+σ)/2
 
 struct AllOneTensor; end
 Base.getindex(::AllOneTensor, idx...) = 1

@@ -18,7 +18,7 @@ struct MPdBP{q,T,F<:Real,U<:dBP_Factor}
             ϕ::Vector{Vector{Vector{F}}}, p⁰::Vector{Vector{F}}, 
             μ::Vector{MPEM2{q,T,F}}) where {q,T,F<:Real,U<:dBP_Factor}
     
-        @assert length(w) == length(ϕ) == nv(g)
+        @assert length(w) == length(ϕ) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
         @assert all( length(wᵢ) == T for wᵢ in w )
         @assert all( length(ϕ[i][t]) == q for i in eachindex(ϕ) for t in eachindex(ϕ[i]) )
         @assert all( length(pᵢ⁰) == q for pᵢ⁰ in p⁰ )
@@ -30,8 +30,8 @@ end
 
 function mpdbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:dBP_Factor}}, 
         q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1],
-        ϕ = [[rand(q) for t in 1:T] for i in 1:nv(g)],
-        p⁰ = [rand(q) for i in 1:nv(g)],
+        ϕ = [[ones(q) for t in 1:T] for i in 1:nv(g)],
+        p⁰ = [ones(q) for i in 1:nv(g)],
         μ = [mpem2(q, T; d, bondsizes) for e in edges(g)])
     return MPdBP(g, w, ϕ, p⁰, μ)
 end
@@ -43,7 +43,14 @@ function onebpiter!(bp::MPdBP, i::Integer; ε=1e-6)
         B = f_bp(A, p⁰[i], w[i], ϕ[i], j_ind)
         C = mpem2(B)
         μ[idx(e_out)] = sweep_RtoL!(C; ε)
-        normalize!(μ[idx(e_out)], norm_fast_R)
+        # normalize!(μ[idx(e_out)], norm_fast_R)
+        # for m in μ[idx(e_out)]
+        #     mm = maximum(abs, m)
+        #     if !any(isnan, mm) && !any(isinf, mm)
+        #         m ./= mm
+        #     end
+        # end
+        normalize_eachmatrix!(μ[idx(e_out)])
     end
     return nothing
 end
@@ -69,17 +76,18 @@ function (cb::CB_BP)(bp::MPdBP, it::Integer)
     push!(cb.Δs, Δ)
     next!(cb.prog, showvalues=[(:it,it), (:Δ,Δ)])
     cb.mag .= mag_new
-    return nothing
+    return Δ
 end
 
-function iterate!(bp::MPdBP; maxiter=5, ε=1e-6, cb=CB_BP(bp))
+function iterate!(bp::MPdBP; maxiter=5, ε=1e-6, cb=CB_BP(bp), tol=1e-10)
     for it in 1:maxiter
         for i in vertices(bp.g)
             onebpiter!(bp, i; ε)
         end
-        cb(bp, it)
+        Δ = cb(bp, it)
+        Δ < tol && return it, cb
     end
-    return Δ
+    return maxiter, cb
 end
 
 function belief(bp::MPdBP, i::Integer; ε=1e-6)
@@ -105,8 +113,16 @@ end
 
 function mpdbp(gl::ExactGlauber{T,N,F}) where {T,N,F<:AbstractFloat}
     g = IndexedBiDiGraph(gl.ising.g.A)
-    w = glauber_factors(gl)
+    w = glauber_factors(gl.ising, T)
     ϕ = gl.ϕ
     p⁰ = gl.p⁰
+    return mpdbp(g, w, 2, T; ϕ, p⁰)
+end
+
+function mpdbp(ising::Ising, T::Integer,
+        ϕ = [[rand(2) for t in 1:T] for i in 1:nv(ising.g)],
+        p⁰ = [rand(2) for i in 1:nv(ising.g)])
+    g = IndexedBiDiGraph(ising.g.A)
+    w = glauber_factors(ising, T)
     return mpdbp(g, w, 2, T; ϕ, p⁰)
 end

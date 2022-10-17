@@ -67,8 +67,10 @@ function mpem2(B::MPEM3{q,T,F}) where {q,T,F}
         @cast Vt[m, n, xᵢᵗ⁺¹] := V'[m, (n, xᵢᵗ⁺¹)]  xᵢᵗ⁺¹ in 1:q
 
         Bᵗ⁺¹ = B[t+1]
-        @reduce Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²] |= sum(k,l) Diagonal(λ)[m, k] * 
-                    Vt[k, l, xᵢᵗ⁺¹] * Bᵗ⁺¹[xᵢᵗ⁺¹, xⱼᵗ⁺¹, l, n, xᵢᵗ⁺²] 
+        # @reduce Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²] |= sum(k,l) Diagonal(λ)[m, k] * 
+        #             Vt[k, l, xᵢᵗ⁺¹] * Bᵗ⁺¹[xᵢᵗ⁺¹, xⱼᵗ⁺¹, l, n, xᵢᵗ⁺²] 
+        @reduce Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²] |= sum(l) λ[m] * 
+            Vt[m, l, xᵢᵗ⁺¹] * Bᵗ⁺¹[xᵢᵗ⁺¹, xⱼᵗ⁺¹, l, n, xᵢᵗ⁺²] 
         @cast M[(xᵢᵗ⁺¹, xⱼᵗ⁺¹, m), (n, xᵢᵗ⁺²)] |= Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²]
     end
     @cast Cᵀ[m,n,xᵢ,xⱼ] := Bᵗ⁺¹_new[xᵢ,xⱼ,m,n,1]

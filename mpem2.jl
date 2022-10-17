@@ -1,3 +1,5 @@
+import LinearAlgebra: norm
+
 # Matrix [Aᵗᵢⱼ(xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 4-array A[m,n,xᵢᵗ,xⱼᵗ]
 # T is the final time
 struct MPEM2{q,T,F<:Real} <: MPEM
@@ -12,10 +14,17 @@ struct MPEM2{q,T,F<:Real} <: MPEM
     end
 end
 
-# construct a random mpem with given bond dimensions
+# construct a uniform mpem with given bond dimensions
 function mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1])
     @assert bondsizes[1] == bondsizes[end] == 1
     tensors = [ ones(bondsizes[t], bondsizes[t+1], q, q) for t in 1:T+1]
+    return MPEM2(tensors)
+end
+
+# construct a uniform mpem with given bond dimensions
+function rand_mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1])
+    @assert bondsizes[1] == bondsizes[end] == 1
+    tensors = [ rand(bondsizes[t], bondsizes[t+1], q, q) for t in 1:T+1]
     return MPEM2(tensors)
 end
 
@@ -62,8 +71,8 @@ function sweep_RtoL!(C::MPEM2{q,T,F}; ε=1e-6) where {q,T,F}
 
     for t in T+1:-1:2
         U, λ, V = svd(M)
-        λ_max = λ[1]
-        mprime = findlast(λₖ > ε*λ_max for λₖ in λ)
+        λ_norm = norm(λ)
+        mprime = findlast(λₖ > ε*λ_norm for λₖ in λ)
         @assert mprime !== nothing "λ=$λ, M=$M"
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
         M_trunc = U_trunc * Diagonal(λ_trunc) * V_trunc'
@@ -92,10 +101,8 @@ function sweep_LtoR!(C::MPEM2{q,T,F}; ε=1e-6) where {q,T,F}
 
     for t in 1:T
         U, λ, V = svd(M)
-        λ_max = λ[1]
-        mprime = findlast(λₖ > ε*λ_max for λₖ in λ)
-        # @show λ
-        # println("t=$t. m=$(length(λ)). m'=$mprime")
+        λ_norm = norm(λ)
+        mprime = findlast(λₖ > ε*λ_norm for λₖ in λ)
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
         M_trunc = U_trunc * Diagonal(λ_trunc) * V_trunc'
 

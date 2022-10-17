@@ -2,6 +2,7 @@ import IndexedGraphs: IndexedGraph, outedges, neighbors
 import SparseArrays: nzrange
 import ProgressMeter: Progress, next!
 import Base.Threads: @threads
+import LogExpFunctions: logcosh
 
 include("../utils.jl")
 
@@ -28,7 +29,7 @@ function local_w(g::IndexedGraph, J::Vector, h::Vector, i::Integer, xᵢ::Intege
     @assert length(∂i) == length(xₙᵢ)
     Js = @view J[∂i]
     hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼ) for (xⱼ, Jᵢⱼ) in zip(xₙᵢ, Js), init=0.0)
-    exp( β * potts2spin(xᵢ) * (hⱼᵢ + h[i]) )
+    exp( β * potts2spin(xᵢ) * (hⱼᵢ + h[i]) ) / (2cosh(β* (hⱼᵢ + h[i])))
 end
 
 
