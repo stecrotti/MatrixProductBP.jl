@@ -2,6 +2,7 @@ import Lazy: @forward
 import TensorCast: @cast, @reduce, @matmul, TensorCast
 import LinearAlgebra: svd, Diagonal, norm, tr
 import Base.-
+import ProgressMeter: Progress, next!
 
 abstract type MPEM; end
 

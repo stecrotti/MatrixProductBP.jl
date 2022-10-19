@@ -5,7 +5,7 @@ include("../mpdbp.jl")
 include("../exact/montecarlo.jl")
 
 q = q_glauber
-T = 60
+T = 3
 
 J = [0 1 0 0 0;
      1 0 1 0 0;
@@ -23,13 +23,13 @@ p⁰ = map(1:N) do i
     [r, 1-r]
 end
 ϕ = [[ones(2) for t in 1:T] for i in 1:N]
-# ϕ[1][1] = [1, 0]
-# ϕ[2][2] = [0, 1]
-# ϕ[2][3] = [0, 1]
+ϕ[1][1] = [1, 0]
+ϕ[2][2] = [0, 1]
+ϕ[2][3] = [0, 1]
 
 ising = Ising(J, h, β)
-# gl = ExactGlauber(ising, p⁰, ϕ)
-# m = site_marginals(gl)
+gl = ExactGlauber(ising, p⁰, ϕ)
+m = site_marginals(gl)
 mm = site_time_marginals(gl; m)
 
 ε = 1e-2

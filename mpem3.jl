@@ -52,13 +52,15 @@ function evaluate(B::MPEM3{q,T,F}, x) where {q,T,F}
 end
 
 # convert mpem2 into mpem3 via a Left to Right sweep of SVD's
-function mpem2(B::MPEM3{q,T,F}) where {q,T,F}
+function mpem2(B::MPEM3{q,T,F}; showprogress=false) where {q,T,F}
     C = Vector{Array{F,4}}(undef, T+1)
 
     B⁰ = B[begin]
     @cast M[(xᵢᵗ, xⱼᵗ, m), (n, xᵢᵗ⁺¹)] |= B⁰[xᵢᵗ, xⱼᵗ, m, n, xᵢᵗ⁺¹]
     Bᵗ⁺¹_new = rand(1,1,1,1)  # initialize
 
+    dt = showprogress ? 1.0 : Inf
+    prog = Progress(T, dt=dt, desc="Converting B to C")
     for t in 1:T
         U, λ, V = svd(M)   
         m = length(λ)     
@@ -67,11 +69,10 @@ function mpem2(B::MPEM3{q,T,F}) where {q,T,F}
         @cast Vt[m, n, xᵢᵗ⁺¹] := V'[m, (n, xᵢᵗ⁺¹)]  xᵢᵗ⁺¹ in 1:q
 
         Bᵗ⁺¹ = B[t+1]
-        # @reduce Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²] |= sum(k,l) Diagonal(λ)[m, k] * 
-        #             Vt[k, l, xᵢᵗ⁺¹] * Bᵗ⁺¹[xᵢᵗ⁺¹, xⱼᵗ⁺¹, l, n, xᵢᵗ⁺²] 
         @reduce Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²] |= sum(l) λ[m] * 
             Vt[m, l, xᵢᵗ⁺¹] * Bᵗ⁺¹[xᵢᵗ⁺¹, xⱼᵗ⁺¹, l, n, xᵢᵗ⁺²] 
         @cast M[(xᵢᵗ⁺¹, xⱼᵗ⁺¹, m), (n, xᵢᵗ⁺²)] |= Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²]
+        next!(prog, showvalues=[(:t,"$t/$T")])
     end
     @cast Cᵀ[m,n,xᵢ,xⱼ] := Bᵗ⁺¹_new[xᵢ,xⱼ,m,n,1]
     C[end] = Cᵀ

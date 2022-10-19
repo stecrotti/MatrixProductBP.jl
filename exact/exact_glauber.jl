@@ -44,6 +44,7 @@ struct ExactGlauber{T, N, F<:AbstractFloat}
         N = length(p⁰)
         @assert length(ϕ) == N
         T = length(ϕ[1])
+        T*N > 15 && @warn "T*N=$(T*N). This will take some time!"
         @assert all(length(ϕᵢ) == T for ϕᵢ in ϕ)
         p = fill_p(ising, p⁰, ϕ, T, N)
         new{T,N,F}(ising, p⁰, ϕ, p)

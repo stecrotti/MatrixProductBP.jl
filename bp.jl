@@ -19,7 +19,8 @@ end
 
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)
-function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, j_index::Integer) where {q,T,F}
+function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, j_index::Integer;
+        showprogress=false) where {q,T,F}
     @assert length(pᵢ⁰) == q
     @assert length(wᵢ) == T
     @assert length(ϕᵢ) == T
@@ -46,6 +47,8 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, j_index::Integer) w
     end
     B[1] = B⁰
 
+    dt = showprogress ? 1.0 : Inf
+    prog = Progress(T-1, dt=dt, desc="Computing outgoing message")
     for t in 1:T-1
         # select incoming A's but not the j-th one
         Aᵗ = kron2([A[k][begin+t] for k in eachindex(A)[Not(j_index)]]...)
@@ -67,6 +70,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, j_index::Integer) w
         end
         B[t+1] = Bᵗ
         any(isnan, Bᵗ) && println("NaN in tensor at time $t")
+        next!(prog, showvalues=[(:t,"$t/$T")])
     end
 
     Aᵀ = kron2([A[k][end] for k in eachindex(A)[Not(j_index)]]...)
@@ -91,7 +95,8 @@ end
 
 # compute belief as an outgoing message to a dummy neigbor
 # A is a vector with all incoming messages.
-function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ) where {q,T,F}
+function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ;
+        showprogress=false) where {q,T,F}
     @assert length(pᵢ⁰) == q
     @assert length(wᵢ) == T
     @assert length(ϕᵢ) == T
@@ -116,6 +121,8 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ) where {q,T,F}
     end
     B[1] = B⁰
 
+    dt = showprogress ? 1.0 : Inf
+    prog = Progress(T-1, dt=dt, desc="Computing belief")
     for t in 1:T-1
         # select incoming A's but not the j-th one
         Aᵗ = kron2([A[k][begin+t] for k in eachindex(A)]...)
@@ -124,18 +131,22 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ) where {q,T,F}
 
         for xᵢᵗ⁺¹ in 1:q
             for xᵢᵗ in 1:q
-                for xⱼᵗ in 1:q
+                # for xⱼᵗ in 1:q
                     for xₙᵢᵗ in x_neigs
-                        for aᵗ in axes(Aᵗ, 1), aᵗ⁺¹ in axes(Aᵗ, 2)
-                            Bᵗ[xᵢᵗ,xⱼᵗ,aᵗ,aᵗ⁺¹,xᵢᵗ⁺¹] += wᵢ[t+1](xᵢᵗ⁺¹,xₙᵢᵗ,xᵢᵗ) *
-                                Aᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xₙᵢᵗ...]
-                        end
+                        xⱼᵗ = xₙᵢᵗ[1]
+                        # for aᵗ in axes(Aᵗ, 1), aᵗ⁺¹ in axes(Aᵗ, 2)
+                        #     Bᵗ[xᵢᵗ,xⱼᵗ,aᵗ,aᵗ⁺¹,xᵢᵗ⁺¹] += wᵢ[t+1](xᵢᵗ⁺¹,xₙᵢᵗ,xᵢᵗ) *
+                        #         Aᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xₙᵢᵗ...]
+                        # end
+                        Bᵗ[xᵢᵗ,xⱼᵗ,:,:,xᵢᵗ⁺¹] .+= wᵢ[t+1](xᵢᵗ⁺¹,xₙᵢᵗ,xᵢᵗ) *
+                                Aᵗ[:,:,xᵢᵗ,xₙᵢᵗ...]
                     end
-                end
+                # end
             end
             Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+1][xᵢᵗ⁺¹]
         end
         B[t+1] = Bᵗ
+        next!(prog, showvalues=[(:t,"$t/$T")])
     end
 
     Aᵀ = kron2([A[k][end] for k in eachindex(A)]...)
