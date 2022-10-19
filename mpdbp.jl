@@ -1,6 +1,6 @@
 include("bp.jl")
 include("dbp_factor.jl")
-include("exact/exact_glauber.jl")
+include("glauber.jl")
 
 import Graphs: nv, ne, edges, vertices
 import IndexedGraphs: IndexedBiDiGraph, inedges, outedges, idx
@@ -61,7 +61,7 @@ struct CB_BP{TP<:ProgressUnknown}
     Δs :: Vector{Float64}
     function CB_BP(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
         @assert q == 2
-        prog = ProgressUnknown()
+        prog = ProgressUnknown(desc="Running MPdBP: iter")
         TP = typeof(prog)
         mag = magnetizations(bp) 
         Δs = zeros(0)
@@ -74,7 +74,7 @@ function (cb::CB_BP)(bp::MPdBP, it::Integer)
     mag_old = cb.mag
     Δ = sum(sum(abs, mn .- mo) for (mn,mo) in zip(mag_new,mag_old))
     push!(cb.Δs, Δ)
-    next!(cb.prog, showvalues=[(:it,it), (:Δ,Δ)])
+    next!(cb.prog, showvalues=[(:Δ,Δ)])
     cb.mag .= mag_new
     return Δ
 end
@@ -111,18 +111,18 @@ function magnetizations(bp::MPdBP{q,T,F,U}; ε=1e-6) where {q,T,F,U}
     end
 end
 
-function mpdbp(gl::ExactGlauber{T,N,F}) where {T,N,F<:AbstractFloat}
+function mpdbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
     g = IndexedBiDiGraph(gl.ising.g.A)
     w = glauber_factors(gl.ising, T)
     ϕ = gl.ϕ
     p⁰ = gl.p⁰
-    return mpdbp(g, w, 2, T; ϕ, p⁰)
+    return mpdbp(g, w, 2, T; ϕ, p⁰, kw...)
 end
 
 function mpdbp(ising::Ising, T::Integer,
         ϕ = [[rand(2) for t in 1:T] for i in 1:nv(ising.g)],
-        p⁰ = [rand(2) for i in 1:nv(ising.g)])
+        p⁰ = [rand(2) for i in 1:nv(ising.g)]; kw...)
     g = IndexedBiDiGraph(ising.g.A)
     w = glauber_factors(ising, T)
-    return mpdbp(g, w, 2, T; ϕ, p⁰)
+    return mpdbp(g, w, 2, T; ϕ, p⁰, kw...)
 end

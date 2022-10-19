@@ -1,10 +1,10 @@
-import IndexedGraphs: IndexedGraph, outedges, neighbors
+import IndexedGraphs: IndexedGraph, outedges, neighbors, idx
 import SparseArrays: nzrange
 import ProgressMeter: Progress, next!
 import Base.Threads: @threads
-import LogExpFunctions: logcosh
+import UnPack: @unpack
 
-include("../utils.jl")
+include("./utils.jl")
 
 # Ising model with xᵢ ∈ {1,2}
 struct Ising{F<:AbstractFloat}
@@ -33,27 +33,20 @@ function local_w(g::IndexedGraph, J::Vector, h::Vector, i::Integer, xᵢ::Intege
 end
 
 
-struct ExactGlauber{T, N, F<:AbstractFloat}
+struct Glauber{T, N, F<:AbstractFloat}
     ising :: Ising{F}
     p⁰ :: Vector{Vector{F}}         # initial state
     ϕ :: Vector{Vector{Vector{F}}}  # observations
-    p :: Vector{F}
 
-    function ExactGlauber(ising::Ising{F}, p⁰::Vector{Vector{F}}, 
+    function Glauber(ising::Ising{F}, p⁰::Vector{Vector{F}}, 
             ϕ::Vector{Vector{Vector{F}}}) where {F<:AbstractFloat}
         N = length(p⁰)
         @assert length(ϕ) == N
         T = length(ϕ[1])
-        T*N > 15 && @warn "T*N=$(T*N). This will take some time!"
         @assert all(length(ϕᵢ) == T for ϕᵢ in ϕ)
-        p = fill_p(ising, p⁰, ϕ, T, N)
-        new{T,N,F}(ising, p⁰, ϕ, p)
+        new{T,N,F}(ising, p⁰, ϕ)
     end
 end
-
-T = 4
-N = 2
-p = zeros(2^(N*(T+1)))
 
 function bitarr_to_int(arr::BitArray, s=big(0))
     v = 1
@@ -69,9 +62,10 @@ function int_to_matrix(x::Integer, dims)
     return reshape(y, dims) .+ 1
 end
 
-function fill_p(ising::Ising, p⁰, ϕ, T::Integer, N::Integer; 
-        p = ones(2^(N*(T+1))))
-    
+function exact_prob(gl::Glauber{T,N,F}) where {T,N,F}
+    T*N > 15 && @warn "T*N=$(T*N). This will take some time!"
+    @unpack ising, p⁰, ϕ = gl
+    p = ones(2^(N*(T+1)))
     prog = Progress(2^(N*(T+1)), desc="Computing joint probability")
     X = zeros(Int, T+1, N)
     for x in 1:2^(N*(T+1))
@@ -91,14 +85,15 @@ function fill_p(ising::Ising, p⁰, ϕ, T::Integer, N::Integer;
 end
 
 
-function site_marginals(gl::ExactGlauber{T, N, F}; 
+function site_marginals(gl::Glauber{T, N, F}; 
+        p = exact_prob(gl),
         m = [zeros(fill(2,T+1)...) for i in 1:N]) where {T,N,F}
     prog = Progress(2^(N*(T+1)), desc="Computing site marginals")
     X = zeros(Int, T+1, N)
     for x in 1:2^(N*(T+1))
         X .= int_to_matrix(x-1, (T+1,N))
         for i in 1:N
-            m[i][X[:,i]...] += gl.p[x]
+            m[i][X[:,i]...] += p[x]
         end
         next!(prog)
     end
@@ -106,25 +101,34 @@ function site_marginals(gl::ExactGlauber{T, N, F};
     m
 end
 
-function site_time_marginals(gl::ExactGlauber{T, N, F}; 
+function site_time_marginals(gl::Glauber{T, N, F}; 
         m = site_marginals(gl)) where {T,N,F}
-    p = [[zeros(2) for t in 0:T] for i in 1:N]
+    pp = [[zeros(2) for t in 0:T] for i in 1:N]
     for i in 1:N
         for t in 1:T+1
             for xᵢᵗ in 1:2
                 indices = [s==t ? xᵢᵗ : Colon() for s in 1:T+1]
-                p[i][t][xᵢᵗ] = sum(m[i][indices...])
+                pp[i][t][xᵢᵗ] = sum(m[i][indices...])
             end
-            p[i][t] ./= sum(p[i][t])
+            pp[i][t] ./= sum(pp[i][t])
         end
     end
-    p
+    pp
 end
 
-function site_time_magnetizations(gl::ExactGlauber{T, N, F};
-        m = site_marginals(gl), mm = site_time_marginals(gl; m)) where {T,N,F}
+function site_time_magnetizations(gl::Glauber{T, N, F};
+        mm = site_time_marginals(gl)) where {T,N,F}
     map(1:N) do i
         pᵢ = mm[i]
         reduce.(-, pᵢ)
     end
+end
+
+# return true if all the ϕ's are uniform, i.e. the dynamics is free
+function is_free_dynamics(gl::Glauber)
+    map(ϕ) do ϕᵢ
+        map(ϕᵢ) do ϕᵢᵗ
+            all(y->y==ϕᵢᵗ[1], ϕᵢᵗ)
+        end |> all
+    end |> all
 end

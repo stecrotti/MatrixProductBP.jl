@@ -5,8 +5,8 @@ include("../../telegram/notifications.jl")
 
 unicodeplots()
 
-T = 20
-β = 1.8
+T = 5
+β = 1.0
 wᵢ = fill( GlauberFactor(ones(2), 0.0, β), T )
 ϕᵢ = [ones(2) for _ in 1:T]
 pᵢ⁰ = [0.75, 0.25]

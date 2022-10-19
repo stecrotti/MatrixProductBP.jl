@@ -1,31 +1,29 @@
 using Graphs
 using Plots, ColorSchemes
+using LinearAlgebra
+using Statistics
 include("../mpdbp.jl")
 
 q = q_glauber
-T = 4
-N = 10
-k = 3
+T = 10
+N = 4
+J = ones(N,N) - diagm(ones(N))
 h = zeros(N)
-
-gg = random_regular_graph(N, k)
-g = IndexedGraph(gg)
-J = ones(ne(g))
 β = 1.0
+ising = Ising(J, h, β)
 
 p⁰ = map(1:N) do i
     # r = rand()
-    r = 1e-3
+    r = 0.75
     [r, 1-r]
 end
 ϕ = [[[0.5,0.5] for t in 1:T] for i in 1:N]
 
-ising = Ising(g, J, h, β)
-ε = 1e-1
-bp = mpdbp(ising, T, ϕ, p⁰)
+ε = 1e-2
+bp = mpdbp(ising, T, ϕ, p⁰, d=1)
 cb = CB_BP(bp)
-iterate!(bp, maxiter=5; ε, cb)
-println()
-@show cb.Δs
+iterate!(bp, maxiter=10; ε, cb, tol=1e-3)
 
 m_bp = cb.mag
+pl = plot(0:T, mean(m_bp), xlabel="time", ylabel="magnetization", label="",
+    m=:o)

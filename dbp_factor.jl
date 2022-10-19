@@ -1,5 +1,5 @@
 include("utils.jl")
-include("exact/exact_glauber.jl")
+include("glauber.jl")
 
 abstract type dBP_Factor; end
 
@@ -17,6 +17,7 @@ end
 function (fᵢ::GlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer}, xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:q_glauber
     @assert all(x ∈ 1:q_glauber for x in xₙᵢᵗ)
+    @assert length(xₙᵢᵗ) == length(fᵢ.J)
 
     hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.J))
     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.h)

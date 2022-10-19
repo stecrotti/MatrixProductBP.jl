@@ -12,6 +12,13 @@ J = [0 1 0 0 0;
      0 1 0 1 1;
      0 0 1 0 0;
      0 0 1 0 0] .|> float
+for ij in eachindex(J)
+    if J[ij] !=0 
+        J[ij] = randn()
+    end
+end
+J = J + J'
+
 N = 5
 h = randn(N)
 
@@ -23,13 +30,14 @@ p⁰ = map(1:N) do i
     [r, 1-r]
 end
 ϕ = [[ones(2) for t in 1:T] for i in 1:N]
-ϕ[1][1] = [1, 0]
-ϕ[2][2] = [0, 1]
-ϕ[2][3] = [0, 1]
+# ϕ[1][1] = [1, 0]
+# ϕ[2][2] = [0, 1]
+# ϕ[2][3] = [0, 1]
 
 ising = Ising(J, h, β)
-gl = ExactGlauber(ising, p⁰, ϕ)
-m = site_marginals(gl)
+gl = Glauber(ising, p⁰, ϕ)
+p = exact_prob(gl)
+m = site_marginals(gl; p)
 mm = site_time_marginals(gl; m)
 
 ε = 1e-2
@@ -43,7 +51,7 @@ b = beliefs(bp; ε)
 
 @show m_bp = magnetizations(bp; ε)
 
-m_exact = site_time_magnetizations(gl; m, mm)
+m_exact = site_time_magnetizations(gl; mm)
 cg = cgrad(:matter, N, categorical=true)
 pl = plot(xlabel="BP", ylabel="exact", title="Magnetizations")
 for i in 1:N

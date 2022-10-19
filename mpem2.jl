@@ -84,7 +84,8 @@ function sweep_RtoL!(C::MPEM2{q,T,F}; ε=1e-6) where {q,T,F}
         C[t] = Aᵗ
         
         Cᵗ⁻¹ = C[t-1]
-        @reduce Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ] := sum(k,l) Cᵗ⁻¹[m, k, xᵢ, xⱼ] * U_trunc[k, l] * Diagonal(λ_trunc)[l, n]
+        @reduce Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ] := sum(k) Cᵗ⁻¹[m, k, xᵢ, xⱼ] * 
+            U_trunc[k, n] * λ_trunc[n]
         @cast M[m, (n, xᵢ, xⱼ)] := Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ]
     end
     C[begin] = Cᵗ⁻¹_trunc
