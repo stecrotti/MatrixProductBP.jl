@@ -67,9 +67,10 @@ function mpem2(B::MPEM3{q,T,F}; showprogress=false) where {q,T,F}
         @cast Cᵗ[m, k, xᵢ, xⱼ] := U[(xᵢ, xⱼ, m), k] k in 1:m, xᵢ in 1:q, xⱼ in 1:q
         C[t] = Cᵗ
         @cast Vt[m, n, xᵢᵗ⁺¹] := V'[m, (n, xᵢᵗ⁺¹)]  xᵢᵗ⁺¹ in 1:q
-
         Bᵗ⁺¹ = B[t+1]
-        @reduce Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²] |= sum(l) λ[m] * 
+        # @reduce Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²] |= sum(l) λ[m] * 
+        #     Vt[m, l, xᵢᵗ⁺¹] * Bᵗ⁺¹[xᵢᵗ⁺¹, xⱼᵗ⁺¹, l, n, xᵢᵗ⁺²] 
+        @tullio Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²] := λ[m] * 
             Vt[m, l, xᵢᵗ⁺¹] * Bᵗ⁺¹[xᵢᵗ⁺¹, xⱼᵗ⁺¹, l, n, xᵢᵗ⁺²] 
         @cast M[(xᵢᵗ⁺¹, xⱼᵗ⁺¹, m), (n, xᵢᵗ⁺²)] |= Bᵗ⁺¹_new[xᵢᵗ⁺¹, xⱼᵗ⁺¹, m, n, xᵢᵗ⁺²]
         next!(prog, showvalues=[(:t,"$t/$T")])

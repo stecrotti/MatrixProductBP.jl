@@ -3,6 +3,7 @@ using Measurements
 import Statistics: mean, std
 import UnPack: @unpack
 import Distributions: sample, Bernoulli
+import Base.Threads: @threads
 
 function sweep!(x, ising::Ising; nodes=1:nv(ising.g))
     for i in nodes
@@ -91,6 +92,7 @@ function sample!(gs::GlauberSampler; nsamples = nv(gs.gl.ising.g),
         showprogress=false)
     prog = Progress(nsamples, dt=showprogress ? 0.1 : Inf, 
         desc="Sampling from Glauber")
+    sizehint!(gs.X, nsamples)
     for _ in 1:nsamples
         x = _sample(gs.gl)
         push!(gs.X, x)

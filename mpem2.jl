@@ -75,16 +75,18 @@ function sweep_RtoL!(C::MPEM2{q,T,F}; ε=1e-6) where {q,T,F}
         mprime = findlast(λₖ > ε*λ_norm for λₖ in λ)
         @assert mprime !== nothing "λ=$λ, M=$M"
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
-        M_trunc = U_trunc * Diagonal(λ_trunc) * V_trunc'
+        # M_trunc = U_trunc * Diagonal(λ_trunc) * V_trunc'
 
-        X = norm(M - M_trunc)^2
-        Y = sum(abs2, λ[mprime+1:end])
+        # X = norm(M - M_trunc)^2
+        # Y = sum(abs2, λ[mprime+1:end])
         
         @cast Aᵗ[m, n, xᵢ, xⱼ] := V_trunc'[m, (n, xᵢ, xⱼ)] m in 1:mprime, xᵢ in 1:q, xⱼ in 1:q
         C[t] = Aᵗ
         
         Cᵗ⁻¹ = C[t-1]
-        @reduce Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ] := sum(k) Cᵗ⁻¹[m, k, xᵢ, xⱼ] * 
+        # @reduce Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ] := sum(k) Cᵗ⁻¹[m, k, xᵢ, xⱼ] * 
+        #     U_trunc[k, n] * λ_trunc[n]
+        @tullio Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ] := Cᵗ⁻¹[m, k, xᵢ, xⱼ] * 
             U_trunc[k, n] * λ_trunc[n]
         @cast M[m, (n, xᵢ, xⱼ)] := Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ]
     end
@@ -115,7 +117,7 @@ function sweep_LtoR!(C::MPEM2{q,T,F}; ε=1e-6) where {q,T,F}
         C[t] = Aᵗ
 
         Cᵗ⁺¹ = C[t+1]
-        @reduce Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ] |= sum(k,l) Diagonal(λ_trunc)[m, k] * V_trunc'[k, l] * Cᵗ⁺¹[l, n, xᵢ, xⱼ]
+        @reduce Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ] |= sum(l) λ_trunc[m] * V_trunc'[m, l] * Cᵗ⁺¹[l, n, xᵢ, xⱼ]
         @cast M[(m, xᵢ, xⱼ), n] |= Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ]
     end
     C[end] = Cᵗ⁺¹_trunc

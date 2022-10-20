@@ -3,6 +3,7 @@ import TensorCast: @cast, @reduce, @matmul, TensorCast
 import LinearAlgebra: svd, Diagonal, norm, tr
 import Base.-
 import ProgressMeter: Progress, next!
+using Tullio: @tullio
 
 abstract type MPEM; end
 

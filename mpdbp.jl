@@ -6,6 +6,7 @@ import Graphs: nv, ne, edges, vertices
 import IndexedGraphs: IndexedBiDiGraph, inedges, outedges, idx
 import UnPack: @unpack
 import ProgressMeter: ProgressUnknown, next!
+import Random: shuffle!
 
 struct MPdBP{q,T,F<:Real,U<:dBP_Factor}
     g  :: IndexedBiDiGraph{Int}          # graph
@@ -57,13 +58,13 @@ end
 
 struct CB_BP{TP<:ProgressUnknown}
     prog :: TP
-    mag :: Vector{Vector{Float64}}
+    mag :: Vector{Vector{Vector{Float64}}}
     Δs :: Vector{Float64}
     function CB_BP(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
         @assert q == 2
         prog = ProgressUnknown(desc="Running MPdBP: iter")
         TP = typeof(prog)
-        mag = magnetizations(bp) 
+        mag = [magnetizations(bp)] 
         Δs = zeros(0)
         new{TP}(prog, mag, Δs)
     end
@@ -71,21 +72,23 @@ end
 
 function (cb::CB_BP)(bp::MPdBP, it::Integer)
     mag_new = magnetizations(bp)
-    mag_old = cb.mag
+    mag_old = cb.mag[end]
     Δ = sum(sum(abs, mn .- mo) for (mn,mo) in zip(mag_new,mag_old))
     push!(cb.Δs, Δ)
     next!(cb.prog, showvalues=[(:Δ,Δ)])
-    cb.mag .= mag_new
+    push!(cb.mag, mag_new)
     return Δ
 end
 
-function iterate!(bp::MPdBP; maxiter=5, ε=1e-6, cb=CB_BP(bp), tol=1e-10)
+function iterate!(bp::MPdBP; maxiter=5, ε=1e-6, cb=CB_BP(bp), tol=1e-10,
+        nodes = collect(vertices(bp.g)))
     for it in 1:maxiter
-        for i in vertices(bp.g)
+        for i in nodes
             onebpiter!(bp, i; ε)
         end
         Δ = cb(bp, it)
         Δ < tol && return it, cb
+        shuffle!(nodes)
     end
     return maxiter, cb
 end
