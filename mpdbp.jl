@@ -1,6 +1,5 @@
 include("bp.jl")
 include("dbp_factor.jl")
-include("glauber.jl")
 
 import Graphs: nv, ne, edges, vertices
 import IndexedGraphs: IndexedBiDiGraph, inedges, outedges, idx
@@ -30,20 +29,20 @@ struct MPdBP{q,T,F<:Real,U<:dBP_Factor}
 end
 
 function mpdbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:dBP_Factor}}, 
-        q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1],
+        q::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(q) for t in 1:T] for i in 1:nv(g)],
         p⁰ = [ones(q) for i in 1:nv(g)],
         μ = [mpem2(q, T; d, bondsizes) for e in edges(g)])
     return MPdBP(g, w, ϕ, p⁰, μ)
 end
 
-function onebpiter!(bp::MPdBP, i::Integer; ε=1e-6)
+function onebpiter!(bp::MPdBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
     @unpack g, w, ϕ, p⁰, μ = bp
     A = μ[inedges(g,i).|>idx]
     for (j_ind, e_out) in enumerate( outedges(g, i) )
         B = f_bp(A, p⁰[i], w[i], ϕ[i], j_ind)
         C = mpem2(B)
-        μ[idx(e_out)] = sweep_RtoL!(C; ε)
+        μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
         # normalize!(μ[idx(e_out)], norm_fast_R)
         # for m in μ[idx(e_out)]
         #     mm = maximum(abs, m)
@@ -80,11 +79,12 @@ function (cb::CB_BP)(bp::MPdBP, it::Integer)
     return Δ
 end
 
-function iterate!(bp::MPdBP; maxiter=5, ε=1e-6, cb=CB_BP(bp), tol=1e-10,
+function iterate!(bp::MPdBP; maxiter=5, svd_trunc::SVDTrunc=TruncThresh(1e-6),
+        cb=CB_BP(bp), tol=1e-10,
         nodes = collect(vertices(bp.g)))
     for it in 1:maxiter
         for i in nodes
-            onebpiter!(bp, i; ε)
+            onebpiter!(bp, i; svd_trunc)
         end
         Δ = cb(bp, it)
         Δ < tol && return it, cb
@@ -93,39 +93,25 @@ function iterate!(bp::MPdBP; maxiter=5, ε=1e-6, cb=CB_BP(bp), tol=1e-10,
     return maxiter, cb
 end
 
-function belief(bp::MPdBP, i::Integer; ε=1e-6)
+function belief(bp::MPdBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
     @unpack g, w, ϕ, p⁰, μ = bp
     A = μ[inedges(g,i).|>idx]
     B = f_bp(A, p⁰[i], w[i], ϕ[i])
     C = mpem2(B)
-    sweep_RtoL!(C; ε)
+    sweep_RtoL!(C; svd_trunc)
     return firstvar_marginals(C)
 end
 
-function beliefs(bp::MPdBP; ε=1e-6)
-    [belief(bp, i; ε) for i in vertices(bp.g)]
+function beliefs(bp::MPdBP; kw...)
+    [belief(bp, i; kw...) for i in vertices(bp.g)]
 end
 
-function magnetizations(bp::MPdBP{q,T,F,U}; ε=1e-6) where {q,T,F,U}
+function magnetizations(bp::MPdBP{q,T,F,U}; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
     @assert q == 2
     map(vertices(bp.g)) do i
-        bᵢ = belief(bp, i; ε)
+        bᵢ = belief(bp, i; svd_trunc)
         reduce.(-, bᵢ)
     end
 end
 
-function mpdbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
-    g = IndexedBiDiGraph(gl.ising.g.A)
-    w = glauber_factors(gl.ising, T)
-    ϕ = gl.ϕ
-    p⁰ = gl.p⁰
-    return mpdbp(g, w, 2, T; ϕ, p⁰, kw...)
-end
-
-function mpdbp(ising::Ising, T::Integer,
-        ϕ = [[rand(2) for t in 1:T] for i in 1:nv(ising.g)],
-        p⁰ = [rand(2) for i in 1:nv(ising.g)]; kw...)
-    g = IndexedBiDiGraph(ising.g.A)
-    w = glauber_factors(ising, T)
-    return mpdbp(g, w, 2, T; ϕ, p⁰, kw...)
-end

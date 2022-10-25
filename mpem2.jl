@@ -62,17 +62,34 @@ function evaluate(A::MPEM2{q,T,F}, x) where {q,T,F}
     return only(M)
 end
 
+abstract type SVDTrunc; end
+
+struct TruncThresh{T} <: SVDTrunc
+    ε :: T
+end
+function (svd_trunc::TruncThresh)(λ::Vector{<:Real})::Int
+    λ_norm = norm(λ)
+    mprime = findlast(λₖ > svd_trunc.ε*λ_norm for λₖ in λ)
+end
+
+struct TruncBond <: SVDTrunc
+    mprime :: Int
+end
+function (svd_trunc::TruncBond)(λ::Vector{<:Real}) 
+    min(length(λ), svd_trunc.mprime)
+end
+
 # when truncating it assumes that matrices are already left-orthogonal
-function sweep_RtoL!(C::MPEM2{q,T,F}; ε=1e-6) where {q,T,F}
-    @assert ε ≤ 1
+function sweep_RtoL!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
     Cᵀ = C[end]
     @cast M[m, (n, xᵢ, xⱼ)] := Cᵀ[m, n, xᵢ, xⱼ]
     Cᵗ⁻¹_trunc = rand(1,1,1,1)  # initialize
 
     for t in T+1:-1:2
         U, λ, V = svd(M)
-        λ_norm = norm(λ)
-        mprime = findlast(λₖ > ε*λ_norm for λₖ in λ)
+        # λ_norm = norm(λ)
+        # mprime = findlast(λₖ > ε*λ_norm for λₖ in λ)
+        mprime = svd_trunc(λ)
         @assert mprime !== nothing "λ=$λ, M=$M"
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
         # M_trunc = U_trunc * Diagonal(λ_trunc) * V_trunc'

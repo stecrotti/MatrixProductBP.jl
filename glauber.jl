@@ -5,6 +5,7 @@ import Base.Threads: @threads
 import UnPack: @unpack
 
 include("./utils.jl")
+include("mpdbp.jl")
 
 # Ising model with xᵢ ∈ {1,2}
 struct Ising{F<:AbstractFloat}
@@ -134,3 +135,32 @@ function is_free_dynamics(gl::Glauber)
         end |> all
     end |> all
 end
+
+# construct an array of GlauberFactors corresponding to gl
+function glauber_factors(ising::Ising, T::Integer)
+    map(1:nv(ising.g)) do i
+        ei = outedges(ising.g, i)
+        ∂i = idx.(ei)
+        J = ising.J[∂i]
+        h = ising.h[i]
+        wᵢᵗ = GlauberFactor(J, h, ising.β)
+        fill(wᵢᵗ, T)
+    end
+end
+
+function mpdbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
+    g = IndexedBiDiGraph(gl.ising.g.A)
+    w = glauber_factors(gl.ising, T)
+    ϕ = gl.ϕ
+    p⁰ = gl.p⁰
+    return mpdbp(g, w, 2, T; ϕ, p⁰, kw...)
+end
+
+function mpdbp(ising::Ising, T::Integer,
+        ϕ = [[rand(2) for t in 1:T] for i in 1:nv(ising.g)],
+        p⁰ = [rand(2) for i in 1:nv(ising.g)]; kw...)
+    g = IndexedBiDiGraph(ising.g.A)
+    w = glauber_factors(ising, T)
+    return mpdbp(g, w, 2, T; ϕ, p⁰, kw...)
+end
+

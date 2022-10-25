@@ -5,6 +5,8 @@ import UnPack: @unpack
 import Distributions: sample, Bernoulli
 import Base.Threads: @threads
 
+include("../glauber.jl")
+
 function sweep!(x, ising::Ising; nodes=1:nv(ising.g))
     for i in nodes
         ∂i = neighbors(ising.g, i)
