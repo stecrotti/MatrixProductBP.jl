@@ -6,6 +6,7 @@ import IndexedGraphs: IndexedBiDiGraph, inedges, outedges, idx
 import UnPack: @unpack
 import ProgressMeter: ProgressUnknown, next!
 import Random: shuffle!
+import Base.Threads: @threads
 
 struct MPdBP{q,T,F<:Real,U<:dBP_Factor}
     g  :: IndexedBiDiGraph{Int}          # graph
@@ -28,6 +29,9 @@ struct MPdBP{q,T,F<:Real,U<:dBP_Factor}
     end
 end
 
+getT(bp::MPdBP{q,T,F,U}) where {q,T,F,U} = T
+getq(bp::MPdBP{q,T,F,U}) where {q,T,F,U} = q
+
 function mpdbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:dBP_Factor}}, 
         q::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(q) for t in 1:T] for i in 1:nv(g)],
@@ -43,13 +47,6 @@ function onebpiter!(bp::MPdBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6)
         B = f_bp(A, p⁰[i], w[i], ϕ[i], j_ind)
         C = mpem2(B)
         μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
-        # normalize!(μ[idx(e_out)], norm_fast_R)
-        # for m in μ[idx(e_out)]
-        #     mm = maximum(abs, m)
-        #     if !any(isnan, mm) && !any(isinf, mm)
-        #         m ./= mm
-        #     end
-        # end
         normalize_eachmatrix!(μ[idx(e_out)])
     end
     return nothing
@@ -83,7 +80,7 @@ function iterate!(bp::MPdBP; maxiter=5, svd_trunc::SVDTrunc=TruncThresh(1e-6),
         cb=CB_BP(bp), tol=1e-10,
         nodes = collect(vertices(bp.g)))
     for it in 1:maxiter
-        for i in nodes
+        @threads for i in nodes
             onebpiter!(bp, i; svd_trunc)
         end
         Δ = cb(bp, it)

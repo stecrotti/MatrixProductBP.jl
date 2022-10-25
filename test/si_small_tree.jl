@@ -1,5 +1,6 @@
 include("../sis.jl")
 include("sib.jl")
+include("../exact/montecarlo.jl")
 
 q = q_sis
 T = 6
@@ -21,9 +22,9 @@ p⁰ = map(1:N) do i
     [r, 1-r]
 end
 ϕ = [[ones(2) for t in 1:T] for i in 1:N]
-ϕ[1][1] = [1, 0]
-ϕ[2][2] = [0, 1]
-ϕ[3][3] = [0, 1]
+ϕ[1][1] = [0.75, 0.25]
+ϕ[2][2] = [0.1, 0.9]
+ϕ[3][3] = [0.7, 0.3]
 
 b_sib = sib_SI(T, g, ϕ, p⁰, λ)
 p_sib = [[bbb[2] for bbb in bb] for bb in b_sib]
@@ -39,5 +40,8 @@ iterate!(bp, maxiter=10; svd_trunc, cb)
 b_bp = beliefs(bp; svd_trunc)
 p_bp =  [[bbb[2] for bbb in bb] for bb in b_bp]
 
-p_bp[1][1:end-1]
-p_sib[1]
+sms = sample(bp, 10^5)
+b_mc = marginals(sms)
+p_mc = [[bbb[2] for bbb in bb] for bb in b_mc]
+
+[ p_bp[1][1:end-1] p_sib[1] p_mc[1][1:end-1] ]

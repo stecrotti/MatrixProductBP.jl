@@ -4,8 +4,11 @@ import Statistics: mean, std
 import UnPack: @unpack
 import Distributions: sample, Bernoulli
 import Base.Threads: @threads
+using Unzip
+import StatsBase
 
 include("../glauber.jl")
+include("../mpdbp.jl")
 
 function sweep!(x, ising::Ising; nodes=1:nv(ising.g))
     for i in nodes
@@ -111,4 +114,80 @@ function magnetizations(gs::GlauberSampler)
     m = mean(gs.X)
     s = std(gs.X) ./ sqrt(length(gs.X))
     return potts2spin.( m .± s )
+end
+
+struct SoftMarginSampler{B<:MPdBP, F<:AbstractFloat}
+    bp :: B
+    X  :: Vector{Matrix{Int}}
+    w  :: Vector{F}
+    function SoftMarginSampler(bp::MPdBP{q,T,F,U}, 
+            X::Vector{Matrix{Int}}, w::Vector{F}) where{q,T,F,U}
+
+        N = nv(bp.g)
+        @assert length(X) == length(w)
+        @assert all(≥(0), w)
+        @assert all(x -> size(x) == (N, T+1), X)
+
+        new{MPdBP{q,T,F,U}, F}(bp, X, w)
+    end
+end
+
+# a sample with its weight
+function onesample!(x::Matrix{Int}, bp::MPdBP{q,T,F,U}) where {q,T,F,U}
+    @unpack g, w, ϕ, p⁰, μ = bp
+    N = nv(bp.g)
+    @assert size(x) == (N , T+1)
+    wg = 1.0
+
+    for i in 1:N
+        x[i, 1] = sample_noalloc(p⁰[i])
+    end
+
+    for t in 1:T
+        for i in 1:N
+            ∂i = neighbors(bp.g, i)
+            p = [w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q]
+            xᵢᵗ = sample_noalloc(p)
+            x[i, t+1] = xᵢᵗ
+            wg *= ϕ[i][t][xᵢᵗ]
+        end
+    end
+
+    return x, wg
+end
+function onesample(bp::MPdBP{q,T,F,U}) where {q,T,F,U}  
+    N = nv(bp.g)
+    x = zeros(Int, N, T+1)
+    onesample!(x, bp)
+end
+
+function sample(bp::MPdBP, nsamples::Integer)
+    prog = Progress(nsamples, desc="SoftMargin sampling...")
+    S = map(1:nsamples) do _
+        s = onesample(bp)
+        next!(prog)
+        s
+    end 
+    X, w = unzip(S)
+    SoftMarginSampler(bp, X, w)
+end
+
+# return a (T+1) by N matrix, with errors
+function marginals(sms::SoftMarginSampler) 
+    @unpack bp, X, w = sms
+    N = nv(bp.g); T = getT(bp); q = getq(bp)
+    marg = [[zeros(Measurement, q) for t in 0:T] for i in 1:N]
+    wv = StatsBase.weights(w)
+    nsamples = length(X)
+
+    for i in 1:N
+        for t in 1:T+1
+            x = [xx[i, t] for xx in X]
+            mit_avg = StatsBase.proportions(x, q, wv)
+            mit_var = mit_avg .* (1 .- mit_avg) ./ nsamples
+            marg[i][t] .= mit_avg .± sqrt.( mit_var )
+        end
+    end
+
+   return marg
 end
