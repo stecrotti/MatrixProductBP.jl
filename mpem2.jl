@@ -1,4 +1,5 @@
 import LinearAlgebra: norm
+import Base: show
 
 # Matrix [Aᵗᵢⱼ(xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 4-array A[m,n,xᵢᵗ,xⱼᵗ]
 # T is the final time
@@ -72,11 +73,19 @@ function (svd_trunc::TruncThresh)(λ::Vector{<:Real})::Int
     mprime = findlast(λₖ > svd_trunc.ε*λ_norm for λₖ in λ)
 end
 
+function show(io::IO, svd_trunc::TruncThresh)
+    println(io, "SVD truncation with threshold ε=", svd_trunc.ε)
+end
+
 struct TruncBond <: SVDTrunc
     mprime :: Int
 end
 function (svd_trunc::TruncBond)(λ::Vector{<:Real}) 
     min(length(λ), svd_trunc.mprime)
+end
+
+function show(io::IO, svd_trunc::TruncBond)
+    println(io, "SVD truncation to bond size m'=", svd_trunc.mprime)
 end
 
 # when truncating it assumes that matrices are already left-orthogonal
@@ -232,4 +241,14 @@ function firstvar_marginals(A::MPEM2{q,T,F}; p = pair_marginals(A)) where {q,T,F
         pᵢᵗ =  sum(pₜ, dims=2) |> vec
         pᵢᵗ ./= sum(pᵢᵗ)
     end
+end
+
+import Base.reverse
+# swap xᵢ and xⱼ all over A
+function reverse(A::MPEM2)
+    B = deepcopy(A)
+    for (Aᵗ, Bᵗ) in zip(A, B)
+        permutedims!(Bᵗ, Aᵗ, (1, 2, 4, 3))
+    end
+    B
 end

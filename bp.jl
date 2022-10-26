@@ -170,3 +170,56 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ;
     B[end] = Bᵀ
     return MPEM3(B)
 end
+
+function accumulate_L(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
+    L = [zeros(0,0) for t in 0:T]
+    Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]
+    @tullio L⁰[a¹, b¹] := Aᵢⱼ⁰[1,a¹,xᵢ⁰,xⱼ⁰] * Aⱼᵢ⁰[1,b¹,xⱼ⁰,xᵢ⁰]
+    L[1] = L⁰
+
+    Lᵗ = L⁰
+    for t in 1:T
+        Aᵢⱼᵗ = Aᵢⱼ[t+1]; Aⱼᵢᵗ = Aⱼᵢ[t+1]
+        @reduce Lᵗ[aᵗ⁺¹,bᵗ⁺¹] |= sum(xᵢᵗ,xⱼᵗ,aᵗ,bᵗ)  Lᵗ[aᵗ,bᵗ] * Aᵢⱼᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] * Aⱼᵢᵗ[bᵗ,bᵗ⁺¹,xⱼᵗ,xᵢᵗ]
+        L[t+1] = Lᵗ
+    end
+    return L
+end
+
+function accumulate_R(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
+    R = [zeros(0,0) for t in 0:T]
+    Aᵢⱼᵀ = Aᵢⱼ[end]; Aⱼᵢᵀ = Aⱼᵢ[end]
+    @tullio Rᵀ[aᵀ, bᵀ] := Aᵢⱼᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ] * Aⱼᵢᵀ[bᵀ,1,xⱼᵀ,xᵢᵀ]
+    R[end] = Rᵀ
+
+    Rᵗ = Rᵀ
+    for t in T:-1:1
+        Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]
+        @reduce Rᵗ[aᵗ,bᵗ] |= sum(xᵢᵗ,xⱼᵗ,aᵗ⁺¹,bᵗ⁺¹)  Aᵢⱼᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] * Aⱼᵢᵗ[bᵗ,bᵗ⁺¹,xⱼᵗ,xᵢᵗ] * Rᵗ[aᵗ⁺¹,bᵗ⁺¹]
+        R[t] = Rᵗ
+    end
+    return R
+end
+
+# compute bᵢⱼ(xᵢ,xⱼ) from μᵢⱼ and μⱼᵢ
+function pair_belief(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2)
+
+    L = accumulate_L(Aᵢⱼ, Aⱼᵢ); R = accumulate_R(Aᵢⱼ, Aⱼᵢ)
+
+    Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]; R¹ = R[2]
+    @reduce b⁰[xᵢ⁰,xⱼ⁰] := sum(a¹,b¹) Aᵢⱼ⁰[1,a¹,xᵢ⁰,xⱼ⁰] * Aⱼᵢ⁰[1,b¹,xⱼ⁰,xᵢ⁰] * R¹[a¹,b¹]
+    b⁰ ./= sum(b⁰)
+
+    Aᵢⱼᵀ = Aᵢⱼ[end]; Aⱼᵢᵀ = Aⱼᵢ[end]; Lᵀ⁻¹ = L[end-1]
+    @reduce bᵀ[xᵢᵀ,xⱼᵀ] := sum(aᵀ,bᵀ) Lᵀ⁻¹[aᵀ,bᵀ] * Aᵢⱼᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ] * Aⱼᵢᵀ[bᵀ,1,xⱼᵀ,xᵢᵀ]
+    bᵀ ./= sum(bᵀ)
+
+    b = map(2:T) do t 
+        Lᵗ⁻¹ = L[t-1]; Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; Rᵗ⁺¹ = R[t+1]
+        @reduce bᵗ[xᵢᵗ,xⱼᵗ] := sum(aᵗ,aᵗ⁺¹,bᵗ,bᵗ⁺¹) Lᵗ⁻¹[aᵗ,bᵗ] * 
+            Aᵢⱼᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] * Aⱼᵢᵗ[bᵗ,bᵗ⁺¹,xⱼᵗ,xᵢᵗ] * Rᵗ⁺¹[aᵗ⁺¹,bᵗ⁺¹]  
+        bᵗ ./= sum(bᵗ)
+    end
+
+    return [b⁰, b..., bᵀ]
+end

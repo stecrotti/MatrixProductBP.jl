@@ -43,7 +43,8 @@ mm = site_time_marginals(gl; m)
 ε = 1e-2
 bp = mpdbp(ising, T, ϕ, p⁰)
 cb = CB_BP(bp)
-iterate!(bp, maxiter=10; ε, cb)
+svd_trunc = TruncThresh(ε)
+iterate!(bp, maxiter=10; svd_trunc, cb)
 println()
 @show cb.Δs
 

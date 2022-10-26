@@ -1,6 +1,5 @@
 import Random
 
-
 # maps (1,2) -> (1,-1)
 potts2spin(x) = 3-2x
 spin2potts(σ) = (3+σ)/2
