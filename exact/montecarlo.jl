@@ -134,7 +134,7 @@ end
 
 # a sample with its weight
 function onesample!(x::Matrix{Int}, bp::MPdBP{q,T,F,U}) where {q,T,F,U}
-    @unpack g, w, ϕ, p⁰, μ = bp
+    @unpack g, w, ϕ, ψ, p⁰, μ = bp
     N = nv(bp.g)
     @assert size(x) == (N , T+1)
     wg = 1.0
@@ -152,7 +152,11 @@ function onesample!(x::Matrix{Int}, bp::MPdBP{q,T,F,U}) where {q,T,F,U}
             wg *= ϕ[i][t][xᵢᵗ]
         end
     end
-
+    for t in 1:T
+        for (i, j, ij) in edges(bp.g)
+            wg *= sqrt( ψ[ij][t][x[i,t+1], x[j,t+1]] )
+        end
+    end
     return x, wg
 end
 function onesample(bp::MPdBP{q,T,F,U}) where {q,T,F,U}  
