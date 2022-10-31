@@ -34,11 +34,12 @@ end
 # ϕ[2][2] = [0, 1]
 # ϕ[2][3] = [0, 1]
 
+
 ising = Ising(J, h, β)
 gl = Glauber(ising, p⁰, ϕ)
-p = exact_prob(gl)
-m = site_marginals(gl; p)
-mm = site_time_marginals(gl; m)
+# p = exact_prob(gl)
+# m = site_marginals(gl; p)
+# mm = site_time_marginals(gl; m)
 
 ε = 1e-2
 bp = mpdbp(ising, T, ϕ, p⁰)

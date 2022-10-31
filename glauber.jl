@@ -38,16 +38,20 @@ end
 
 struct Glauber{T, N, F<:AbstractFloat}
     ising :: Ising{F}
-    p⁰ :: Vector{Vector{F}}         # initial state
-    ϕ :: Vector{Vector{Vector{F}}}  # observations
+    p⁰ :: Vector{Vector{F}}          # initial state
+    ϕ  :: Vector{Vector{Vector{F}}}  # observations
+    ψ  :: Vector{Vector{Matrix{F}}}  # edge-dependent factors
 
     function Glauber(ising::Ising{F}, p⁰::Vector{Vector{F}}, 
-            ϕ::Vector{Vector{Vector{F}}}) where {F<:AbstractFloat}
+            ϕ::Vector{Vector{Vector{F}}}, 
+            ψ::Vector{Vector{Matrix{F}}}) where {F<:AbstractFloat}
         N = length(p⁰)
         @assert length(ϕ) == N
+        @assert length(ψ) == ne(ising.g)
         T = length(ϕ[1])
         @assert all(length(ϕᵢ) == T for ϕᵢ in ϕ)
-        new{T,N,F}(ising, p⁰, ϕ)
+        @assert all(length(ψᵢⱼ) == T for ψᵢⱼ in ψ)
+        new{T,N,F}(ising, p⁰, ϕ, ψ)
     end
 end
 
@@ -67,7 +71,7 @@ end
 
 function exact_prob(gl::Glauber{T,N,F}) where {T,N,F}
     T*N > 15 && @warn "T*N=$(T*N). This will take some time!"
-    @unpack ising, p⁰, ϕ = gl
+    @unpack ising, p⁰, ϕ, ψ = gl
     p = ones(2^(N*(T+1)))
     prog = Progress(2^(N*(T+1)), desc="Computing joint probability")
     X = zeros(Int, T+1, N)
@@ -80,6 +84,13 @@ function exact_prob(gl::Glauber{T,N,F}) where {T,N,F}
                 p[x] *= local_w(ising.g, ising.J, ising.h, i, X[t+1,i], 
                     X[t,∂i], ising.β)
                 p[x] *= ϕ[i][t][X[t+1,i]]
+            end
+        end
+        for (i, j, ij) in edges(ising.g)
+            # ij = idx(e); i = src(e); j = dst(e)
+            # here g is directed!
+            for t in 1:T
+                p[x] *= ψ[ij][t][X[t+1,i],X[t+1,j]]
             end
         end
         next!(prog)
@@ -129,11 +140,17 @@ end
 
 # return true if all the ϕ's are uniform, i.e. the dynamics is free
 function is_free_dynamics(gl::Glauber)
-    map(ϕ) do ϕᵢ
+    is_free_nodes = map(ψ) do ϕᵢ
         map(ϕᵢ) do ϕᵢᵗ
             all(y->y==ϕᵢᵗ[1], ϕᵢᵗ)
         end |> all
     end |> all
+    is_free_edges = map(ψ) do ψᵢⱼ
+        map(ψᵢⱼ) do ψᵢⱼᵗ
+            all(isequal(ψᵢⱼᵗ[1]), ψᵢⱼᵗ)
+        end |> all
+    end |> all
+    return is_free_nodes && is_free_edges
 end
 
 # construct an array of GlauberFactors corresponding to gl
@@ -148,19 +165,21 @@ function glauber_factors(ising::Ising, T::Integer)
     end
 end
 
-function mpdbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
-    g = IndexedBiDiGraph(gl.ising.g.A)
-    w = glauber_factors(gl.ising, T)
-    ϕ = gl.ϕ
-    p⁰ = gl.p⁰
-    return mpdbp(g, w, 2, T; ϕ, p⁰, kw...)
-end
+# function mpdbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
+#     g = IndexedBiDiGraph(gl.ising.g.A)
+#     w = glauber_factors(gl.ising, T)
+#     ϕ = gl.ϕ
+#     ψ = gl.ψ
+#     p⁰ = gl.p⁰
+#     return mpdbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)
+# end
 
 function mpdbp(ising::Ising, T::Integer,
-        ϕ = [[rand(2) for t in 1:T] for i in 1:nv(ising.g)],
-        p⁰ = [rand(2) for i in 1:nv(ising.g)]; kw...)
+        ϕ = [[ones(2) for t in 1:T] for _ in vertices(ising.g)],
+        ψ = [[ones(2,2) for t in 1:T] for _ in 1:2*ne(ising.g)],
+        p⁰ = [ones(2) for i in 1:nv(ising.g)]; kw...)
     g = IndexedBiDiGraph(ising.g.A)
     w = glauber_factors(ising, T)
-    return mpdbp(g, w, 2, T; ϕ, p⁰, kw...)
+    return mpdbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)
 end
 

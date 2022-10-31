@@ -10,13 +10,13 @@ abstract type MPEM; end
 include("mpem2.jl")
 include("mpem3.jl")
 
-function normalize!(A::MPEM, method = norm)
-    N = norm(A)
-    for Aᵗ in A
-        Aᵗ ./= N
-    end
-    A
-end
+# function normalize!(A::MPEM, method = norm)
+#     N = norm(A)
+#     for Aᵗ in A
+#         Aᵗ ./= N
+#     end
+#     A
+# end
 
 function normalize_eachmatrix!(A::MPEM)
     for m in A

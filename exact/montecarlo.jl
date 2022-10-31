@@ -6,6 +6,7 @@ import Distributions: sample, Bernoulli
 import Base.Threads: @threads
 using Unzip
 import StatsBase
+import LogExpFunctions: logistic
 
 include("../glauber.jl")
 include("../mpdbp.jl")
@@ -120,6 +121,7 @@ struct SoftMarginSampler{B<:MPdBP, F<:AbstractFloat}
     bp :: B
     X  :: Vector{Matrix{Int}}
     w  :: Vector{F}
+
     function SoftMarginSampler(bp::MPdBP{q,T,F,U}, 
             X::Vector{Matrix{Int}}, w::Vector{F}) where{q,T,F,U}
 
@@ -134,7 +136,7 @@ end
 
 # a sample with its weight
 function onesample!(x::Matrix{Int}, bp::MPdBP{q,T,F,U}) where {q,T,F,U}
-    @unpack g, w, ϕ, p⁰, μ = bp
+    @unpack g, w, ϕ, ψ, p⁰, μ = bp
     N = nv(bp.g)
     @assert size(x) == (N , T+1)
     wg = 1.0
@@ -152,7 +154,11 @@ function onesample!(x::Matrix{Int}, bp::MPdBP{q,T,F,U}) where {q,T,F,U}
             wg *= ϕ[i][t][xᵢᵗ]
         end
     end
-
+    for t in 1:T
+        for (i, j, ij) in edges(bp.g)
+            wg *= sqrt( ψ[ij][t][x[i,t+1], x[j,t+1]] )
+        end
+    end
     return x, wg
 end
 function onesample(bp::MPdBP{q,T,F,U}) where {q,T,F,U}  
@@ -177,6 +183,7 @@ function marginals(sms::SoftMarginSampler)
     @unpack bp, X, w = sms
     N = nv(bp.g); T = getT(bp); q = getq(bp)
     marg = [[zeros(Measurement, q) for t in 0:T] for i in 1:N]
+    @assert all(>=(0), w)
     wv = StatsBase.weights(w)
     nsamples = length(X)
 
@@ -184,10 +191,30 @@ function marginals(sms::SoftMarginSampler)
         for t in 1:T+1
             x = [xx[i, t] for xx in X]
             mit_avg = StatsBase.proportions(x, q, wv)
+            # avoid numerical errors yielding probabilities > 1
+            mit_avg = map(x -> x≥1 ? 1 : x, mit_avg)
             mit_var = mit_avg .* (1 .- mit_avg) ./ nsamples
             marg[i][t] .= mit_avg .± sqrt.( mit_var )
         end
     end
 
    return marg
+end
+
+# draw `nobs` observations from the prior
+function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}}, 
+        X::Matrix{<:Integer}, nobs::Integer; softinf::Real=Inf) where {F<:Real}
+    N, T = size(X) .- (0, 1)
+    it = rand( collect.(Iterators.product(1:T, 1:N)), nobs)
+    softone = logistic(log(softinf)); softzero = logistic(-log(softinf))
+    for (t, i) in it
+        ϕ[i][t] .= [x==X[i,t+1] ? softone : softzero for x in eachindex(ϕ[i][t])]
+    end
+    ϕ
+end
+
+function draw_node_observations!(bp::MPdBP, nobs::Integer)
+    X, _ = onesample(bp)
+    draw_node_observations!(bp.ϕ, X, nobs)
+    nothing
 end
