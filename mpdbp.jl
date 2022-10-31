@@ -92,7 +92,7 @@ function pair_observations_directed(O::Vector{<:Tuple{I,I,I,V}},
 end
 
 function nondirected_to_directed(ψ, g::IndexedGraph)
-    
+
 end
 
 function pair_observations_nondirected(O::Vector{<:Tuple{I,I,I,V}}, 
