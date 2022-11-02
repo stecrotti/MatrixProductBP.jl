@@ -203,9 +203,14 @@ end
 
 # draw `nobs` observations from the prior
 function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}}, 
-        X::Matrix{<:Integer}, nobs::Integer; softinf::Real=Inf) where {F<:Real}
+        X::Matrix{<:Integer}, nobs::Integer; softinf::Real=Inf,
+        last_time::Bool=false) where {F<:Real}
     N, T = size(X) .- (0, 1)
-    it = rand( collect.(Iterators.product(1:T, 1:N)), nobs)
+    it = if last_time
+        sample( collect.(Iterators.product(T:T, 1:N)), nobs)
+    else
+        sample( collect.(Iterators.product(1:T, 1:N)), nobs)
+    end
     softone = logistic(log(softinf)); softzero = logistic(-log(softinf))
     for (t, i) in it
         ϕ[i][t] .= [x==X[i,t+1] ? softone : softzero for x in eachindex(ϕ[i][t])]

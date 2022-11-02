@@ -4,12 +4,12 @@ include("../exact/montecarlo.jl")
 
 # return epidemic instance as an `N`-by-`T`+1 matrix and `MPdBP` object
 function simulate_sis(g::IndexedGraph, λ::Real, κ::Real, p⁰::Vector{Vector{F}}, T::Integer, 
-        nobs::Integer) where {F<:Real}
+        nobs::Integer; softinf=1e3) where {F<:Real}
 
     sis = SIS(g, λ, κ, T; p⁰)
     bp = mpdbp(sis, d=1)
     X, _ = onesample(bp)
-    draw_node_observations!(bp.ϕ, X, nobs, softinf=1e2)
+    draw_node_observations!(bp.ϕ, X, nobs; softinf, last_time=true)
 
     X, bp
 end
@@ -38,10 +38,20 @@ end
 # compute ROC curve
 function roc(guess_zp, true_zp)
     r = guess_zp .∈ (true_zp,)
-    cumsum(r ./ sum(r))
+    sr = sum(r)
+    sr == 0 && return zeros(length(r)), ones(length(r)) 
+    cumsum(.!r), cumsum(r)
 end
 
 function auc(guess_zp, true_zp)
-    r = roc(guess_zp, true_zp)
-    mean(r)
+    x, y = roc(guess_zp, true_zp)
+    Z = maximum(x) * maximum(y)
+    Z == 0 && return 1.0
+    a = 0
+    for i in 2:length(y)
+        if y[i] == y[i-1]
+            a += y[i]
+        end  
+    end
+    a / Z 
 end
