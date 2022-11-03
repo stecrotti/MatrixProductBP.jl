@@ -218,8 +218,8 @@ function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}},
     ϕ
 end
 
-function draw_node_observations!(bp::MPdBP, nobs::Integer)
+function draw_node_observations!(bp::MPdBP, nobs::Integer; kw...)
     X, _ = onesample(bp)
-    draw_node_observations!(bp.ϕ, X, nobs)
+    draw_node_observations!(bp.ϕ, X, nobs; kw...)
     nothing
 end

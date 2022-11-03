@@ -7,7 +7,7 @@ function simulate_sis(g::IndexedGraph, λ::Real, κ::Real, p⁰::Vector{Vector{F
         nobs::Integer; softinf=1e3) where {F<:Real}
 
     sis = SIS(g, λ, κ, T; p⁰)
-    bp = mpdbp(sis, d=1)
+    bp = mpdbp(sis)
     X, _ = onesample(bp)
     draw_node_observations!(bp.ϕ, X, nobs; softinf, last_time=true)
 

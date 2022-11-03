@@ -14,7 +14,8 @@ function GlauberFactor(J::Vector{T}, h::T, β::T) where {T<:Real}
     GlauberFactor(J.*β, h*β)
 end
 
-function (fᵢ::GlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer}, xᵢᵗ::Integer)
+function (fᵢ::GlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer}, 
+        xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:q_glauber
     @assert all(x ∈ 1:q_glauber for x in xₙᵢᵗ)
     @assert length(xₙᵢᵗ) == length(fᵢ.J)

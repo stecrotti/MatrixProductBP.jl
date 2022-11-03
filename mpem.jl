@@ -10,22 +10,18 @@ abstract type MPEM; end
 include("mpem2.jl")
 include("mpem3.jl")
 
-# function normalize!(A::MPEM, method = norm)
-#     N = norm(A)
-#     for Aᵗ in A
-#         Aᵗ ./= N
-#     end
-#     A
-# end
-
+# keep size of matrix elements under control by dividing by the max
+# return the log of the product of the individual normalizations 
 function normalize_eachmatrix!(A::MPEM)
+    c = 1.0
     for m in A
         mm = maximum(abs, m)
         if !any(isnan, mm) && !any(isinf, mm)
             m ./= mm
+            c *= mm
         end
     end
-    A
+    c
 end
 
 -(A::T, B::T) where {T<:MPEM2} = MPEM2([AA .- BB for (AA,BB) in zip(A.tensors,B.tensors)])

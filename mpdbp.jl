@@ -7,7 +7,6 @@ import IndexedGraphs: IndexedBiDiGraph, IndexedGraph, inedges, outedges, src,
 import UnPack: @unpack
 import ProgressMeter: ProgressUnknown, next!
 import Random: shuffle!
-import Base.Threads: @threads
 import SparseArrays: rowvals, nonzeros, nzrange
 
 struct MPdBP{q,T,F<:Real,U<:dBP_Factor}
@@ -32,6 +31,7 @@ struct MPdBP{q,T,F<:Real,U<:dBP_Factor}
         @assert all( length(pᵢ⁰) == q for pᵢ⁰ in p⁰ )
         @assert all( length(ϕᵢ) == T for ϕᵢ in ϕ )
         @assert length(μ) == ne(g)
+        normalize!.(μ)
         return new{q,T,F,U}(g, w, ϕ, ψ, p⁰, μ)
     end
 end
@@ -130,53 +130,122 @@ function onebpiter!(bp::MPdBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6)
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
+    @assert all(normalization(a) ≈ 1 for a in A)
+    zᵢ = 1.0
     for (j_ind, e_out) in enumerate(eout)
         B = f_bp(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind)
         C = mpem2(B)
         μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
-        normalize_eachmatrix!(μ[idx(e_out)])
+        # normalize_eachmatrix!(μ[idx(e_out)])
+        zᵢ₂ⱼ = normalize!(μ[idx(e_out)])
+        zᵢ *= zᵢ₂ⱼ
     end
-    return nothing
+    dᵢ = length(ein)
+    return zᵢ ^ (1 / dᵢ)
 end
 
 struct CB_BP{TP<:ProgressUnknown}
     prog :: TP
-    mag :: Vector{Vector{Vector{Float64}}}
-    Δs :: Vector{Float64}
+    b    :: Vector{Vector{Vector{Float64}}}
+    Δs   :: Vector{Float64}
+    f    :: Vector{Float64}
     function CB_BP(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
         @assert q == 2
         prog = ProgressUnknown(desc="Running MPdBP: iter")
         TP = typeof(prog)
-        mag = [magnetizations(bp)] 
+        b = [getindex.(beliefs(bp), 1)] 
         Δs = zeros(0)
-        new{TP}(prog, mag, Δs)
+        f = zeros(0)
+        new{TP}(prog, b, Δs, f)
     end
 end
 
-function (cb::CB_BP)(bp::MPdBP, it::Integer)
-    mag_new = magnetizations(bp)
-    mag_old = cb.mag[end]
-    Δ = sum(sum(abs, mn .- mo) for (mn,mo) in zip(mag_new,mag_old))
+function (cb::CB_BP)(bp::MPdBP, it::Integer, z_msg::Vector)
+    b, z_belief = pair_beliefs(bp)
+    f = bethe_free_energy(bp, z_msg, z_belief)
+    marg_new = getindex.(beliefs(bp), 1)
+    marg_old = cb.b[end]
+    Δ = sum(sum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
     push!(cb.Δs, Δ)
+    push!(cb.f, f)
     next!(cb.prog, showvalues=[(:Δ,Δ)])
-    push!(cb.mag, mag_new)
+    push!(cb.b, marg_new)
     return Δ
 end
 
 function iterate!(bp::MPdBP; maxiter=5, svd_trunc::SVDTrunc=TruncThresh(1e-6),
-        cb=CB_BP(bp), tol=1e-10,
+        cb=CB_BP(bp), tol=1e-10, z_factors=zeros(nv(bp.g)),
         nodes = collect(vertices(bp.g)))
     for it in 1:maxiter
-        @threads for i in nodes
-            onebpiter!(bp, i; svd_trunc)
+        for i in nodes
+            z_msg[i] = onebpiter!(bp, i; svd_trunc)
         end
-        Δ = cb(bp, it)
+        Δ = cb(bp, it, z_msg)
         Δ < tol && return it, cb
         shuffle!(nodes)
     end
     return maxiter, cb
 end
 
+function magnetizations(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
+    @assert q == 2
+    map(beliefs(bp)) do bᵢ
+        reduce.(-, bᵢ)
+    end
+end
+
+# compute joint beliefs for all pairs of neighbors
+# return also zᵢⱼ contributions to zᵢ
+function pair_beliefs(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
+    b = [[zeros(q,q) for _ in 0:T] for _ in 1:(ne(bp.g))]
+    z = ones(nv(bp.g))
+    X = bp.g.X
+    N = nv(bp.g)
+    rows = rowvals(X)
+    vals = nonzeros(X)
+    for j in 1:N
+        dⱼ = length(nzrange(X, j))
+        for k in nzrange(X, j)
+            i = rows[k]
+            ji = k          # idx of message i→j
+            ij = vals[k]    # idx of message j→i
+            μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
+            bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ)
+            z[j] *= zᵢⱼ ^ (1/dⱼ- 1/2)
+            b[ij] .= bᵢⱼ
+        end
+    end
+    b, z
+end
+
+function beliefs(bp::MPdBP; bij = pair_beliefs(bp)[1])
+    b = map(vertices(bp.g)) do i 
+        ij = idx(first(outedges(bp.g, i)))
+        bb = bij[ij]
+        map(bb) do bᵢⱼᵗ
+            bᵢᵗ = vec(sum(bᵢⱼᵗ, dims=2))
+        end
+    end
+    b
+end
+
+function bethe_free_energy(bp::MPdBP, z_factors, z_edges)
+    - sum(log, z_factors) - sum(log, z_edges)
+end
+
+function bethe_free_energy(bp::MPdBP; svd_trunc=TruncThresh(1e-4))
+    fa = zeros(getN(bp))
+    for i in eachindex(fa)
+        zi = onebpiter!(bp, i; svd_trunc)
+        fa[i] -= log(zi)
+    end
+    b, z_edges = pair_beliefs(bp)
+    fa .-= log.(z_edges)
+    sum(fa)
+end
+
+
+#### OLD
 function belief_slow(bp::MPdBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
     @unpack g, w, ϕ, p⁰, μ = bp
     A = μ[inedges(g,i).|>idx]
@@ -197,44 +266,4 @@ function magnetizations_slow(bp::MPdBP{q,T,F,U};
         bᵢ = belief(bp, i; svd_trunc)
         reduce.(-, bᵢ)
     end
-end
-
-function magnetizations(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
-    @assert q == 2
-    map(beliefs(bp)) do bᵢ
-        reduce.(-, bᵢ)
-    end
-end
-
-# compute joint beliefs for all pairs of neighbors
-function pair_beliefs(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
-    b = [[zeros(q,q) for _ in 0:T] for _ in 1:(ne(bp.g))]
-    X = bp.g.X
-    N = nv(bp.g)
-    rows = rowvals(X)
-    vals = nonzeros(X)
-    for j in 1:N
-        for k in nzrange(X, j)
-            i = rows[k]
-            if i < j
-                ji = k          # idx of message i→j
-                ij = vals[k]    # idx of message j→i
-                μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
-                b[ij] .= pair_belief(μᵢⱼ, μⱼᵢ)
-                b[ji] .= [bij' for bij in b[ij]]
-            end
-        end
-    end
-    b
-end
-
-function beliefs(bp::MPdBP; bij = pair_beliefs(bp))
-    b = map(vertices(bp.g)) do i 
-        ij = idx(first(outedges(bp.g, i)))
-        bb = bij[ij]
-        map(bb) do bᵢⱼᵗ
-            bᵢᵗ = vec(sum(bᵢⱼᵗ, dims=2))
-        end
-    end
-    b
 end

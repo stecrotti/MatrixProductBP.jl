@@ -33,3 +33,10 @@ function sample_noalloc(rng::Random.AbstractRNG, w::AbstractVector)
     return i
 end
 sample_noalloc(w::AbstractVector) = sample_noalloc(Random.GLOBAL_RNG, w)
+
+# first turn integer `x` into its binary representation, then reshape the
+#  resulting bit vector into a matrix of size specified by `dims`
+function int_to_matrix(x::Integer, dims)
+    y = digits(x, base=2, pad=prod(dims))
+    return reshape(y, dims) .+ 1
+end

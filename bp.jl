@@ -146,9 +146,13 @@ function accumulate_R(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F
 end
 
 # compute bᵢⱼ(xᵢ,xⱼ) from μᵢⱼ and μⱼᵢ
+# also return normalization zᵢⱼ
 function pair_belief(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2)
 
     L = accumulate_L(Aᵢⱼ, Aⱼᵢ); R = accumulate_R(Aᵢⱼ, Aⱼᵢ)
+    z = only(L[end])
+    @assert only(R[begin]) ≈ z
+    z ≥ 0 || @warn "z=$z"
 
     Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]; R¹ = R[2]
     @reduce b⁰[xᵢ⁰,xⱼ⁰] := sum(a¹,b¹) Aᵢⱼ⁰[1,a¹,xᵢ⁰,xⱼ⁰] * Aⱼᵢ⁰[1,b¹,xⱼ⁰,xᵢ⁰] * R¹[a¹,b¹]
@@ -165,7 +169,7 @@ function pair_belief(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2)
         bᵗ ./= sum(bᵗ)
     end
 
-    return [b⁰, b..., bᵀ]
+    return [b⁰, b..., bᵀ], z
 end
 
 

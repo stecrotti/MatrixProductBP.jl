@@ -1,4 +1,4 @@
-import LinearAlgebra: norm
+import LinearAlgebra: norm, normalize!
 import Base: show
 
 # Matrix [Aᵗᵢⱼ(xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 4-array A[m,n,xᵢᵗ,xⱼᵗ]
@@ -241,6 +241,23 @@ function firstvar_marginals(A::MPEM2{q,T,F}; p = pair_marginals(A)) where {q,T,F
         pᵢᵗ =  sum(pₜ, dims=2) |> vec
         pᵢᵗ ./= sum(pᵢᵗ)
     end
+end
+
+function normalization(A::MPEM2)
+    l = accumulate_L(A)
+    r = accumulate_R(A)
+    z = only(l[end])
+    @assert only(r[begin]) ≈ z
+    z
+end
+
+function normalize!(A::MPEM2)
+    Z = normalization(A)
+    T = getT(A)
+    for a in A
+        a ./= Z^(1/(T+1))
+    end
+    Z
 end
 
 import Base.reverse

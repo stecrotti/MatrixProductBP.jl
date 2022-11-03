@@ -24,18 +24,14 @@ end
 
 function sib_SI(T::Integer, g::IndexedGraph, ϕ, p⁰, λ;
         maxiter = 400, tol = 1e-14)
-    γ = p⁰[1][2]
-    @assert all(isequal(γ), pᵢ⁰[2] for pᵢ⁰ in p⁰)
+    γ = p⁰[1][I]
+    @assert all(isequal(γ), pᵢ⁰[I] for pᵢ⁰ in p⁰)
 
     contacts = [(src(e)-1, dst(e)-1, t, λ) for t in 1:T for e in edges(g)]
     append!(contacts, [(dst(e)-1, src(e)-1, t, λ) for t in 1:T for e in edges(g)])
     sort!(contacts, by=x->x[3])
     tests = sib_SI_tests(ϕ)
-    prob_sus = 0.5
-    prob_seed = γ
-    pseed = prob_seed / (2 - prob_seed)
-    psus = prob_sus * (1 - pseed)
-    params = sib.Params(prob_r=sib.Exponential(1e-100), pseed=pseed, psus=psus, 
+    params = sib.Params(prob_r=sib.Exponential(1e-100), pseed=γ, 
         pautoinf=0.0)
     f = sib.FactorGraph(contacts=contacts, tests=tests, params=params)
     sib.iterate(f, maxit=maxiter, tol=tol)
@@ -43,10 +39,15 @@ function sib_SI(T::Integer, g::IndexedGraph, ϕ, p⁰, λ;
     sib.iterate(f, maxit=maxiter, damping=0.9, tol=tol)
 
     marginals_sib = map(f.nodes) do i
-        map(1:T ) do t 
+        map(1:T) do t 
             m = sib.marginal_t(i, t)
+            @assert m[3] ≈ 0
             [m[1], m[2]]
         end
     end
-    return marginals_sib
+
+    F_bethe = - f.loglikelihood()
+    F_detail = [- n.fa for n in f.nodes]
+
+    return marginals_sib, F_bethe, F_detail
 end

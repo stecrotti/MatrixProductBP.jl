@@ -64,11 +64,6 @@ function bitarr_to_int(arr::BitArray, s=big(0))
     return s
 end
 
-function int_to_matrix(x::Integer, dims)
-    y = digits(x, base=2, pad=prod(dims))
-    return reshape(y, dims) .+ 1
-end
-
 function exact_prob(gl::Glauber{T,N,F}) where {T,N,F}
     T*N > 15 && @warn "T*N=$(T*N). This will take some time!"
     @unpack ising, p⁰, ϕ, ψ = gl
@@ -87,7 +82,6 @@ function exact_prob(gl::Glauber{T,N,F}) where {T,N,F}
             end
         end
         for (i, j, ij) in edges(ising.g)
-            # ij = idx(e); i = src(e); j = dst(e)
             # here g is directed!
             for t in 1:T
                 p[x] *= ψ[ij][t][X[t+1,i],X[t+1,j]]
@@ -95,12 +89,14 @@ function exact_prob(gl::Glauber{T,N,F}) where {T,N,F}
         end
         next!(prog)
     end
-    p ./= sum(p)
+    Z = sum(p)
+    p ./= Z
+    p, Z
 end
 
 
 function site_marginals(gl::Glauber{T, N, F}; 
-        p = exact_prob(gl),
+        p = exact_prob(gl)[1],
         m = [zeros(fill(2,T+1)...) for i in 1:N]) where {T,N,F}
     prog = Progress(2^(N*(T+1)), desc="Computing site marginals")
     X = zeros(Int, T+1, N)
@@ -174,10 +170,10 @@ end
 #     return mpdbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)
 # end
 
-function mpdbp(ising::Ising, T::Integer,
+function mpdbp(ising::Ising, T::Integer;
         ϕ = [[ones(2) for t in 1:T] for _ in vertices(ising.g)],
         ψ = [[ones(2,2) for t in 1:T] for _ in 1:2*ne(ising.g)],
-        p⁰ = [ones(2) for i in 1:nv(ising.g)]; kw...)
+        p⁰ = [ones(2) for i in 1:nv(ising.g)], kw...)
     g = IndexedBiDiGraph(ising.g.A)
     w = glauber_factors(ising, T)
     return mpdbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)

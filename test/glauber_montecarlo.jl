@@ -7,23 +7,6 @@ include("../exact/montecarlo.jl")
 q = q_glauber
 T = 5
 
-# J = [0 1 0 0 0;
-#      1 0 1 0 0;
-#      0 1 0 1 1;
-#      0 0 1 0 0;
-#      0 0 1 0 0] .|> float
-# for ij in eachindex(J)
-#     if J[ij] !=0 
-#         J[ij] = randn()
-#     end
-# end
-# J = J + J'
-# N = 5
-
-# h = randn(N)
-# β = 1.0
-# ising = Ising(J, h, β)
-
 N = 10
 k = 3
 gg = random_regular_graph(N, k)
@@ -39,8 +22,9 @@ p⁰ = map(1:N) do i
     [r, 1-r]
 end
 ϕ = [[ones(2) for t in 1:T] for i in 1:N]
+ψ = [[ones(2,2) for t in 1:T] for _ in 1:ne(ising.g)]
 
-gl = Glauber(ising, p⁰, ϕ)
+gl = Glauber(ising, p⁰, ϕ, ψ)
 
 ε = 1e-2
 bp = mpdbp(gl, d=1)
