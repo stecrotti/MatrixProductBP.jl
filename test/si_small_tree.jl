@@ -3,15 +3,21 @@ include("sib.jl")
 include("../exact/montecarlo.jl")
 include("../exact/exact.jl")
 
-q = q_sis
-T = 2
+using Graphs
 
-A = [0 1 0 0;
-     1 0 1 0;
-     0 1 0 1;
-     0 0 1 0]
-g = IndexedGraph(A)
-N = 4
+q = q_sis
+T = 3
+
+# A = [0 1 0 0;
+#      1 0 1 0;
+#      0 1 0 1;
+#      0 0 1 0]
+# g = IndexedGraph(A)
+# N = 4
+
+N = 6
+gg = star_graph(N)
+g = IndexedGraph(gg)
 
 λ = 0.2
 κ = 0.0 # SI
@@ -27,9 +33,6 @@ sis = SIS(g, λ, κ, p⁰, ϕ, ψ)
 bp = mpdbp(sis)
 draw_node_observations!(bp, N, last_time=true)
 
-b_sib, F_sib, F_sib_detail = sib_SI(T, g, bp.ϕ, p⁰, λ)
-p_sib = [[bbb[2] for bbb in bb] for bb in b_sib]
-
 svd_trunc = TruncThresh(1e-5)
 # svd_trunc = TruncBond(2)
 
@@ -38,6 +41,9 @@ iterate!(bp, maxiter=10; svd_trunc, cb)
 
 b_bp = beliefs(bp)
 p_bp =  [[bbb[2] for bbb in bb] for bb in b_bp]
+
+b_sib, F_sib, F_sib_detail = sib_SI(T, g, bp.ϕ, p⁰, λ)
+p_sib = [[bbb[2] for bbb in bb] for bb in b_sib]
 
 # sms = sample(bp, 10^5)
 # b_mc = marginals(sms)
@@ -48,6 +54,5 @@ p_bp =  [[bbb[2] for bbb in bb] for bb in b_bp]
 p_exact, Z_exact = exact_prob(bp)
 
 F_exact = -log(Z_exact)
-F_bp_detail = free_energy_factors(bp)
-F_bp = sum(F_bp_detail)
-@show F_exact F_sib F_bp;
+F_bp = bethe_free_energy(bp)
+F_exact, F_bp

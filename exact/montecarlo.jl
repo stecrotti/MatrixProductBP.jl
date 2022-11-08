@@ -167,8 +167,9 @@ function onesample(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
     onesample!(x, bp)
 end
 
-function sample(bp::MPdBP, nsamples::Integer)
-    prog = Progress(nsamples, desc="SoftMargin sampling...")
+function sample(bp::MPdBP, nsamples::Integer; showprogress::Bool=true)
+    dt = showprogress ? 0.1 : Inf
+    prog = Progress(nsamples, desc="SoftMargin sampling..."; dt)
     S = map(1:nsamples) do _
         s = onesample(bp)
         next!(prog)
@@ -218,8 +219,9 @@ function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}},
     ϕ
 end
 
+# draw 1 sample from the prior, observe something and return the sample
 function draw_node_observations!(bp::MPdBP, nobs::Integer; kw...)
     X, _ = onesample(bp)
     draw_node_observations!(bp.ϕ, X, nobs; kw...)
-    nothing
+    X
 end

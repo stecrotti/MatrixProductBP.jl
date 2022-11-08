@@ -2,12 +2,11 @@ import InvertedIndices: Not
 
 include("mpem.jl")
 
+# compute the kronecker product only over needed indices
 kron2() = AllOneTensor()
-
 function kron2(A₁::Array{F,4}) where F
     @cast _[m₁, n₁, xᵢ, x₁] := A₁[m₁, n₁, x₁, xᵢ]
 end
-
 function kron2(A₁::Array{F,4}, A₂::Array{F,4}) where F
     @cast _[(m₁, m₂), (n₁, n₂), xᵢ, x₁, x₂] := A₁[m₁, n₁, x₁, xᵢ] * 
         A₂[m₂, n₂, x₂, xᵢ]
@@ -45,7 +44,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j_index::
         end
         B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= ϕᵢ[1][xᵢ¹] * pᵢ⁰[xᵢ⁰] 
     end
-    B[1] = B⁰
+    B[begin] = B⁰
 
     dt = showprogress ? 1.0 : Inf
     prog = Progress(T-1, dt=dt, desc="Computing outgoing message")
@@ -60,8 +59,6 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j_index::
                 for xₙᵢᵗ in x_neigs
                     xⱼᵗ = xₙᵢᵗ[j_index]
                     xₙᵢ₋ⱼᵗ = xₙᵢᵗ[Not(j_index)]
-                    # @show prod(sqrt, ψₙᵢ[k][t][xᵢᵗ,xₖᵗ] for (k,xₖᵗ) in enumerate(xₙᵢᵗ))
-
                     Bᵗ[xᵢᵗ,xⱼᵗ,:,:,xᵢᵗ⁺¹] .+= wᵢ[t+1](xᵢᵗ⁺¹,xₙᵢᵗ,xᵢᵗ) *
                             Aᵗ[:,:,xᵢᵗ,xₙᵢ₋ⱼᵗ...] *
                             prod(sqrt, ψₙᵢ[k][t][xᵢᵗ,xₖᵗ] for (k,xₖᵗ) in enumerate(xₙᵢᵗ))
@@ -69,27 +66,10 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j_index::
             end
             Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+1][xᵢᵗ⁺¹]
         end
-        B[t+1] = Bᵗ
+        B[begin+t] = Bᵗ
         any(isnan, Bᵗ) && println("NaN in tensor at time $t")
         next!(prog, showvalues=[(:t,"$t/$T")])
     end
-
-    Aᵀ = kron2([A[k][end] for k in eachindex(A)[Not(j_index)]]...)
-    nrows = size(Aᵀ, 1); ncols = size(Aᵀ, 2)
-    Bᵀ = ones(q, q, nrows, ncols, q)
-
-    # # if z==1 means j is the only neighbor of i and Bᵀ is uniform
-    # if z != 1 
-    #     Aᵀ_reshaped = reshape(Aᵀ, size(Aᵀ)[1:3]..., prod(size(Aᵀ)[4:end]))
-    #     Aᵀ_reshaped_summed = sum(Aᵀ_reshaped, dims=4)[:,1,:,1]
-    #     # Bᵀ has some redundant dimensions, like the 5-th. We decided that it should 
-    #     #  take the same values no matter the 5-th index
-    #     # Same goes for the 2nd index, i.e. xⱼᵀ, on which Bᵀ does not depend.
-    #     # Transpose to match indices aᵀ and xᵢᵀ.
-    #     for xⱼᵀ in 1:q, xᵢᵀ⁺¹ in 1:q
-    #         Bᵀ[:,xⱼᵀ,:,1,xᵢᵀ⁺¹] .= Aᵀ_reshaped_summed'
-    #     end
-    # end
 
     # select incoming A's but not the j-th one
     Aᵀ = kron2([A[k][begin+T] for k in eachindex(A)[Not(j_index)]]...)
@@ -108,7 +88,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j_index::
         end
     end
     B[end] = Bᵀ
-    any(isnan, Bᵀ) && println("NaN in tensor at time $t")
+    any(isnan, Bᵀ) && println("NaN in tensor at time $T")
 
     return MPEM3(B)
 end

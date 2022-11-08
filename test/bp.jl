@@ -12,12 +12,13 @@ pᵢ = [0.2, 0.8]
     r = rand()
     [r, 1-r]
 end
+
 wᵢ = map(1:T) do t 
     f(xᵗ⁺¹::Integer, xₙᵢ::Vector{<:Integer}, xᵗ::Integer) = rand()
 end
 j_index = 2
 
-B = f_bp(A, pᵢ, wᵢ, ϕᵢ, j_index)
+B = f_bp(A, pᵢ, wᵢ, ϕᵢ, ψᵢⱼ, j_index)
 C = mpem2(B)
 sweep_LtoR!(C)
 

@@ -1,3 +1,7 @@
+import StatsBase: sample
+import LogExpFunctions: logistic, softmax!
+import Graphs: random_regular_graph
+
 include("../sis.jl")
 include("../mpdbp.jl")
 include("../exact/montecarlo.jl")
@@ -16,19 +20,24 @@ end
 
 # return individuals ranked by posterior prob at time zero
 # tuple of indices and probabilities
-function find_zero_patients_bp(bp::MPdBP;
-        svd_trunc = TruncBond(5), tol=1e-3, maxiter=100) where {F<:Real}
-    cb = CB_BP(bp)
+function find_zero_patients_bp(bp::MPdBP; showprogress=false,
+        svd_trunc = TruncBond(5), tol=1e-3, maxiter=100,
+        require_convergence::Bool=true)
+    cb = CB_BP(bp; showprogress)
+    reset_messages!(bp)
     iters, ε = iterate!(bp; maxiter, svd_trunc, cb, tol)
-    iters == maxiter && error("BP did not converge")
+    if require_convergence
+        iters == maxiter && error("BP did not converge")
+    end
     b = beliefs(bp)
     b⁰ = [bb[1] for bb in b]
     p = sortperm(b⁰, by=x->x[1])
     eachindex(b⁰)[p], [bb[I] for bb in b⁰[p]]
 end
 
-function find_zero_patients_mc(bp::MPdBP; nsamples=10^4) where {F<:Real}
-    sms = sample(bp, nsamples)
+function find_zero_patients_mc(bp::MPdBP; nsamples=10^4, 
+        sms = sample(bp, nsamples))
+    
     b = marginals(sms)
     b⁰ = [bb[1] for bb in b]
     p = sortperm(b⁰, by=x->x[1])
@@ -54,4 +63,10 @@ function auc(guess_zp, true_zp)
         end  
     end
     a / Z 
+end
+
+function softmax(β::Real, N::Integer, i::Integer)
+    @assert i ∈ 1:N
+    β = float(β)
+    softmax!( [j==i ? β : -β for j in 1:N] )
 end

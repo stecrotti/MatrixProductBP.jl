@@ -1,5 +1,6 @@
 include("bp.jl")
 include("dbp_factor.jl")
+include("bp_fast.jl")
 
 import Graphs: nv, ne, edges, vertices
 import IndexedGraphs: IndexedBiDiGraph, IndexedGraph, inedges, outedges, src, 
@@ -116,6 +117,16 @@ function pair_observations_nondirected(O::Vector{<:Tuple{I,I,I,V}},
     ψ
 end
 
+function reset_messages!(bp::MPdBP)
+    for A in bp.μ
+        for Aᵗ in A
+            Aᵗ .= 1
+        end
+        normalize!(A)
+    end
+    nothing
+end
+
 function mpdbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:dBP_Factor}}, 
         q::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(q) for t in 1:T] for _ in vertices(g)],
@@ -125,7 +136,8 @@ function mpdbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:dBP_Factor}},
     return MPdBP(g, w, ϕ, ψ, p⁰, μ)
 end
 
-function onebpiter!(bp::MPdBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
+function onebpiter!(bp::MPdBP{q,T,F,U}, i::Integer; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
@@ -136,7 +148,25 @@ function onebpiter!(bp::MPdBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6)
         B = f_bp(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind)
         C = mpem2(B)
         μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
-        # normalize_eachmatrix!(μ[idx(e_out)])
+        zᵢ₂ⱼ = normalize!(μ[idx(e_out)])
+        zᵢ *= zᵢ₂ⱼ
+    end
+    dᵢ = length(ein)
+    return zᵢ ^ (1 / dᵢ)
+end
+
+function onebpiter!(bp::MPdBP{q,T,F,<:SISFactor}, i::Integer; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
+    @unpack g, w, ϕ, ψ, p⁰, μ = bp
+    ein = inedges(g,i)
+    eout = outedges(g, i)
+    A = μ[ein.|>idx]
+    @assert all(normalization(a) ≈ 1 for a in A)
+    zᵢ = 1.0
+    for (j_ind, e_out) in enumerate(eout)
+        B = f_bp_fast(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
+        C = mpem2(B)
+        μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
         zᵢ₂ⱼ = normalize!(μ[idx(e_out)])
         zᵢ *= zᵢ₂ⱼ
     end
@@ -149,9 +179,10 @@ struct CB_BP{TP<:ProgressUnknown}
     b    :: Vector{Vector{Vector{Float64}}}
     Δs   :: Vector{Float64}
     f    :: Vector{Float64}
-    function CB_BP(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
+    function CB_BP(bp::MPdBP{q,T,F,U}; showprogress::Bool=true) where {q,T,F,U}
         @assert q == 2
-        prog = ProgressUnknown(desc="Running MPdBP: iter")
+        dt = showprogress ? 0.1 : Inf
+        prog = ProgressUnknown(desc="Running MPdBP: iter", dt=dt)
         TP = typeof(prog)
         b = [getindex.(beliefs(bp), 1)] 
         Δs = zeros(0)
@@ -174,7 +205,7 @@ function (cb::CB_BP)(bp::MPdBP, it::Integer, z_msg::Vector)
 end
 
 function iterate!(bp::MPdBP; maxiter=5, svd_trunc::SVDTrunc=TruncThresh(1e-6),
-        cb=CB_BP(bp), tol=1e-10, z_factors=zeros(nv(bp.g)),
+        cb=CB_BP(bp), tol=1e-10, z_msg=zeros(nv(bp.g)),
         nodes = collect(vertices(bp.g)))
     for it in 1:maxiter
         for i in nodes

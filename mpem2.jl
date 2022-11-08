@@ -122,28 +122,24 @@ function sweep_RtoL!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) whe
 end
 
 # when truncating it assumes that matrices are already right-orthogonal
-function sweep_LtoR!(C::MPEM2{q,T,F}; ε=1e-6) where {q,T,F}
-    @assert ε ≤ 1
+function sweep_LtoR!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
     C⁰ = C[begin]
     @cast M[(m, xᵢ, xⱼ), n] |= C⁰[m, n, xᵢ, xⱼ]
     Cᵗ⁺¹_trunc = rand(1,1,1,1)  # initialize
 
     for t in 1:T
         U, λ, V = svd(M)
-        λ_norm = norm(λ)
-        mprime = findlast(λₖ > ε*λ_norm for λₖ in λ)
+        mprime = svd_trunc(λ)
+        @assert mprime !== nothing "λ=$λ, M=$M"
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
-        M_trunc = U_trunc * Diagonal(λ_trunc) * V_trunc'
-
-        X = norm(M - M_trunc)^2
-        Y = sum(abs2, λ[mprime+1:end])
-        @assert isapprox(X, Y, atol=1e-8) "$X, $Y"
         
         @cast Aᵗ[m, n, xᵢ, xⱼ] := U_trunc[(m, xᵢ, xⱼ), n] n in 1:mprime, xᵢ in 1:q, xⱼ in 1:q
         C[t] = Aᵗ
 
         Cᵗ⁺¹ = C[t+1]
-        @reduce Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ] |= sum(l) λ_trunc[m] * V_trunc'[m, l] * Cᵗ⁺¹[l, n, xᵢ, xⱼ]
+        # @reduce Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ] |= sum(l) λ_trunc[m] * V_trunc'[m, l] * Cᵗ⁺¹[l, n, xᵢ, xⱼ]
+        @tullio Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ] := λ_trunc[m] * V_trunc'[m, l] * 
+            Cᵗ⁺¹[l, n, xᵢ, xⱼ]
         @cast M[(m, xᵢ, xⱼ), n] |= Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ]
     end
     C[end] = Cᵗ⁺¹_trunc
