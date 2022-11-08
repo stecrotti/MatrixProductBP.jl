@@ -208,9 +208,9 @@ function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}},
         last_time::Bool=false) where {F<:Real}
     N, T = size(X) .- (0, 1)
     it = if last_time
-        sample( collect.(Iterators.product(T:T, 1:N)), nobs)
+        sample( collect.(Iterators.product(T:T, 1:N)), nobs, replace=false)
     else
-        sample( collect.(Iterators.product(1:T, 1:N)), nobs)
+        sample( collect.(Iterators.product(1:T, 1:N)), nobs, replace=false)
     end
     softone = logistic(log(softinf)); softzero = logistic(-log(softinf))
     for (t, i) in it
