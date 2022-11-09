@@ -1,20 +1,8 @@
 import InvertedIndices: Not
 
 include("mpem.jl")
+include("utils.jl")
 
-# compute the kronecker product only over needed indices
-kron2() = AllOneTensor()
-function kron2(A₁::Array{F,4}) where F
-    @cast _[m₁, n₁, xᵢ, x₁] := A₁[m₁, n₁, x₁, xᵢ]
-end
-function kron2(A₁::Array{F,4}, A₂::Array{F,4}) where F
-    @cast _[(m₁, m₂), (n₁, n₂), xᵢ, x₁, x₂] := A₁[m₁, n₁, x₁, xᵢ] * 
-        A₂[m₂, n₂, x₂, xᵢ]
-end
-function kron2(A₁::Array{F,4}, A₂::Array{F,4}, A₃::Array{F,4}) where F
-    @cast _[(m₁, m₂, m₃), (n₁, n₂, n₃), xᵢ, x₁, x₂, x₃] := 
-        A₁[m₁, n₁, x₁, xᵢ] * A₂[m₂, n₂, x₂, xᵢ] * A₃[m₃, n₃, x₃, xᵢ]
-end
 
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)
