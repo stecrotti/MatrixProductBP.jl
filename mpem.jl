@@ -26,3 +26,7 @@ end
 
 -(A::T, B::T) where {T<:MPEM2} = MPEM2([AA .- BB for (AA,BB) in zip(A.tensors,B.tensors)])
 -(A::T, B::T) where {T<:MPEM3} = MPEM3([AA .- BB for (AA,BB) in zip(A.tensors,B.tensors)])
+
+function Base.isapprox(A::T, B::T; kw...) where {T<:MPEM}
+    isapprox(A.tensors, B.tensors; kw...)
+end 

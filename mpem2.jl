@@ -68,7 +68,7 @@ abstract type SVDTrunc; end
 struct TruncThresh{T} <: SVDTrunc
     ε :: T
 end
-function (svd_trunc::TruncThresh)(λ::Vector{<:Real})::Int
+function (svd_trunc::TruncThresh)(λ::Vector{<:Real})
     λ_norm = norm(λ)
     mprime = findlast(λₖ > svd_trunc.ε*λ_norm for λₖ in λ)
 end
@@ -103,10 +103,10 @@ function sweep_RtoL!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) whe
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
         # M_trunc = U_trunc * Diagonal(λ_trunc) * V_trunc'
 
-        # X = norm(M - M_trunc)^2
-        # Y = sum(abs2, λ[mprime+1:end])
-        
+        # range_n = axes(C[t], 2)
+        # range_j = axes(C[t], 4)
         @cast Aᵗ[m, n, xᵢ, xⱼ] := V_trunc'[m, (n, xᵢ, xⱼ)] m in 1:mprime, xᵢ in 1:q, xⱼ in 1:q
+        # Aᵗ = reshape(V_trunc', (mprime, last(range_n), q, last(range_j))) |> collect
         C[t] = Aᵗ
         
         Cᵗ⁻¹ = C[t-1]
@@ -128,12 +128,18 @@ function sweep_LtoR!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) whe
     Cᵗ⁺¹_trunc = rand(1,1,1,1)  # initialize
 
     for t in 1:T
+        # @show size(C[t])
         U, λ, V = svd(M)
         mprime = svd_trunc(λ)
         @assert mprime !== nothing "λ=$λ, M=$M"
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
         
+        # range_m = axes(C[t], 1)
+        # range_j = axes(C[t], 4)
         @cast Aᵗ[m, n, xᵢ, xⱼ] := U_trunc[(m, xᵢ, xⱼ), n] n in 1:mprime, xᵢ in 1:q, xⱼ in 1:q
+        # @show size(M) size(U_trunc) 
+        # Aᵗ_perm = reshape(U_trunc, (last(range_m), q, last(range_j), mprime)) |> collect
+        # Aᵗ = permutedims(Aᵗ_perm, (1,4,2,3))
         C[t] = Aᵗ
 
         Cᵗ⁺¹ = C[t+1]
@@ -243,7 +249,7 @@ function normalization(A::MPEM2)
     l = accumulate_L(A)
     r = accumulate_R(A)
     z = only(l[end])
-    @assert only(r[begin]) ≈ z
+    @assert only(r[begin]) ≈ z "z=$z, got $(only(r[begin])), A=$A"
     z
 end
 

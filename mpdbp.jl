@@ -1,6 +1,5 @@
 include("bp.jl")
 include("dbp_factor.jl")
-include("bp_fast.jl")
 
 import Graphs: nv, ne, edges, vertices
 import IndexedGraphs: IndexedBiDiGraph, IndexedGraph, inedges, outedges, src, 
@@ -146,25 +145,6 @@ function onebpiter!(bp::MPdBP{q,T,F,U}, i::Integer;
     zᵢ = 1.0
     for (j_ind, e_out) in enumerate(eout)
         B = f_bp(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind)
-        C = mpem2(B)
-        μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
-        zᵢ₂ⱼ = normalize!(μ[idx(e_out)])
-        zᵢ *= zᵢ₂ⱼ
-    end
-    dᵢ = length(ein)
-    return zᵢ ^ (1 / dᵢ)
-end
-
-function onebpiter!(bp::MPdBP{q,T,F,<:SISFactor}, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
-    @unpack g, w, ϕ, ψ, p⁰, μ = bp
-    ein = inedges(g,i)
-    eout = outedges(g, i)
-    A = μ[ein.|>idx]
-    @assert all(normalization(a) ≈ 1 for a in A)
-    zᵢ = 1.0
-    for (j_ind, e_out) in enumerate(eout)
-        B = f_bp_fast(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
         C = mpem2(B)
         μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
         zᵢ₂ⱼ = normalize!(μ[idx(e_out)])

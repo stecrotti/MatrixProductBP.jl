@@ -6,8 +6,8 @@ abstract type dBP_Factor; end
 const q_glauber = 2
 
 struct GlauberFactor{T<:Real} <: dBP_Factor
-    J :: Vector{T}
-    h :: T
+    βJ :: Vector{T}      
+    βh :: T
 end
 
 function GlauberFactor(J::Vector{T}, h::T, β::T) where {T<:Real}
@@ -18,10 +18,10 @@ function (fᵢ::GlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integ
         xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:q_glauber
     @assert all(x ∈ 1:q_glauber for x in xₙᵢᵗ)
-    @assert length(xₙᵢᵗ) == length(fᵢ.J)
+    @assert length(xₙᵢᵗ) == length(fᵢ.βJ)
 
-    hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.J))
-    E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.h)
+    hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.βJ))
+    E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.βh)
     exp( -E ) / (2cosh(E))
 end
 
