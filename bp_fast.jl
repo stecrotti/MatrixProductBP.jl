@@ -172,7 +172,9 @@ function f_bp_glauber(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
     d = length(A) - 1   # number of neighbors other than j
     βJ = wᵢ[1].βJ[1]
     @assert all(all(βJij == βJ for βJij in wᵢᵗ.βJ) for wᵢᵗ in wᵢ)
-    @assert all(wᵢᵗ.βh == 0 for wᵢᵗ in wᵢ)
+    βh = wᵢ[1].βh
+    @assert all(wᵢᵗ.βh  == βh for wᵢᵗ in wᵢ)
+    # @assert all(wᵢᵗ.βh == 0 for wᵢᵗ in wᵢ)
     @assert j ∈ eachindex(A)
 
     # initialize recursion
@@ -197,7 +199,7 @@ function f_bp_glauber(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
     # end
     
     # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij_glauber(mᵢⱼₗ₁, βJ, pᵢ⁰, ϕᵢ, d)
+    B = f_bp_partial_ij_glauber(mᵢⱼₗ₁, βJ, βh, pᵢ⁰, ϕᵢ, d)
 
     return B
 end
@@ -232,7 +234,8 @@ function f_bp_partial_glauber(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q1,T,F
 end
 
 # compute m(i→j) from m(i→j,d)
-function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, pᵢ⁰, ϕᵢ, d::Integer) where {Q,T,F}
+function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰, ϕᵢ, 
+        d::Integer) where {Q,T,F}
     q = q_glauber
     B = Vector{Array{F,5}}(undef, T+1)
 
@@ -244,7 +247,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, pᵢ⁰, ϕᵢ, d::
         for z⁰ in 1:(d+1)
             y⁰ = idx_map(d, z⁰)
             for xⱼ⁰ in 1:q
-                p = prob_ijy_glauber(xᵢ¹, xⱼ⁰, y⁰, βJ)
+                p = prob_ijy_glauber(xᵢ¹, xⱼ⁰, y⁰, βJ, βh)
                 B⁰[xᵢ⁰,xⱼ⁰,1,:,xᵢ¹] .+= p * A⁰[1,:,z⁰,xᵢ⁰]
             end
         end
@@ -262,7 +265,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, pᵢ⁰, ϕᵢ, d::
                 for xⱼᵗ in 1:q
                     for zᵗ in 1:(d+1)
                         yᵗ = idx_map(d, zᵗ)
-                        p = prob_ijy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ)
+                        p = prob_ijy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
                         Bᵗ[xᵢᵗ,xⱼᵗ,:,:,xᵢᵗ⁺¹] .+= p * Aᵗ[:,:,zᵗ,xᵢᵗ]
                     end
                 end
@@ -295,8 +298,8 @@ end
 
 prob_partial_msg_glauber(yₗᵗ, yₗ₁ᵗ, xₗᵗ) = ( yₗᵗ == yₗ₁ᵗ + potts2spin(xₗᵗ) )
 
-function prob_ijy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ)
-    h = βJ * (potts2spin(xⱼᵗ) + yᵗ)
+function prob_ijy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
+    h = βJ * (potts2spin(xⱼᵗ) + yᵗ) + βh
     p = exp(potts2spin(xᵢᵗ⁺¹) * h) / (2*cosh(h))
     @assert 0 ≤ p ≤ 1
     p

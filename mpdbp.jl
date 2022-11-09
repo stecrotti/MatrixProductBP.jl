@@ -185,7 +185,8 @@ function (cb::CB_BP)(bp::MPdBP, it::Integer, z_msg::Vector)
 end
 
 function iterate!(bp::MPdBP; maxiter=5, svd_trunc::SVDTrunc=TruncThresh(1e-6),
-        cb=CB_BP(bp), tol=1e-10, z_msg=zeros(nv(bp.g)),
+        showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
+        z_msg=zeros(nv(bp.g)),
         nodes = collect(vertices(bp.g)))
     for it in 1:maxiter
         for i in nodes

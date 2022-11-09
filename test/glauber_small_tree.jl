@@ -4,6 +4,7 @@ import Statistics: mean
 include("../mpdbp.jl")
 include("../glauber.jl")
 include("../exact/montecarlo.jl")
+include("../bp_fast.jl")
 
 q = q_glauber
 T = 2
@@ -13,15 +14,16 @@ J = [0 1 0 0 0;
      0 1 0 1 1;
      0 0 1 0 0;
      0 0 1 0 0] .|> float
-for ij in eachindex(J)
-    if J[ij] !=0 
-        J[ij] = randn()
-    end
-end
-J = J + J'
+# for ij in eachindex(J)
+#     if J[ij] !=0 
+#         J[ij] = randn()
+#     end
+# end
+# J = J + J'
 
 N = 5
 h = randn(N)
+# h = zeros(N)
 
 β = 1.0
 
@@ -35,11 +37,25 @@ ising = Ising(J, h, β)
 ψ = [[ones(2,2) for t in 1:T] for _ in 1:ne(ising.g)]
 gl = Glauber(ising, p⁰, ϕ, ψ)
 
-ε = 1e-8
+
 bp = mpdbp(ising, T; ϕ, p⁰)
-draw_node_observations!(bp, 5)
+svd_trunc = TruncBond(4)
+bp_fast = deepcopy(bp)
+
+# i = 2
+# @unpack g, w, ϕ, ψ, p⁰, μ = bp
+# ein = inedges(g,i)
+# eout = outedges(g, i)
+# A = μ[ein.|>idx]
+# j_ind = 1; e_out = first(eout)
+# B = f_bp(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind)
+# B_fast = f_bp_glauber(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
+
+
+
+draw_node_observations!(bp, N)
 cb = CB_BP(bp)
-svd_trunc = TruncThresh(ε)
+
 iterate!(bp, maxiter=10; svd_trunc, cb)
 println()
 
