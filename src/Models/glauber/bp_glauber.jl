@@ -1,6 +1,6 @@
 const q_glauber = 2
 
-struct GlauberFactor{T<:Real} <: dBP_Factor
+struct GlauberFactor{T<:Real} <: BPFactor
     βJ :: Vector{T}      
     βh :: T
 end

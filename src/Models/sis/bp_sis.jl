@@ -2,7 +2,7 @@ const SUSCEPTIBLE = 1
 const INFECTED = 2
 const q_sis = 2
 
-struct SISFactor{T<:AbstractFloat} <: dBP_Factor
+struct SISFactor{T<:AbstractFloat} <: BPFactor
     λ :: T  # infection rate
     κ :: T  # recovery rate
     function SISFactor(λ::T, κ::T) where {T<:AbstractFloat}

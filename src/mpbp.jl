@@ -1,13 +1,13 @@
 
 ```
-Factor for the factor graph of a model solvable with MPdBP.
+Factor for the factor graph of a model solvable with MPBP.
 Any `dBP_Factor` subtype must implement a functor that computes the Boltzmann
 contribution to the joint probability
 ```
-abstract type dBP_Factor; end
+abstract type BPFactor; end
 
 
-struct MPdBP{q,T,F<:Real,U<:dBP_Factor}
+struct MPBP{q,T,F<:Real,U<:dBP_Factor}
     g  :: IndexedBiDiGraph{Int}          # graph
     w  :: Vector{Vector{U}}              # factors, one per variable
     ϕ  :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
@@ -15,7 +15,7 @@ struct MPdBP{q,T,F<:Real,U<:dBP_Factor}
     p⁰ :: Vector{Vector{F}}              # prior at time zero
     μ  :: Vector{MPEM2{q,T,F}}           # messages, two per edge
     
-    function MPdBP(g::IndexedBiDiGraph{Int}, w::Vector{Vector{U}}, 
+    function MPBP(g::IndexedBiDiGraph{Int}, w::Vector{Vector{U}}, 
             ϕ::Vector{Vector{Vector{F}}}, ψ::Vector{Vector{Matrix{F}}},
             p⁰::Vector{Vector{F}}, 
             μ::Vector{MPEM2{q,T,F}}) where {q,T,F<:Real,U<:dBP_Factor}
@@ -34,9 +34,9 @@ struct MPdBP{q,T,F<:Real,U<:dBP_Factor}
     end
 end
 
-getT(::MPdBP{q,T,F,U}) where {q,T,F,U} = T
-getq(::MPdBP{q,T,F,U}) where {q,T,F,U} = q
-getN(bp::MPdBP) = nv(bp.g)
+getT(::MPBP{q,T,F,U}) where {q,T,F,U} = T
+getq(::MPBP{q,T,F,U}) where {q,T,F,U} = q
+getN(bp::MPBP) = nv(bp.g)
 
 # check that factors on edge i→j is the same as the one on j→i
 function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
@@ -60,16 +60,16 @@ function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
     return true
 end
 
-function mpdbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:dBP_Factor}}, 
+function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:dBP_Factor}}, 
         q::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(q) for t in 1:T] for _ in vertices(g)],
         ψ = [[ones(q,q) for t in 1:T] for _ in edges(g)],
         p⁰ = [ones(q) for i in 1:nv(g)],
         μ = [mpem2(q, T; d, bondsizes) for e in edges(g)])
-    return MPdBP(g, w, ϕ, ψ, p⁰, μ)
+    return MPBP(g, w, ϕ, ψ, p⁰, μ)
 end
 
-function reset_messages!(bp::MPdBP)
+function reset_messages!(bp::MPBP)
     for A in bp.μ
         for Aᵗ in A
             Aᵗ .= 1
@@ -80,7 +80,7 @@ function reset_messages!(bp::MPdBP)
 end
 
 
-function onebpiter!(bp::MPdBP{q,T,F,U}, i::Integer; 
+function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     ein = inedges(g,i)
@@ -106,10 +106,10 @@ struct CB_BP{TP<:ProgressUnknown}
     Δs   :: Vector{Float64}
     f    :: Vector{Float64}
 
-    function CB_BP(bp::MPdBP{q,T,F,U}; showprogress::Bool=true) where {q,T,F,U}
+    function CB_BP(bp::MPBP{q,T,F,U}; showprogress::Bool=true) where {q,T,F,U}
         @assert q == 2
         dt = showprogress ? 0.1 : Inf
-        prog = ProgressUnknown(desc="Running MPdBP: iter", dt=dt)
+        prog = ProgressUnknown(desc="Running MPBP: iter", dt=dt)
         TP = typeof(prog)
         b = [getindex.(beliefs(bp), 1)] 
         Δs = zeros(0)
@@ -118,7 +118,7 @@ struct CB_BP{TP<:ProgressUnknown}
     end
 end
 
-function (cb::CB_BP)(bp::MPdBP, it::Integer, z_msg::Vector)
+function (cb::CB_BP)(bp::MPBP, it::Integer, z_msg::Vector)
     b, z_belief = pair_beliefs(bp)
     f = bethe_free_energy(bp, z_msg, z_belief)
     marg_new = getindex.(beliefs(bp), 1)
@@ -131,7 +131,7 @@ function (cb::CB_BP)(bp::MPdBP, it::Integer, z_msg::Vector)
     return Δ
 end
 
-function iterate!(bp::MPdBP; maxiter::Integer=5, 
+function iterate!(bp::MPBP; maxiter::Integer=5, 
         svd_trunc::SVDTrunc=TruncThresh(1e-6),
         showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
         z_msg = zeros(nv(bp.g)),
@@ -151,7 +151,7 @@ end
 
 # compute joint beliefs for all pairs of neighbors
 # return also zᵢⱼ contributions to zᵢ
-function pair_beliefs(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
+function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     b = [[zeros(q,q) for _ in 0:T] for _ in 1:(ne(bp.g))]
     z = ones(nv(bp.g))
     X = bp.g.X
@@ -174,7 +174,7 @@ function pair_beliefs(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
     b, z
 end
 
-function beliefs(bp::MPdBP; bij = pair_beliefs(bp)[1])
+function beliefs(bp::MPBP; bij = pair_beliefs(bp)[1])
     b = map(vertices(bp.g)) do i 
         ij = idx(first(outedges(bp.g, i)))
         bb = bij[ij]
@@ -185,11 +185,11 @@ function beliefs(bp::MPdBP; bij = pair_beliefs(bp)[1])
     b
 end
 
-function bethe_free_energy(bp::MPdBP, z_factors, z_edges)
+function bethe_free_energy(bp::MPBP, z_factors, z_edges)
     - sum(log, z_factors) - sum(log, z_edges)
 end
 
-function bethe_free_energy(bp::MPdBP; svd_trunc=TruncThresh(1e-4))
+function bethe_free_energy(bp::MPBP; svd_trunc=TruncThresh(1e-4))
     fa = zeros(getN(bp))
     for i in eachindex(fa)
         zi = onebpiter!(bp, i; svd_trunc)
@@ -202,7 +202,7 @@ end
 
 
 #### OLD
-# function belief_slow(bp::MPdBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
+# function belief_slow(bp::MPBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
 #     @unpack g, w, ϕ, p⁰, μ = bp
 #     A = μ[inedges(g,i).|>idx]
 #     B = f_bp(A, p⁰[i], w[i], ϕ[i])
@@ -211,11 +211,11 @@ end
 #     return firstvar_marginals(C)
 # end
 
-# function beliefs_slow(bp::MPdBP; kw...)
+# function beliefs_slow(bp::MPBP; kw...)
 #     [belief_slow(bp, i; kw...) for i in vertices(bp.g)]
 # end
 
-# function magnetizations_slow(bp::MPdBP{q,T,F,U}; 
+# function magnetizations_slow(bp::MPBP{q,T,F,U}; 
 #         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
 #     @assert q == 2
 #     map(vertices(bp.g)) do i

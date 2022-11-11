@@ -1,3 +1,5 @@
+# Interface to SIB
+
 using PyCall, SparseArrays, IndexedGraphs
 
 ENV["PYTHON"] = "/home/crotti/miniconda3/bin/python"
