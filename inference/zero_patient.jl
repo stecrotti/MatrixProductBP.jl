@@ -2,8 +2,8 @@ import StatsBase: sample
 import LogExpFunctions: logistic, softmax!
 import Graphs: random_regular_graph
 
+include("inference.jl")
 include("../sis.jl")
-include("../mpdbp.jl")
 include("../exact/montecarlo.jl")
 
 # return epidemic instance as an `N`-by-`T`+1 matrix and `MPdBP` object
@@ -44,26 +44,6 @@ function find_zero_patients_mc(bp::MPdBP; nsamples=10^4,
     eachindex(b⁰)[p], [bb[I] for bb in b⁰[p]], sms
 end
 
-# compute ROC curve
-function roc(guess_zp, true_zp)
-    r = guess_zp .∈ (true_zp,)
-    sr = sum(r)
-    sr == 0 && return zeros(length(r)), ones(length(r)) 
-    cumsum(.!r), cumsum(r)
-end
-
-function auc(guess_zp, true_zp)
-    x, y = roc(guess_zp, true_zp)
-    Z = maximum(x) * maximum(y)
-    Z == 0 && return 1.0
-    a = 0
-    for i in 2:length(y)
-        if y[i] == y[i-1]
-            a += y[i]
-        end  
-    end
-    a / Z 
-end
 
 function softmax(β::Real, N::Integer, i::Integer)
     @assert i ∈ 1:N

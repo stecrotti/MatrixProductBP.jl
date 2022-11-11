@@ -1,6 +1,11 @@
 using UnPack
 include("utils.jl")
 
+```
+Factor for the factor graph of a model solvable with MPdBP.
+Any `dBP_Factor` subtype must implement a functor that computes the Boltzmann
+contribution to the joint probability
+```
 abstract type dBP_Factor; end
 
 const q_glauber = 2
@@ -49,7 +54,7 @@ function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer},
     ( xᵢᵗ == I && xᵢᵗ⁺¹ == S ) && return κ
     ( xᵢᵗ == I && xᵢᵗ⁺¹ == I ) && return 1 - κ 
     if xᵢᵗ == S
-        p = (1-λ)^sum( xⱼᵗ == I for xⱼᵗ in xₙᵢᵗ, init=0.0)
+        p = (1-λ)^sum( xⱼᵗ == I for xⱼᵗ in xₙᵢᵗ; init=0.0)
         if xᵢᵗ⁺¹ == S
             return p
         elseif xᵢᵗ⁺¹ == I

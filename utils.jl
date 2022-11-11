@@ -1,4 +1,5 @@
 import Random
+import TensorCast: @cast
 
 # maps (1,2) -> (1,-1)
 potts2spin(x) = 3-2x

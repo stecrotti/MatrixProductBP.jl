@@ -91,10 +91,6 @@ function pair_observations_directed(O::Vector{<:Tuple{I,I,I,V}},
     ψ
 end
 
-function nondirected_to_directed(ψ, g::IndexedGraph)
-
-end
-
 function pair_observations_nondirected(O::Vector{<:Tuple{I,I,I,V}}, 
         g::IndexedGraph{Int}, T::Integer, 
         q::Integer) where {I<:Integer,V<:Matrix{<:Real}}
@@ -223,7 +219,8 @@ function pair_beliefs(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
             ij = vals[k]    # idx of message j→i
             μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
             bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ)
-            z[j] *= zᵢⱼ ^ (1/dⱼ- 1/2)
+            # z[j] *= zᵢⱼ ^ (1/dⱼ- 1/2)
+            z[j] *= abs(zᵢⱼ) ^ (1/dⱼ- 1/2)  # DA METTERE A POSTO
             b[ij] .= bᵢⱼ
         end
     end

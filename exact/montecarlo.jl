@@ -7,6 +7,7 @@ import Base.Threads: @threads
 using Unzip
 import StatsBase
 import LogExpFunctions: logistic
+import Random
 
 include("../glauber.jl")
 include("../mpdbp.jl")
@@ -66,32 +67,6 @@ struct GlauberSampler{T,N,F}
         X = Matrix{Int}[]
         new{T,N,F}(gl, X)
     end
-end
-
-# return a sampled trajectory
-function sample!(X, gl::Glauber{T,N,F}) where {T,N,F}
-    @assert is_free_dynamics(gl)
-    @unpack ising = gl
-
-    # t=0
-    for i in 1:N
-        p = p⁰[i][2]
-        X[1,i] = rand(Bernoulli(p)) + 1
-    end
-
-    for t in 1:T
-        for i in 1:N
-            ∂i = neighbors(ising.g, i)
-            p = local_w(ising.g, ising.J, ising.h, i, 2, 
-                    X[t,∂i], ising.β)
-            X[t+1,i] = rand(Bernoulli(p)) + 1
-        end
-    end
-    X
-end
-function _sample(gl::Glauber{T,N,F}) where {T,N,F}
-    X = zeros(Int, T+1, N)
-    sample!(X, gl)
 end
 
 function sample!(gs::GlauberSampler; nsamples = nv(gs.gl.ising.g), 
@@ -205,12 +180,12 @@ end
 # draw `nobs` observations from the prior
 function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}}, 
         X::Matrix{<:Integer}, nobs::Integer; softinf::Real=Inf,
-        last_time::Bool=false) where {F<:Real}
+        last_time::Bool=false, rng=Random.GLOBAL_RNG) where {F<:Real}
     N, T = size(X) .- (0, 1)
     it = if last_time
-        sample( collect.(Iterators.product(T:T, 1:N)), nobs, replace=false)
+        sample(rng,  collect.(Iterators.product(T:T, 1:N)), nobs, replace=false)
     else
-        sample( collect.(Iterators.product(1:T, 1:N)), nobs, replace=false)
+        sample(rng,  collect.(Iterators.product(1:T, 1:N)), nobs, replace=false)
     end
     softone = logistic(log(softinf)); softzero = logistic(-log(softinf))
     for (t, i) in it
@@ -224,4 +199,32 @@ function draw_node_observations!(bp::MPdBP, nobs::Integer; kw...)
     X, _ = onesample(bp)
     draw_node_observations!(bp.ϕ, X, nobs; kw...)
     X
+end
+
+#### OLD
+
+# return a sampled trajectory. Better use `SoftMarginSampler`
+function sample!(X, gl::Glauber{T,N,F}) where {T,N,F}
+    @assert is_free_dynamics(gl)
+    @unpack ising = gl
+
+    # t=0
+    for i in 1:N
+        p = p⁰[i][2]
+        X[1,i] = rand(Bernoulli(p)) + 1
+    end
+
+    for t in 1:T
+        for i in 1:N
+            ∂i = neighbors(ising.g, i)
+            p = local_w(ising.g, ising.J, ising.h, i, 2, 
+                    X[t,∂i], ising.β)
+            X[t+1,i] = rand(Bernoulli(p)) + 1
+        end
+    end
+    X
+end
+function _sample(gl::Glauber{T,N,F}) where {T,N,F}
+    X = zeros(Int, T+1, N)
+    sample!(X, gl)
 end
