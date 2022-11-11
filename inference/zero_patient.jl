@@ -41,7 +41,7 @@ function find_zero_patients_mc(bp::MPdBP; nsamples=10^4,
     b = marginals(sms)
     b⁰ = [bb[1] for bb in b]
     p = sortperm(b⁰, by=x->x[1])
-    eachindex(b⁰)[p], [bb[I] for bb in b⁰[p]], sms
+    eachindex(b⁰)[p], [bb[INFECTED] for bb in b⁰[p]], sms
 end
 
 
