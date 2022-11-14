@@ -1,4 +1,4 @@
-function exact_prob(bp::MPdBP{q,T,F,U}) where {q,T,F,U}
+function exact_prob(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     @assert q==2 "Can compute exact prob only for binary variables (for now)"
     @unpack g, w, p⁰, ϕ, ψ = bp
     N = nv(g)

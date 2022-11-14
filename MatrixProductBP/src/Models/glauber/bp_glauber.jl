@@ -20,23 +20,23 @@ function (fᵢ::GlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integ
     exp( -E ) / (2cosh(E))
 end
 
-# function mpdbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
-#     g = IndexedBiDiGraph(gl.ising.g.A)
-#     w = glauber_factors(gl.ising, T)
-#     ϕ = gl.ϕ
-#     ψ = gl.ψ
-#     p⁰ = gl.p⁰
-#     return mpdbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)
-# end
+function mpbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
+    g = IndexedBiDiGraph(gl.ising.g.A)
+    w = glauber_factors(gl.ising, T)
+    ϕ = gl.ϕ
+    ψ = pair_obs_undirected_to_directed(gl.ψ)
+    p⁰ = gl.p⁰
+    return mpbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)
+end
 
-function mpdbp(ising::Ising, T::Integer;
+function mpbp(ising::Ising, T::Integer;
         ϕ = [[ones(2) for t in 1:T] for _ in vertices(ising.g)],
         ψ = [[ones(2,2) for t in 1:T] for _ in 1:2*ne(ising.g)],
         p⁰ = [ones(2) for i in 1:nv(ising.g)], kw...)
         
     g = IndexedBiDiGraph(ising.g.A)
     w = glauber_factors(ising, T)
-    return mpdbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)
+    return mpbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)
 end
 
 # the sum of n spins can be one of (n+1) values. We sort them increasingly and
@@ -187,7 +187,7 @@ function prob_ijy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
     p
 end
 
-function onebpiter!(bp::MPdBP{q,T,F,<:GlauberFactor}, i::Integer; 
+function onebpiter!(bp::MPBP{q,T,F,<:GlauberFactor}, i::Integer; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     ein = inedges(g,i)
@@ -206,13 +206,13 @@ function onebpiter!(bp::MPdBP{q,T,F,<:GlauberFactor}, i::Integer;
     return zᵢ ^ (1 / dᵢ)
 end
 
-function magnetizations(bp::MPdBP{q,T,F,<:GlauberFactor}) where {q,T,F}
+function magnetizations(bp::MPBP{q,T,F,<:GlauberFactor}) where {q,T,F}
     map(beliefs(bp)) do bᵢ
         reduce.(-, bᵢ)
     end
 end
 
-# return a vector ψ ready for MPdBP starting from observations of the type
+# return a vector ψ ready for MPBP starting from observations of the type
 #  (i, j, t, ψᵢⱼᵗ)
 function pair_observations_directed(O::Vector{<:Tuple{I,I,I,V}}, 
         g::IndexedBiDiGraph{Int}, T::Integer, 
@@ -260,4 +260,8 @@ function pair_observations_nondirected(O::Vector{<:Tuple{I,I,I,V}},
     end
     @assert cnt == length(O)
     ψ
+end
+
+function pair_obs_undirected_to_directed(ψ)
+    ciao
 end

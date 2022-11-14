@@ -1,7 +1,3 @@
-import IndexedGraphs: IndexedGraph
-
-include("mpdbp.jl")
-
 struct SIS{T, N, F<:Real}
     g  :: IndexedGraph
     λ  :: F

@@ -4,18 +4,18 @@ using Reexport
 @reexport import Base:
     -, eltype, getindex, iterate, firstindex, lastindex, setindex!, length,
     isapprox
-
 import Lazy: @forward
-import TensorCast: @cast, @reduce
+import TensorCast: @cast, @reduce, TensorCast
 import LinearAlgebra: svd, norm, normalize!
 import Tullio: @tullio
 import Random: AbstractRNG, GLOBAL_RNG
 
 export 
+    SVDTrunc, TruncBond, TruncThresh,
     MPEM, normalize_eachmatrix!, -, isapprox, evaluate, getq, getT, bond_dims,
     MPEM2, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!,
     normalization, normalize!,
-    MPEM3, mpem3
+    MPEM3
 
 # Matrix Product Edge Message
 abstract type MPEM; end

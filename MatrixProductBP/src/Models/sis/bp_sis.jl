@@ -171,7 +171,7 @@ function prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, κ)
     return -Inf
 end
 
-function onebpiter!(bp::MPdBP{q,T,F,<:SISFactor}, i::Integer; 
+function onebpiter!(bp::MPBP{q,T,F,<:SISFactor}, i::Integer; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     ein = inedges(g,i)

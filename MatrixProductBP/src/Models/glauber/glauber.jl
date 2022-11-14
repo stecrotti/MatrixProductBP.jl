@@ -1,12 +1,3 @@
-import IndexedGraphs: IndexedGraph, outedges, neighbors, idx
-import SparseArrays: nzrange
-import ProgressMeter: Progress, next!
-import Base.Threads: @threads
-import UnPack: @unpack
-
-include("./utils.jl")
-include("mpdbp.jl")
-
 # Ising model with xᵢ ∈ {1,2} mapped onto spins {+1,-1}
 struct Ising{F<:AbstractFloat}
     g :: IndexedGraph{Int}
@@ -16,9 +7,8 @@ struct Ising{F<:AbstractFloat}
 end
 
 function Ising(J::AbstractMatrix{F}, h::Vector{F}, β::F) where {F<:AbstractFloat}
-    gg = SimpleGraph(J)
     Jvec = [J[i,j] for j in axes(J,2) for i in axes(J,1) if i < j && J[i,j]!=0]
-    g = IndexedGraph(gg)
+    g = IndexedGraph(J)
     Ising(g, Jvec, h, β)
 end
 
@@ -148,17 +138,17 @@ end
 
 ### OLD
 
-# return true if all the ϕ's are uniform, i.e. the dynamics is free
-function is_free_dynamics(gl::Glauber)
-    is_free_nodes = map(ψ) do ϕᵢ
-        map(ϕᵢ) do ϕᵢᵗ
-            all(y->y==ϕᵢᵗ[1], ϕᵢᵗ)
-        end |> all
-    end |> all
-    is_free_edges = map(ψ) do ψᵢⱼ
-        map(ψᵢⱼ) do ψᵢⱼᵗ
-            all(isequal(ψᵢⱼᵗ[1]), ψᵢⱼᵗ)
-        end |> all
-    end |> all
-    return is_free_nodes && is_free_edges
-end
+# # return true if all the ϕ's are uniform, i.e. the dynamics is free
+# function is_free_dynamics(gl::Glauber)
+#     is_free_nodes = map(ψ) do ϕᵢ
+#         map(ϕᵢ) do ϕᵢᵗ
+#             all(y->y==ϕᵢᵗ[1], ϕᵢᵗ)
+#         end |> all
+#     end |> all
+#     is_free_edges = map(ψ) do ψᵢⱼ
+#         map(ψᵢⱼ) do ψᵢⱼᵗ
+#             all(isequal(ψᵢⱼᵗ[1]), ψᵢⱼᵗ)
+#         end |> all
+#     end |> all
+#     return is_free_nodes && is_free_edges
+# end

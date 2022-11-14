@@ -1,9 +1,9 @@
-struct SoftMarginSampler{B<:MPdBP, F<:AbstractFloat}
+struct SoftMarginSampler{B<:MPBP, F<:AbstractFloat}
     bp :: B
     X  :: Vector{Matrix{Int}}
     w  :: Vector{F}
 
-    function SoftMarginSampler(bp::MPdBP{q,T,F,U}, 
+    function SoftMarginSampler(bp::MPBP{q,T,F,U}, 
             X::Vector{Matrix{Int}}, w::Vector{F}) where{q,T,F,U}
 
         N = nv(bp.g)
@@ -11,12 +11,12 @@ struct SoftMarginSampler{B<:MPdBP, F<:AbstractFloat}
         @assert all(≥(0), w)
         @assert all(x -> size(x) == (N, T+1), X)
 
-        new{MPdBP{q,T,F,U}, F}(bp, X, w)
+        new{MPBP{q,T,F,U}, F}(bp, X, w)
     end
 end
 
 # a sample with its weight
-function onesample!(x::Matrix{Int}, bp::MPdBP{q,T,F,U}) where {q,T,F,U}
+function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U}) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     N = nv(bp.g)
     @assert size(x) == (N , T+1)
@@ -42,13 +42,13 @@ function onesample!(x::Matrix{Int}, bp::MPdBP{q,T,F,U}) where {q,T,F,U}
     end
     return x, wg
 end
-function onesample(bp::MPdBP{q,T,F,U}) where {q,T,F,U}  
+function onesample(bp::MPBP{q,T,F,U}) where {q,T,F,U}  
     N = nv(bp.g)
     x = zeros(Int, N, T+1)
     onesample!(x, bp)
 end
 
-function sample(bp::MPdBP, nsamples::Integer; showprogress::Bool=true)
+function sample(bp::MPBP, nsamples::Integer; showprogress::Bool=true)
     dt = showprogress ? 0.1 : Inf
     prog = Progress(nsamples, desc="SoftMargin sampling..."; dt)
     S = map(1:nsamples) do _
@@ -101,7 +101,7 @@ function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}},
 end
 
 # draw 1 sample from the prior, observe something and return the sample
-function draw_node_observations!(bp::MPdBP, nobs::Integer; kw...)
+function draw_node_observations!(bp::MPBP, nobs::Integer; kw...)
     X, _ = onesample(bp)
     draw_node_observations!(bp.ϕ, X, nobs; kw...)
     X

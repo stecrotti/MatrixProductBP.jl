@@ -6,7 +6,6 @@ svd_trunc = TruncThresh(0.0)
     T = getT(C)
     x = [rand(1:2,2) for t in 1:T+1]
     e1 = evaluate(C, x)
-    n1 = norm(C)
 
     sweep_RtoL!(C; svd_trunc)
     e2 = evaluate(C, x)
@@ -34,7 +33,7 @@ end
 @testset "Accumulators" begin
     tensors = [rand(1,3,2,2), rand(3,4,2,2), rand(4,10,2,2), rand(10,1,2,2)]
     A = MPEM2(tensors)
-    L = accumulate_L(A)
-    R = accumulate_R(A)
+    L = MatrixProductBP.MPEMs.accumulate_L(A)
+    R = MatrixProductBP.MPEMs.accumulate_R(A)
     @test L[end] ≈ R[begin]
 end

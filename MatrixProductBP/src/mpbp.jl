@@ -1,13 +1,13 @@
 
 ```
 Factor for the factor graph of a model solvable with MPBP.
-Any `dBP_Factor` subtype must implement a functor that computes the Boltzmann
+Any `BPFactor` subtype must implement a functor that computes the Boltzmann
 contribution to the joint probability
 ```
 abstract type BPFactor; end
 
 
-struct MPBP{q,T,F<:Real,U<:dBP_Factor}
+struct MPBP{q,T,F<:Real,U<:BPFactor}
     g  :: IndexedBiDiGraph{Int}          # graph
     w  :: Vector{Vector{U}}              # factors, one per variable
     ϕ  :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
@@ -18,7 +18,7 @@ struct MPBP{q,T,F<:Real,U<:dBP_Factor}
     function MPBP(g::IndexedBiDiGraph{Int}, w::Vector{Vector{U}}, 
             ϕ::Vector{Vector{Vector{F}}}, ψ::Vector{Vector{Matrix{F}}},
             p⁰::Vector{Vector{F}}, 
-            μ::Vector{MPEM2{q,T,F}}) where {q,T,F<:Real,U<:dBP_Factor}
+            μ::Vector{MPEM2{q,T,F}}) where {q,T,F<:Real,U<:BPFactor}
     
         @assert length(w) == length(ϕ) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
         @assert length(ψ) == ne(g)
@@ -38,7 +38,7 @@ getT(::MPBP{q,T,F,U}) where {q,T,F,U} = T
 getq(::MPBP{q,T,F,U}) where {q,T,F,U} = q
 getN(bp::MPBP) = nv(bp.g)
 
-# check that factors on edge i→j is the same as the one on j→i
+# check that observation on edge i→j is the same as the one on j→i
 function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
     X = g.X
     N = nv(g)
@@ -60,7 +60,7 @@ function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
     return true
 end
 
-function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:dBP_Factor}}, 
+function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}}, 
         q::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(q) for t in 1:T] for _ in vertices(g)],
         ψ = [[ones(q,q) for t in 1:T] for _ in edges(g)],
