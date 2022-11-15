@@ -1,10 +1,14 @@
 module Models
 
-import MatrixProductBP: exact_prob, onebpiter!, getT, getq, mpbp
+import MatrixProductBP: exact_prob, onebpiter!, getT, getq, mpbp, kron2
 using MatrixProductBP
 
-import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, ne, nv, outedges, idx
+import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, ne, nv, outedges, idx,
+    inedges, neighbors, edges
 import UnPack: @unpack
+import SparseArrays: nonzeros, nzrange
+import TensorCast: @reduce, @cast, TensorCast 
+import ProgressMeter: Progress, next!
 
 export 
     Ising, Glauber, exact_prob, site_marginals, site_time_marginals, 

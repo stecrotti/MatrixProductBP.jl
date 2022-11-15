@@ -24,19 +24,22 @@ function mpbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
     g = IndexedBiDiGraph(gl.ising.g.A)
     w = glauber_factors(gl.ising, T)
     ϕ = gl.ϕ
-    ψ = pair_obs_undirected_to_directed(gl.ψ)
+    ψ = pair_obs_undirected_to_directed(gl.ψ, gl.ising.g)
     p⁰ = gl.p⁰
     return mpbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)
 end
 
-function mpbp(ising::Ising, T::Integer;
-        ϕ = [[ones(2) for t in 1:T] for _ in vertices(ising.g)],
-        ψ = [[ones(2,2) for t in 1:T] for _ in 1:2*ne(ising.g)],
-        p⁰ = [ones(2) for i in 1:nv(ising.g)], kw...)
-        
-    g = IndexedBiDiGraph(ising.g.A)
-    w = glauber_factors(ising, T)
-    return mpbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)
+
+# construct an array of GlauberFactors corresponding to gl
+function glauber_factors(ising::Ising, T::Integer)
+    map(1:nv(ising.g)) do i
+        ei = outedges(ising.g, i)
+        ∂i = idx.(ei)
+        J = ising.J[∂i]
+        h = ising.h[i]
+        wᵢᵗ = GlauberFactor(J, h, ising.β)
+        fill(wᵢᵗ, T)
+    end
 end
 
 # the sum of n spins can be one of (n+1) values. We sort them increasingly and
@@ -220,9 +223,7 @@ function pair_observations_directed(O::Vector{<:Tuple{I,I,I,V}},
 
     @assert all(size(obs[4])==(q,q) for obs in O)
     cnt = 0
-    ψ = map(edges(g)) do e
-        # i, j, ij = e
-        i = src(e); j = dst(e); ij = idx(e)
+    ψ = map(edges(g)) do i, j, ij
         map(1:T) do t
             id_ij = findall(obs->obs[1:3]==(i,j,t), O)
             id_ji = findall(obs->obs[1:3]==(j,i,t), O)
@@ -262,6 +263,18 @@ function pair_observations_nondirected(O::Vector{<:Tuple{I,I,I,V}},
     ψ
 end
 
-function pair_obs_undirected_to_directed(ψ)
-    ciao
+function pair_obs_undirected_to_directed(ψ_undirected::Vector{<:T}, g::IndexedGraph) where {T<:Vector{<:Matrix}}
+    ψ_directed = T[]
+    sizehint!(ψ_directed, 2*length(ψ_directed)) 
+    A = g.A
+    vals = nonzeros(A)
+
+    for j in 1:nv(g)
+        for k in nzrange(A, j)
+            ij = vals[k]
+            push!(ψ_directed, ψ_undirected[ij])
+        end
+    end
+
+    ψ_directed
 end

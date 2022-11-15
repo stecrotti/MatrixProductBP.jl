@@ -107,31 +107,30 @@ end
 
 # compute bᵢⱼ(xᵢ,xⱼ) from μᵢⱼ and μⱼᵢ
 # also return normalization zᵢⱼ
+function pair_belief(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
 
-# function pair_belief(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2)
+    L = accumulate_L(Aᵢⱼ, Aⱼᵢ); R = accumulate_R(Aᵢⱼ, Aⱼᵢ)
+    z = only(L[end])
+    @assert only(R[begin]) ≈ z
+    z ≥ 0 || @warn "z=$z"
 
-#     L = accumulate_L(Aᵢⱼ, Aⱼᵢ); R = accumulate_R(Aᵢⱼ, Aⱼᵢ)
-#     z = only(L[end])
-#     @assert only(R[begin]) ≈ z
-#     z ≥ 0 || @warn "z=$z"
+    Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]; R¹ = R[2]
+    @reduce b⁰[xᵢ⁰,xⱼ⁰] := sum(a¹,b¹) Aᵢⱼ⁰[1,a¹,xᵢ⁰,xⱼ⁰] * Aⱼᵢ⁰[1,b¹,xⱼ⁰,xᵢ⁰] * R¹[a¹,b¹]
+    b⁰ ./= sum(b⁰)
 
-#     Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]; R¹ = R[2]
-#     @reduce b⁰[xᵢ⁰,xⱼ⁰] := sum(a¹,b¹) Aᵢⱼ⁰[1,a¹,xᵢ⁰,xⱼ⁰] * Aⱼᵢ⁰[1,b¹,xⱼ⁰,xᵢ⁰] * R¹[a¹,b¹]
-#     b⁰ ./= sum(b⁰)
+    Aᵢⱼᵀ = Aᵢⱼ[end]; Aⱼᵢᵀ = Aⱼᵢ[end]; Lᵀ⁻¹ = L[end-1]
+    @reduce bᵀ[xᵢᵀ,xⱼᵀ] := sum(aᵀ,bᵀ) Lᵀ⁻¹[aᵀ,bᵀ] * Aᵢⱼᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ] * Aⱼᵢᵀ[bᵀ,1,xⱼᵀ,xᵢᵀ]
+    bᵀ ./= sum(bᵀ)
 
-#     Aᵢⱼᵀ = Aᵢⱼ[end]; Aⱼᵢᵀ = Aⱼᵢ[end]; Lᵀ⁻¹ = L[end-1]
-#     @reduce bᵀ[xᵢᵀ,xⱼᵀ] := sum(aᵀ,bᵀ) Lᵀ⁻¹[aᵀ,bᵀ] * Aᵢⱼᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ] * Aⱼᵢᵀ[bᵀ,1,xⱼᵀ,xᵢᵀ]
-#     bᵀ ./= sum(bᵀ)
+    b = map(2:T) do t 
+        Lᵗ⁻¹ = L[t-1]; Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; Rᵗ⁺¹ = R[t+1]
+        @reduce bᵗ[xᵢᵗ,xⱼᵗ] := sum(aᵗ,aᵗ⁺¹,bᵗ,bᵗ⁺¹) Lᵗ⁻¹[aᵗ,bᵗ] * 
+            Aᵢⱼᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] * Aⱼᵢᵗ[bᵗ,bᵗ⁺¹,xⱼᵗ,xᵢᵗ] * Rᵗ⁺¹[aᵗ⁺¹,bᵗ⁺¹]  
+        bᵗ ./= sum(bᵗ)
+    end
 
-#     b = map(2:T) do t 
-#         Lᵗ⁻¹ = L[t-1]; Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; Rᵗ⁺¹ = R[t+1]
-#         @reduce bᵗ[xᵢᵗ,xⱼᵗ] := sum(aᵗ,aᵗ⁺¹,bᵗ,bᵗ⁺¹) Lᵗ⁻¹[aᵗ,bᵗ] * 
-#             Aᵢⱼᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] * Aⱼᵢᵗ[bᵗ,bᵗ⁺¹,xⱼᵗ,xᵢᵗ] * Rᵗ⁺¹[aᵗ⁺¹,bᵗ⁺¹]  
-#         bᵗ ./= sum(bᵗ)
-#     end
-
-#     return [b⁰, b..., bᵀ], z
-# end
+    return [b⁰, b..., bᵀ], z
+end
 
 
 # #### OLD

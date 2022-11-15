@@ -21,9 +21,8 @@ end
 ϕ = [[ones(2) for t in 1:T] for i in 1:N]
 ψ = [[ones(2,2) for t in 1:T] for _ in 1:ne(ising.g)]
 gl = Glauber(ising, p⁰, ϕ, ψ)
+bp = mpbp(gl)
 
-
-bp = mpbp(ising, T; ϕ, p⁰, ψ)
 svd_trunc = TruncBond(4)
 
 draw_node_observations!(bp, N)
@@ -37,4 +36,9 @@ p_exact, Z_exact = exact_prob(gl)
 b_exact = site_time_marginals(gl; m = site_marginals(gl; p=p_exact))
 p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
-# @show Z_exact exp(-cb.f[end]);
+f_bethe = bethe_free_energy(bp)
+
+@testset "Glauber small tree" begin
+    @test Z_exact ≈ exp(-f_bethe)
+    @test p_ex ≈ p_bp
+end

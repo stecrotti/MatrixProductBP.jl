@@ -1,4 +1,5 @@
 using Test, MatrixProductBP
+using MatrixProductBP.Models
 using IndexedGraphs
 
 include("mpem.jl")

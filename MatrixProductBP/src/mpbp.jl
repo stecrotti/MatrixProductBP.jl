@@ -166,8 +166,8 @@ function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
             ij = vals[k]    # idx of message j→i
             μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
             bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ)
-            # z[j] *= zᵢⱼ ^ (1/dⱼ- 1/2)
-            z[j] *= abs(zᵢⱼ) ^ (1/dⱼ- 1/2)  # NEEDS FIXING IN CASE OF NEGATIVE z
+            z[j] *= zᵢⱼ ^ (1/dⱼ- 1/2)
+            # z[j] *= abs(zᵢⱼ) ^ (1/dⱼ- 1/2)  # NEEDS FIXING IN CASE OF NEGATIVE z
             b[ij] .= bᵢⱼ
         end
     end

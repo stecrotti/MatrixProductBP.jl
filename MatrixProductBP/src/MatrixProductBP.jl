@@ -2,10 +2,10 @@ module MatrixProductBP
 
 import InvertedIndices: Not
 import ProgressMeter: Progress, ProgressUnknown, next!
-import TensorCast: @reduce, @cast,TensorCast 
+import TensorCast: @reduce, @cast, TensorCast 
 import Tullio: @tullio
 import IndexedGraphs: nv, ne, edges, vertices, IndexedBiDiGraph,
-    inedges, outedges, src, dst, idx
+    inedges, outedges, src, dst, idx, neighbors
 import UnPack: @unpack
 import Random: shuffle!, AbstractRNG, GLOBAL_RNG
 import SparseArrays: rowvals, nonzeros, nzrange
@@ -39,7 +39,7 @@ include("sampling.jl")
 
 include("Models/Models.jl")
 using .Models
-@reexport import .Models: Ising, Glauber, exact_prob, site_marginals, 
+import .Models: Ising, Glauber, exact_prob, site_marginals, 
     site_time_marginals, site_time_magnetizations, 
     q_glauber, GlauberFactor, onebpiter!, pair_observations_directed, 
     pair_observations_nondirected, magnetizations, mpbp,

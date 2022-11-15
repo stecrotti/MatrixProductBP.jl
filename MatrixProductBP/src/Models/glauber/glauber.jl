@@ -1,3 +1,7 @@
+# maps (1,2) -> (1,-1)
+potts2spin(x) = 3-2x
+spin2potts(σ) = (3+σ)/2
+
 # Ising model with xᵢ ∈ {1,2} mapped onto spins {+1,-1}
 struct Ising{F<:AbstractFloat}
     g :: IndexedGraph{Int}
@@ -54,6 +58,13 @@ function bitarr_to_int(arr::BitArray, s=big(0))
     return s
 end
 
+# first turn integer `x` into its binary representation, then reshape the
+#  resulting bit vector into a matrix of size specified by `dims`
+function _int_to_matrix(x::Integer, dims)
+    y = digits(x, base=2, pad=prod(dims))
+    return reshape(y, dims) .+ 1
+end
+
 function exact_prob(gl::Glauber{T,N,F}) where {T,N,F}
     T*N > 15 && @warn "T*N=$(T*N). This will take some time!"
     @unpack ising, p⁰, ϕ, ψ = gl
@@ -61,7 +72,7 @@ function exact_prob(gl::Glauber{T,N,F}) where {T,N,F}
     prog = Progress(2^(N*(T+1)), desc="Computing joint probability")
     X = zeros(Int, T+1, N)
     for x in 1:2^(N*(T+1))
-        X .= int_to_matrix(x-1, (T+1,N))
+        X .= _int_to_matrix(x-1, (T+1,N))
         for i in 1:N
             p[x] *= p⁰[i][X[1,i]]
             ∂i = neighbors(ising.g, i)
@@ -91,7 +102,7 @@ function site_marginals(gl::Glauber{T, N, F};
     prog = Progress(2^(N*(T+1)), desc="Computing site marginals")
     X = zeros(Int, T+1, N)
     for x in 1:2^(N*(T+1))
-        X .= int_to_matrix(x-1, (T+1,N))
+        X .= _int_to_matrix(x-1, (T+1,N))
         for i in 1:N
             m[i][X[:,i]...] += p[x]
         end
@@ -124,17 +135,6 @@ function site_time_magnetizations(gl::Glauber{T, N, F};
     end
 end
 
-# construct an array of GlauberFactors corresponding to gl
-function glauber_factors(ising::Ising, T::Integer)
-    map(1:nv(ising.g)) do i
-        ei = outedges(ising.g, i)
-        ∂i = idx.(ei)
-        J = ising.J[∂i]
-        h = ising.h[i]
-        wᵢᵗ = GlauberFactor(J, h, ising.β)
-        fill(wᵢᵗ, T)
-    end
-end
 
 ### OLD
 
