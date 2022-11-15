@@ -10,7 +10,7 @@ import UnPack: @unpack
 import Random: shuffle!, AbstractRNG, GLOBAL_RNG
 import SparseArrays: rowvals, nonzeros, nzrange
 import Distributions: sample, Bernoulli
-import Measurements: Measurement
+import Measurements: Measurement, ±
 import Statistics: mean, std
 import Unzip: unzip
 import StatsBase: weights, proportions
@@ -19,7 +19,7 @@ import LogExpFunctions: logistic
 export
     BPFactor, MPBP, mpbp, reset_messages!, onebpiter!, CB_BP, iterate!, pair_beliefs,
     beliefs, bethe_free_energy,
-    exact_prob,
+    exact_prob, site_marginals, site_time_marginals, 
     SoftMarginSampler, onesample!, onesample, sample, marginals, 
     draw_node_observations!
 
@@ -39,8 +39,7 @@ include("sampling.jl")
 
 include("Models/Models.jl")
 using .Models
-import .Models: Ising, Glauber, exact_prob, site_marginals, 
-    site_time_marginals, site_time_magnetizations, 
+import .Models: Ising, Glauber, exact_prob,
     q_glauber, GlauberFactor, onebpiter!, pair_observations_directed, 
     pair_observations_nondirected, magnetizations, mpbp,
     SIS, q_sis, SUSCEPTIBLE, INFECTED

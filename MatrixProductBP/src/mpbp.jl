@@ -119,9 +119,9 @@ struct CB_BP{TP<:ProgressUnknown}
 end
 
 function (cb::CB_BP)(bp::MPBP, it::Integer, z_msg::Vector)
-    b, z_belief = pair_beliefs(bp)
+    bij, z_belief = pair_beliefs(bp)
     f = bethe_free_energy(bp, z_msg, z_belief)
-    marg_new = getindex.(beliefs(bp), 1)
+    marg_new = getindex.(beliefs(bp; bij), 1)
     marg_old = cb.b[end]
     Δ = sum(sum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
     push!(cb.Δs, Δ)

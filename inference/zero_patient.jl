@@ -1,6 +1,5 @@
 import StatsBase: sample
 import LogExpFunctions: logistic, softmax!
-import Graphs: random_regular_graph
 
 include("inference.jl")
 include("../sis.jl")

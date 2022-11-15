@@ -29,13 +29,14 @@ function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer},
         end
     end
     error("Shouldn't end up here")
-    0.0
+    -Inf
 end
 
-function mpdbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
-    g = IndexedBiDiGraph(sis.g.A)
-    w = sis_factors(sis)
-    return mpdbp(g, w, q_sis, T, p⁰=sis.p⁰, ϕ=sis.ϕ, ψ=sis.ψ; kw...)
+function mpbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
+    sis_ = deepcopy(sis)
+    g = IndexedBiDiGraph(sis_.g.A)
+    w = sis_factors(sis_)
+    return mpbp(g, w, q_sis, T, p⁰=sis_.p⁰, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
 end
 
 # compute outgoing message efficiently for any degree
@@ -153,19 +154,19 @@ end
 
 function prob_partial_msg_sis(yₖ, yₖ₁, xₖ, λ)
     if yₖ == INFECTED
-        return 1 - (yₖ₁==S)*(1-λ*(xₖ==I))
+        return 1 - (yₖ₁==SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
     elseif yₖ == SUSCEPTIBLE
-        return (yₖ₁==S)*(1-λ*(xₖ==I))
+        return (yₖ₁==SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
     end
 end
 
 function prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, κ)
-    z = 1 - λ*(xⱼᵗ==I)
-    w = (yᵗ==S)
-    if xᵢᵗ⁺¹ == I
-        return (xᵢᵗ==I) * (1 - κ) + (xᵢᵗ==S) * (1 - z * w) 
-    elseif xᵢᵗ⁺¹ == S
-        return (xᵢᵗ==I) * κ + (xᵢᵗ==S) * z * w
+    z = 1 - λ*(xⱼᵗ==INFECTED)
+    w = (yᵗ==SUSCEPTIBLE)
+    if xᵢᵗ⁺¹ == INFECTED
+        return (xᵢᵗ==INFECTED) * (1 - κ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - z * w) 
+    elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
+        return (xᵢᵗ==INFECTED) * κ + (xᵢᵗ==SUSCEPTIBLE) * z * w
     end
     error("shouldn't be here")
     return -Inf

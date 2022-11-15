@@ -1,6 +1,6 @@
 name = "MatrixProductBP"
 uuid = "3d39929c-b583-45fa-b331-3f50b693a38a"
-authors = ["stecrotti <ruggentipini@gmail.com>"]
+authors = ["stecrotti <stefano.crotti@polito.it>"]
 version = "0.1.0"
 
 [deps]

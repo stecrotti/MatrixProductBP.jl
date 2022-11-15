@@ -1,3 +1,4 @@
+# as in https://doi.org/10.1103/PhysRevLett.114.248701
 struct SoftMarginSampler{B<:MPBP, F<:AbstractFloat}
     bp :: B
     X  :: Vector{Matrix{Int}}
@@ -50,7 +51,7 @@ end
 
 function sample(bp::MPBP, nsamples::Integer; showprogress::Bool=true)
     dt = showprogress ? 0.1 : Inf
-    prog = Progress(nsamples, desc="SoftMargin sampling..."; dt)
+    prog = Progress(nsamples, desc="SoftMargin sampling"; dt)
     S = map(1:nsamples) do _
         s = onesample(bp)
         next!(prog)
@@ -66,13 +67,13 @@ function marginals(sms::SoftMarginSampler)
     N = nv(bp.g); T = getT(bp); q = getq(bp)
     marg = [[zeros(Measurement, q) for t in 0:T] for i in 1:N]
     @assert all(>=(0), w)
-    wv = StatsBase.weights(w)
+    wv = weights(w)
     nsamples = length(X)
 
     for i in 1:N
         for t in 1:T+1
             x = [xx[i, t] for xx in X]
-            mit_avg = StatsBase.proportions(x, q, wv)
+            mit_avg = proportions(x, q, wv)
             # avoid numerical errors yielding probabilities > 1
             mit_avg = map(x -> x≥1 ? 1 : x, mit_avg)
             mit_var = mit_avg .* (1 .- mit_avg) ./ nsamples
@@ -84,6 +85,7 @@ function marginals(sms::SoftMarginSampler)
 end
 
 # draw `nobs` observations from the prior
+# flag `last_time` draws all observations from time T
 function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}}, 
         X::Matrix{<:Integer}, nobs::Integer; softinf::Real=Inf,
         last_time::Bool=false, rng=GLOBAL_RNG) where {F<:Real}
