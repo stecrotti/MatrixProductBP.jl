@@ -1,12 +1,28 @@
 const q_glauber = 2
 
-struct GlauberFactor{T<:Real} <: BPFactor
+abstract type GlauberFactor <: BPFactor; end
+
+struct GenericGlauberFactor{T<:Real} <: GlauberFactor 
     βJ :: Vector{T}      
     βh :: T
 end
 
-function GlauberFactor(J::Vector{T}, h::T, β::T) where {T<:Real}
-    GlauberFactor(J.*β, h*β)
+struct HomogeneousGlauberFactor{T<:Real} <: GlauberFactor 
+    βJ :: Vector{T}      
+    βh :: T
+
+    function HomogeneousGlauberFactor(βJ::Vector{T}, βh::T) where {T<:Real}
+        all(isequal(βJ[1]), βJ) || throw(ArgumentError("Couplings should be uniform"))
+        new{T}(βJ, βh)
+    end
+end
+
+function HomogeneousGlauberFactor(J::Vector{T}, h::T, β::T) where {T<:Real}
+    HomogeneousGlauberFactor(J.*β, h*β)
+end
+
+function GenericGlauberFactor(J::Vector{T}, h::T, β::T) where {T<:Real}
+    GenericGlauberFactor(J.*β, h*β)
 end
 
 function (fᵢ::GlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer}, 
@@ -37,7 +53,11 @@ function glauber_factors(ising::Ising, T::Integer)
         ∂i = idx.(ei)
         J = ising.J[∂i]
         h = ising.h[i]
-        wᵢᵗ = GlauberFactor(J, h, ising.β)
+        wᵢᵗ = if is_homogeneous(ising)
+            HomogeneousGlauberFactor(J, h, ising.β)
+        else
+            GenericGlauberFactor(J, h, ising.β)
+        end
         fill(wᵢᵗ, T)
     end
 end
@@ -190,7 +210,7 @@ function prob_ijy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
     p
 end
 
-function onebpiter!(bp::MPBP{q,T,F,<:GlauberFactor}, i::Integer; 
+function onebpiter!(bp::MPBP{q,T,F,<:HomogeneousGlauberFactor}, i::Integer; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     ein = inedges(g,i)
@@ -223,7 +243,7 @@ function pair_observations_directed(O::Vector{<:Tuple{I,I,I,V}},
 
     @assert all(size(obs[4])==(q,q) for obs in O)
     cnt = 0
-    ψ = map(edges(g)) do i, j, ij
+    ψ = map(edges(g)) do (i, j, ij)
         map(1:T) do t
             id_ij = findall(obs->obs[1:3]==(i,j,t), O)
             id_ji = findall(obs->obs[1:3]==(j,i,t), O)
@@ -268,11 +288,17 @@ function pair_obs_undirected_to_directed(ψ_undirected::Vector{<:T}, g::IndexedG
     sizehint!(ψ_directed, 2*length(ψ_directed)) 
     A = g.A
     vals = nonzeros(A)
+    rows = rowvals(A)
 
     for j in 1:nv(g)
         for k in nzrange(A, j)
+            i = rows[k]
             ij = vals[k]
-            push!(ψ_directed, ψ_undirected[ij])
+            if i < j
+                push!(ψ_directed, ψ_undirected[ij])
+            else
+                push!(ψ_directed, [permutedims(ψᵢⱼᵗ) for ψᵢⱼᵗ in ψ_undirected[ij]])
+            end
         end
     end
 

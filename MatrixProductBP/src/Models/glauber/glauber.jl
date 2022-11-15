@@ -16,6 +16,8 @@ function Ising(J::AbstractMatrix{F}, h::Vector{F}, β::F) where {F<:AbstractFloa
     Ising(g, Jvec, h, β)
 end
 
+is_homogeneous(ising::Ising) = all(isequal(ising.J[1]), ising.J)
+
 function local_w(g::IndexedGraph, J::Vector, h::Vector, i::Integer, xᵢ::Integer, 
         xₙᵢ::Vector{<:Integer}, β::Real)
     ei = outedges(g, i)
