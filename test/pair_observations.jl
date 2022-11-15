@@ -1,12 +1,6 @@
-using Graphs
-using Plots, ColorSchemes
-import Statistics: mean
-include("../mpdbp.jl")
-include("../exact/montecarlo.jl")
-
-T = 3
+```Glauber on a small tree with pair observations, comparison with exact solution```
 q = q_glauber
-
+T = 2
 J = [0 1 0 0 0;
      1 0 1 0 0;
      0 1 0 1 1;
@@ -18,65 +12,45 @@ for ij in eachindex(J)
     end
 end
 J = J + J'
-gd = IndexedBiDiGraph(J)
-g = IndexedGraph(J)
 
-N = 5
+N = size(J, 1)
 h = randn(N)
 
 β = 1.0
+ising = Ising(J, h, β)
 
 p⁰ = map(1:N) do i
-    r = rand()
     r = 0.15
     [r, 1-r]
 end
-ϕ = [[ones(2) for t in 1:T] for i in 1:N]
 
 O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
       (3, 4, 2, [0.4 0.6; 0.5 0.9]),
       (3, 5, 2, rand(2,2)) ,
-      (2, 3, T, rand(2,2))]
+      (2, 3, T, rand(2,2))          ]
 
-ψ = pair_observations_directed(O, gd, T, q)
-ψ_nondirected = pair_observations_nondirected(O, g, T, q)
+ψ = pair_observations_nondirected(O, ising.g, T, q)
 
-# ψ = [[ones(q,q) for t in 1:T] for _ in edges(g)]
+gl = Glauber(ising, q, T; p⁰, ψ)
+bp = mpbp(gl)
 
-ising = Ising(J, h, β)
-gl = Glauber(ising, p⁰, ϕ, ψ_nondirected)
+draw_node_observations!(bp, N)
 
-ε = 1e-5
-bp = mpdbp(ising, T, ϕ, ψ, p⁰)
-cb = CB_BP(bp)
-svd_trunc = TruncThresh(ε)
+cb = CB_BP(bp; showprogress=false)
+svd_trunc = TruncBond(4)
 iterate!(bp, maxiter=10; svd_trunc, cb)
-println()
-@show cb.Δs
 
-b = beliefs(bp)
+b_bp = beliefs(bp)
+p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
-@show m_bp = magnetizations(bp)
+p_exact, Z_exact = exact_prob(bp)
+b_exact = site_time_marginals(bp; m = site_marginals(bp; p=p_exact))
+p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
-p = exact_prob(gl)
-m = site_marginals(gl; p)
-mm = site_time_marginals(gl; m)
-m_exact = site_time_magnetizations(gl; mm)
+f_bethe = bethe_free_energy(bp)
 
-cg = cgrad(:matter, N, categorical=true)
-pl = plot(xlabel="BP", ylabel="exact", title="Magnetizations")
-for i in 1:N
-    scatter!(pl, m_bp[i], m_exact[i], c=cg[i], label="i=$i")
+@testset "pair observations" begin
+    @test isapprox(Z_exact, exp(-f_bethe), atol=1e-5)
+    @test isapprox(p_ex, p_bp, atol=1e-5)
 end
-plot!(pl, identity, ls=:dash, la=0.5, label="", legend=:outertopright)
 
-sms = sample(bp, 10^6)
-b_mc = marginals(sms)
-m_mc = [[bbb[1]-bbb[2] for bbb in bb] for bb in b_mc]
-
-cg = cgrad(:matter, N, categorical=true)
-pl = plot(xlabel="BP", ylabel="Monte Carlo", title="Magnetizations")
-for i in 1:N
-    scatter!(pl, m_bp[i], m_mc[i], c=cg[i], label="i=$i")
-end
-plot!(pl, identity, ls=:dash, la=0.5, label="", legend=:outertopright)

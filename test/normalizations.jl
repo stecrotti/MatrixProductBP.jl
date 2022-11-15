@@ -1,9 +1,3 @@
-include("../mpdbp.jl")
-include("../glauber.jl")
-
-using Test
-using Graphs
-
 T = 3
 q = q_glauber
 
@@ -18,7 +12,6 @@ for ij in eachindex(J)
     end
 end
 J = J + J'
-gd = IndexedBiDiGraph(J)
 g = IndexedGraph(J)
 
 N = 5
@@ -28,23 +21,21 @@ h = randn(N)
 
 p⁰ = map(1:N) do i
     r = rand()
-    r = 0.15
     [r, 1-r]
 end
 ϕ = [[ones(2) for t in 1:T] for i in 1:N]
 
 O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
       (3, 4, 2, [0.4 0.6; 0.5 0.9]),
-      (3, 5, 2, rand(2,2)) ,
+      (3, 5, 2, rand(2,2)),
       (2, 3, T, rand(2,2))]
 
-ψ = pair_observations_directed(O, gd, T, q)
-ψ_nondirected = pair_observations_nondirected(O, g, T, q)
+ψ = pair_observations_nondirected(O, g, T, q)
 
 ising = Ising(J, h, β)
-gl = Glauber(ising, p⁰, ϕ, ψ_nondirected)
+gl = Glauber(ising, p⁰, ϕ, ψ)
 
-bp = mpdbp(ising, T, ϕ, ψ, p⁰)
+bp = mpbp(gl)
 iterate!(bp)
 
 z_msg = [normalization(A) for A in bp.μ]
