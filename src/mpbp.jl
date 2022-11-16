@@ -143,7 +143,7 @@ function iterate!(bp::MPBP; maxiter::Integer=5,
         end
         Δ = cb(bp, it, logz_msg)
         Δ < tol && return it, cb
-        shuffle!(nodes)
+        sample!(nodes, collect(vertices(bp.g)), replace=false)
     end
     return maxiter, cb
 end
