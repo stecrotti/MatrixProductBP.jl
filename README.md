@@ -33,7 +33,7 @@ There are two types of `MPEM's:
     - `sample(bp::MPBP, nsamples::Integer)`: draw samples from the prior weighted with their likelihood
     - `draw_node_observations!(bp::MPBP, nobs::Integer)`: draw samples from the prior and add them to the `MPBP` object as observations
     
-    Code for computing probabilities exacyly by exhaustive enumeration in `src/exact/` (only for small system size and final time):
+    Code for computing probabilities exactly by exhaustive enumeration in `src/exact/` (only for small system size and final time):
     - `exact_prob(bp::MPBP)`
     
 - A submodule `Models` that can be included with `using MatrixProductBP.Models` that uses the framework for Glauber dynamics and the SIS model of epidemic spreading.
@@ -41,10 +41,9 @@ It contains model definitions and specialized versions of the BP equations that 
 
 - A `test` folder with small examples 
 
-- A `notebooks` folder showing the applications of the method. These notebooks should, ideally, reproduce the results in the future article.
+- A `notebooks` folder showing the applications of the method. These notebooks should, ideally, allow anyone to reproduce the results in the future article.
  
 ## TO DO:
-- normalize each matrix
-- log of partial free energies
 - reasoning on matrix size for SI
 - compare magnetizations instead of KLs for binary variables
+- Soft Margin sampler to which it's easy to append new samples
