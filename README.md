@@ -48,3 +48,4 @@ It contains model definitions and specialized versions of the BP equations that 
 - log of partial free energies
 - reasoning on matrix size for SI
 - compare magnetizations instead of KLs for binary variables
+- Soft Marginl sampler to which it's easy to append new samples
