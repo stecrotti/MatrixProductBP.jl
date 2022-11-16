@@ -47,3 +47,4 @@ It contains model definitions and specialized versions of the BP equations that 
 - normalize each matrix
 - log of partial free energies
 - reasoning on matrix size for SI
+- compare magnetizations instead of KLs for binary variables
