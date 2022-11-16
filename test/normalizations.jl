@@ -40,7 +40,7 @@ iterate!(bp)
 
 z_msg = [normalization(A) for A in bp.μ]
 
-@testset "message normaliz" begin
+@testset "Message normaliz" begin
     for A in bp.μ
         normalize!(A)
         @test normalization(A) ≈ 1

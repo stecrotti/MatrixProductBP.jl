@@ -87,16 +87,16 @@ function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer;
     eout = outedges(g, i)
     A = μ[ein.|>idx]
     @assert all(normalization(a) ≈ 1 for a in A)
-    zᵢ = 1.0
+    logzᵢ = 0.0
     for (j_ind, e_out) in enumerate(eout)
         B = f_bp(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind)
         C = mpem2(B)
         μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
-        zᵢ₂ⱼ = normalize!(μ[idx(e_out)])
-        zᵢ *= zᵢ₂ⱼ
+        logzᵢ₂ⱼ = normalize!(μ[idx(e_out)])
+        logzᵢ += logzᵢ₂ⱼ
     end
     dᵢ = length(ein)
-    return zᵢ ^ (1 / dᵢ)
+    return (1 / dᵢ) * logzᵢ
 end
 
 # A callback to print info and save stuff during the iterations 
@@ -118,9 +118,9 @@ struct CB_BP{TP<:ProgressUnknown}
     end
 end
 
-function (cb::CB_BP)(bp::MPBP, it::Integer, z_msg::Vector)
-    bij, z_belief = pair_beliefs(bp)
-    f = bethe_free_energy(bp, z_msg, z_belief)
+function (cb::CB_BP)(bp::MPBP, it::Integer, logz_msg::Vector)
+    bij, logz_belief = pair_beliefs(bp)
+    f = bethe_free_energy(bp, logz_msg, logz_belief)
     marg_new = getindex.(beliefs(bp; bij), 1)
     marg_old = cb.b[end]
     Δ = sum(sum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
@@ -135,13 +135,13 @@ end
 function iterate!(bp::MPBP; maxiter::Integer=5, 
         svd_trunc::SVDTrunc=TruncThresh(1e-6),
         showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
-        z_msg = zeros(nv(bp.g)),
+        logz_msg = zeros(nv(bp.g)),
         nodes = collect(vertices(bp.g)))
     for it in 1:maxiter
         for i in nodes
-            z_msg[i] = onebpiter!(bp, i; svd_trunc)
+            logz_msg[i] = onebpiter!(bp, i; svd_trunc)
         end
-        Δ = cb(bp, it, z_msg)
+        Δ = cb(bp, it, logz_msg)
         Δ < tol && return it, cb
         shuffle!(nodes)
     end
@@ -151,10 +151,11 @@ end
 
 
 # compute joint beliefs for all pairs of neighbors
-# return also zᵢⱼ contributions to zᵢ
+# return also logzᵢⱼ contributions to logzᵢ
 function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     b = [[zeros(q,q) for _ in 0:T] for _ in 1:(ne(bp.g))]
     z = ones(nv(bp.g))
+    logz = zeros(nv(bp.g))
     X = bp.g.X
     N = nv(bp.g)
     rows = rowvals(X)
@@ -168,11 +169,12 @@ function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
             μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
             bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ)
             z[j] *= zᵢⱼ ^ (1/dⱼ- 1/2)
-            # z[j] *= abs(zᵢⱼ) ^ (1/dⱼ- 1/2)  # NEEDS FIXING IN CASE OF NEGATIVE z
+            logz[j] += (1/dⱼ- 1/2) * log(zᵢⱼ)
             b[ij] .= bᵢⱼ
         end
     end
-    b, z
+    # b, z
+    b, logz
 end
 
 function beliefs(bp::MPBP; bij = pair_beliefs(bp)[1])
@@ -186,18 +188,18 @@ function beliefs(bp::MPBP; bij = pair_beliefs(bp)[1])
     b
 end
 
-function bethe_free_energy(bp::MPBP, z_factors, z_edges)
-    - sum(log, z_factors) - sum(log, z_edges)
+function bethe_free_energy(bp::MPBP, logz_factors, logz_edges)
+    - sum(logz_factors) - sum(logz_edges)
 end
 
 function bethe_free_energy(bp::MPBP; svd_trunc=TruncThresh(1e-4))
     fa = zeros(getN(bp))
     for i in eachindex(fa)
-        zi = onebpiter!(bp, i; svd_trunc)
-        fa[i] -= log(zi)
+        logzi = onebpiter!(bp, i; svd_trunc)
+        fa[i] -= logzi
     end
-    b, z_edges = pair_beliefs(bp)
-    fa .-= log.(z_edges)
+    _, logz_edges = pair_beliefs(bp)
+    fa .-= logz_edges
     sum(fa)
 end
 

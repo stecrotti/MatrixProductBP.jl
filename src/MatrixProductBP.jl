@@ -9,7 +9,7 @@ import IndexedGraphs: nv, ne, edges, vertices, IndexedBiDiGraph,
 import UnPack: @unpack
 import Random: shuffle!, AbstractRNG, GLOBAL_RNG
 import SparseArrays: rowvals, nonzeros, nzrange
-import Distributions: sample, Bernoulli
+import Distributions: sample, sample!, Bernoulli
 import Measurements: Measurement, ±
 import Statistics: mean, std
 import Unzip: unzip

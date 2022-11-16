@@ -31,14 +31,14 @@ O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
 
 ψ = pair_observations_nondirected(O, ising.g, T, q)
 
-gl = Glauber(ising, q, T; p⁰, ψ)
+gl = Glauber(ising, T; p⁰, ψ)
 bp = mpbp(gl)
 
 draw_node_observations!(bp, N)
 
 cb = CB_BP(bp; showprogress=false)
 svd_trunc = TruncBond(4)
-iterate!(bp, maxiter=10; svd_trunc, cb)
+iterate!(bp, maxiter=10; svd_trunc, cb, showprogress=false)
 
 b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]

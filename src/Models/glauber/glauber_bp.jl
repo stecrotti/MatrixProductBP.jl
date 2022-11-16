@@ -211,16 +211,16 @@ function onebpiter!(bp::MPBP{q,T,F,<:HomogeneousGlauberFactor}, i::Integer;
     eout = outedges(g, i)
     A = μ[ein.|>idx]
     @assert all(normalization(a) ≈ 1 for a in A)
-    zᵢ = 1.0
+    logzᵢ = 0.0
     for (j_ind, e_out) in enumerate(eout)
         B = f_bp_glauber(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
         C = mpem2(B)
         μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
-        zᵢ₂ⱼ = normalize!(μ[idx(e_out)])
-        zᵢ *= zᵢ₂ⱼ
+        logzᵢ₂ⱼ = normalize!(μ[idx(e_out)])
+        logzᵢ += logzᵢ₂ⱼ
     end
     dᵢ = length(ein)
-    return zᵢ ^ (1 / dᵢ)
+    return (1 / dᵢ) * logzᵢ
 end
 
 function magnetizations(bp::MPBP{q,T,F,<:GlauberFactor}) where {q,T,F}

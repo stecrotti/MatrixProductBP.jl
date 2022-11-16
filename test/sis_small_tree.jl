@@ -14,7 +14,7 @@ bp = mpbp(sis)
 draw_node_observations!(bp, N, last_time=true)
 
 svd_trunc = TruncThresh(0.0)
-iterate!(bp, maxiter=10; svd_trunc)
+iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
 
 b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]

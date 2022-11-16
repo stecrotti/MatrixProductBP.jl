@@ -18,13 +18,13 @@ p⁰ = map(1:N) do i
     [r, 1-r]
 end
 
-gl = Glauber(ising, q, T; p⁰)
+gl = Glauber(ising, T; p⁰)
 bp = mpbp(gl)
 
 draw_node_observations!(bp, N)
 
 cb = CB_BP(bp; showprogress=false)
-svd_trunc = TruncThresh(1e-15)
+svd_trunc = TruncThresh(1e-12)
 iterate!(bp, maxiter=10; svd_trunc, cb)
 
 b_bp = beliefs(bp)
