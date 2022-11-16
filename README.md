@@ -43,3 +43,7 @@ It contains model definitions and specialized versions of the BP equations that 
 
 - A `notebooks` folder showing the applications of the method. These notebooks should, ideally, reproduce the results in the future article.
  
+## TO DO:
+- normalize each matrix
+- log of partial free energies
+- reasoning on matrix size for SI
