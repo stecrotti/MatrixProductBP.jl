@@ -72,6 +72,20 @@ function kl_marginals(b_guess::U, b_true::U) where {U<:Vector{Vector{Vector{Floa
     end
 end
 
+# compute L1 error between guess and true marginals at all times
+function l1_marginals(b_guess::U, b_true::U) where {U<:Vector{Vector{Vector{Float64}}}}
+    
+    N = length(b_guess); T = length(b_guess[1])-1
+    @assert length(b_true) == N
+    @assert all(length(bg) == length(bt) == T+1 for (bg,bt) in zip(b_guess,b_true))
+
+    map(1:T+1) do t 
+        map(1:N) do i
+            abs(b_guess[i][t][INFECTED] - b_true[i][t][INFECTED])
+        end |> sum
+    end
+end
+
 # return epidemic instance as an `N`-by-`T`+1 matrix and `MPdBP` object
 function simulate_sis(g::IndexedGraph, λ::Real, κ::Real, p⁰::Vector{Vector{F}}, T::Integer, 
     nobs::Integer; softinf=1e3) where {F<:Real}

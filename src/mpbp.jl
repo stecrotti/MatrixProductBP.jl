@@ -126,8 +126,9 @@ function (cb::CB_BP)(bp::MPBP, it::Integer, z_msg::Vector)
     Δ = sum(sum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
     push!(cb.Δs, Δ)
     push!(cb.f, f)
-    next!(cb.prog, showvalues=[(:Δ,Δ)])
     push!(cb.b, marg_new)
+    next!(cb.prog, showvalues=[(:Δ,Δ)])
+    flush(stdout)
     return Δ
 end
 

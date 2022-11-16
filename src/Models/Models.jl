@@ -12,16 +12,17 @@ import ProgressMeter: Progress, next!
 import LogExpFunctions: xlogx, xlogy
 
 export 
-    Ising, Glauber, exact_prob, 
-    site_time_magnetizations, 
+    Ising, Glauber, 
     q_glauber, GlauberFactor, HomogeneousGlauberFactor, GenericGlauberFactor, 
     onebpiter!, pair_observations_directed, 
     pair_observations_nondirected, magnetizations, mpbp,
+    glauber_infinite_graph,
     SIS, q_sis, SUSCEPTIBLE, INFECTED,
-    kl_marginals, find_infected_bp, auc
+    kl_marginals, l1_marginals, find_infected_bp, auc
 
 include("glauber/glauber.jl")
 include("glauber/glauber_bp.jl")
+include("glauber/glauber_infinite_graph.jl")
 include("sis/sis.jl")
 include("sis/sis_bp.jl")
 include("sis/sis_inference.jl")

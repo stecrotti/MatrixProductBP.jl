@@ -96,13 +96,7 @@ function f_bp_glauber(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
         # SVD R to L with truncations
         sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
     end
-
-    # if l==1 && d>0
-    #     x = evaluate(mᵢⱼₗ₁, [[1,1] for _ in 0:T])
-    #     y = evaluate(A[findfirst(!isequal(j), eachindex(A))], [[1,1] for _ in 0:T])
-    #     @assert x ≈ y
-    # end
-    
+   
     # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
     B = f_bp_partial_ij_glauber(mᵢⱼₗ₁, βJ, βh, pᵢ⁰, ϕᵢ, d)
 
