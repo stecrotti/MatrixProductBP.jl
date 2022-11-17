@@ -19,7 +19,7 @@ There are two types of `MPEM's:
 - The main module `MatrixProductBP` implementing the BP equations.
     Essential ingredients are:
     - An `IndexedBiDiGraph` on which the system is defined
-    - `BPFactor`s living on the edges of the graph. Any concrete subtype (e.g. `SISFactor`) must implement a method `(fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer}, xᵢᵗ::Integer)` that computes the contribution of that factor to the joint probability as a function of $x_i^{t+1},\boldsymbol{x}_{\partial i}^{t}, x_i^{t}$.
+    - `BPFactor`s living on the factor nodes of the graph. Any concrete subtype (e.g. `SISFactor`) must implement a method `(fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer}, xᵢᵗ::Integer)` that computes the contribution of that factor to the joint probability as a function of $x_i^{t+1},\boldsymbol{x}_{\partial i}^{t}, x_i^{t}$.
     - Single-node observations `ϕ` and edge observations `ψ`
     - Time zero prior probability `p⁰`
     
