@@ -1,4 +1,5 @@
 # as in https://doi.org/10.1103/PhysRevLett.114.248701
+# draws samples from the prior and weights them with their likelihood
 struct SoftMarginSampler{B<:MPBP, F<:AbstractFloat}
     bp :: B
     X  :: Vector{Matrix{Int}}
@@ -14,6 +15,12 @@ struct SoftMarginSampler{B<:MPBP, F<:AbstractFloat}
 
         new{MPBP{q,T,F,U}, F}(bp, X, w)
     end
+end
+
+function SoftMarginSampler(bp::MPBP)
+    X = Matrix{Int}[]
+    w = zeros(0)
+    SoftMarginSampler(bp, X, w)
 end
 
 # a sample with its weight
@@ -49,19 +56,30 @@ function onesample(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     onesample!(x, bp)
 end
 
-function sample(bp::MPBP, nsamples::Integer; showprogress::Bool=true)
+function sample!(sms::SoftMarginSampler, nsamples::Integer;
+        showprogress::Bool=true)
+
     dt = showprogress ? 0.1 : Inf
     prog = Progress(nsamples, desc="SoftMargin sampling"; dt)
-    S = map(1:nsamples) do _
-        s = onesample(bp)
+    T = getT(sms.bp); N = getN(sms.bp)
+    X = [zeros(Int, N, T+1) for _ in 1:nsamples]
+    w = zeros(nsamples)
+    for n in 1:nsamples
+        _, w[n] = onesample!(X[n], sms.bp)
         next!(prog)
-        s
     end 
-    X, w = unzip(S)
-    SoftMarginSampler(bp, X, w)
+    append!(sms.X, X)
+    append!(sms.w, w)
+    
+    sms
 end
 
-# return a (T+1) by N matrix, with errors
+function sample(bp::MPBP, nsamples::Integer; showprogress::Bool=true)
+    sms = SoftMarginSampler(bp)
+    sample!(sms, nsamples; showprogress)
+end
+
+# return a (T+1) by N matrix, with uncertainty estimates
 function marginals(sms::SoftMarginSampler) 
     @unpack bp, X, w = sms
     N = nv(bp.g); T = getT(bp); q = getq(bp)
