@@ -45,5 +45,4 @@ It contains model definitions and specialized versions of the BP equations that 
  
 ## TO DO:
 - reasoning on matrix size for SI
-- compare magnetizations instead of KLs for binary variables
 - Soft Margin sampler to which it's easy to append new samples
