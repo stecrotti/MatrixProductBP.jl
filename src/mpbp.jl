@@ -79,8 +79,13 @@ function reset_messages!(bp::MPBP)
     nothing
 end
 
-
 function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer; 
+    svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
+
+    _onebpiter!(bp, i, f_bp_generic; svd_trunc)
+end
+
+function _onebpiter!(bp::MPBP{q,T,F,U}, i::Integer, f_bp::Function; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     ein = inedges(g,i)
@@ -89,7 +94,7 @@ function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer;
     @assert all(normalization(a) ≈ 1 for a in A)
     logzᵢ = 0.0
     for (j_ind, e_out) in enumerate(eout)
-        B = f_bp(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind)
+        B = f_bp(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
         C = mpem2(B)
         μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
         logzᵢ₂ⱼ = normalize!(μ[idx(e_out)])

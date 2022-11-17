@@ -205,22 +205,9 @@ function prob_ijy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
 end
 
 function onebpiter!(bp::MPBP{q,T,F,<:HomogeneousGlauberFactor}, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
-    @unpack g, w, ϕ, ψ, p⁰, μ = bp
-    ein = inedges(g,i)
-    eout = outedges(g, i)
-    A = μ[ein.|>idx]
-    @assert all(normalization(a) ≈ 1 for a in A)
-    logzᵢ = 0.0
-    for (j_ind, e_out) in enumerate(eout)
-        B = f_bp_glauber(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
-        C = mpem2(B)
-        μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
-        logzᵢ₂ⱼ = normalize!(μ[idx(e_out)])
-        logzᵢ += logzᵢ₂ⱼ
-    end
-    dᵢ = length(ein)
-    return (1 / dᵢ) * logzᵢ
+    svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
+
+    _onebpiter!(bp, i, f_bp_glauber; svd_trunc)
 end
 
 function magnetizations(bp::MPBP{q,T,F,<:GlauberFactor}) where {q,T,F}

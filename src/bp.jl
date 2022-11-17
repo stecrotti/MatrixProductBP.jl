@@ -1,8 +1,8 @@
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)
 # ψᵢⱼ are the ones living on the outedges of node i
-function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j_index::Integer;
-        showprogress=false) where {q,T,F}
+function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j_index::Integer;
+        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
     @assert length(pᵢ⁰) == q
     @assert length(wᵢ) == T
     @assert length(ϕᵢ) == T

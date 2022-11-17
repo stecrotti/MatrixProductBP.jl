@@ -1,6 +1,7 @@
 module Models
 
-import MatrixProductBP: exact_prob, onebpiter!, getT, getq, mpbp, kron2
+import MatrixProductBP: exact_prob, _onebpiter!, onebpiter!, getT, getq, mpbp, 
+    kron2
 using MatrixProductBP
 
 import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, ne, nv, outedges, idx,
@@ -10,6 +11,7 @@ import SparseArrays: nonzeros, nzrange, rowvals
 import TensorCast: @reduce, @cast, TensorCast 
 import ProgressMeter: Progress, next!
 import LogExpFunctions: xlogx, xlogy
+import Statistics: mean
 
 export 
     Ising, Glauber, 

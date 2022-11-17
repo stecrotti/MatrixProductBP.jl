@@ -68,7 +68,7 @@ function kl_marginals(b_guess::U, b_true::U) where {U<:Vector{Vector{Vector{Floa
     map(1:T+1) do t 
         map(1:N) do i
             kl(b_guess[i][t], b_true[i][t])
-        end |> sum
+        end |> mean
     end
 end
 
@@ -82,7 +82,7 @@ function l1_marginals(b_guess::U, b_true::U) where {U<:Vector{Vector{Vector{Floa
     map(1:T+1) do t 
         map(1:N) do i
             abs(b_guess[i][t][INFECTED] - b_true[i][t][INFECTED])
-        end |> sum
+        end |> mean
     end
 end
 
