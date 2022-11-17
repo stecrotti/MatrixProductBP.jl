@@ -45,4 +45,6 @@ It contains model definitions and specialized versions of the BP equations that 
  
 ## TO DO:
 - reasoning on matrix size for SI
-- Soft Margin sampler to which it's easy to append new samples
+- Calculations and code for autocorrelation
+- Check error bars from soft margin
+- Pass seed to sampler
