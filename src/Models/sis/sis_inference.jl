@@ -87,10 +87,10 @@ function l1_marginals(b_guess::U, b_true::U) where {U<:Vector{Vector{Vector{Floa
 end
 
 # return epidemic instance as an `N`-by-`T`+1 matrix and `MPdBP` object
-function simulate_sis(g::IndexedGraph, λ::Real, κ::Real, p⁰::Vector{Vector{F}}, T::Integer, 
+function simulate_sis(g::IndexedGraph, λ::Real, ρ::Real, p⁰::Vector{Vector{F}}, T::Integer, 
     nobs::Integer; softinf=1e3) where {F<:Real}
 
-    sis = SIS(g, λ, κ, T; p⁰)
+    sis = SIS(g, λ, ρ, T; p⁰)
     bp = mpdbp(sis)
     X, _ = onesample(bp)
     draw_node_observations!(bp.ϕ, X, nobs; softinf, last_time=true)

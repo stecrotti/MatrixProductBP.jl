@@ -6,10 +6,10 @@ g = IndexedGraph(A)
 N = size(A, 1)
 
 λ = 0.2
-κ = 0.1
+ρ = 0.1
 γ = 0.1
 
-sis = SIS(g, λ, κ, T; γ)
+sis = SIS(g, λ, ρ, T; γ)
 bp = mpbp(sis)
 draw_node_observations!(bp, N, last_time=true)
 

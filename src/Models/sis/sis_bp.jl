@@ -4,11 +4,11 @@ const q_sis = 2
 
 struct SISFactor{T<:AbstractFloat} <: BPFactor
     λ :: T  # infection rate
-    κ :: T  # recovery rate
-    function SISFactor(λ::T, κ::T) where {T<:AbstractFloat}
+    ρ :: T  # recovery rate
+    function SISFactor(λ::T, ρ::T) where {T<:AbstractFloat}
         @assert 0 ≤ λ ≤ 1
-        @assert 0 ≤ κ ≤ 1
-        new{T}(λ, κ)
+        @assert 0 ≤ ρ ≤ 1
+        new{T}(λ, ρ)
     end
 end
 
@@ -16,10 +16,10 @@ function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer},
     @assert xᵢᵗ⁺¹ ∈ 1:q_sis
     @assert all(x ∈ 1:q_sis for x in xₙᵢᵗ)
 
-    @unpack λ, κ = fᵢ
+    @unpack λ, ρ = fᵢ
 
-    ( xᵢᵗ == INFECTED && xᵢᵗ⁺¹ == SUSCEPTIBLE ) && return κ
-    ( xᵢᵗ == INFECTED && xᵢᵗ⁺¹ == INFECTED ) && return 1 - κ 
+    ( xᵢᵗ == INFECTED && xᵢᵗ⁺¹ == SUSCEPTIBLE ) && return ρ
+    ( xᵢᵗ == INFECTED && xᵢᵗ⁺¹ == INFECTED ) && return 1 - ρ 
     if xᵢᵗ == SUSCEPTIBLE
         p = (1-λ)^sum( xⱼᵗ == INFECTED for xⱼᵗ in xₙᵢᵗ; init=0.0)
         if xᵢᵗ⁺¹ == SUSCEPTIBLE
@@ -45,7 +45,7 @@ function f_bp_sis(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j::In
         svd_trunc=TruncThresh(1e-6)) where {q,T,F}
     
     λ = wᵢ[1].λ; @assert all(wᵢᵗ.λ == λ for wᵢᵗ in wᵢ)
-    κ = wᵢ[1].κ; @assert all(wᵢᵗ.κ == κ for wᵢᵗ in wᵢ)
+    ρ = wᵢ[1].ρ; @assert all(wᵢᵗ.ρ == ρ for wᵢᵗ in wᵢ)
 
     # initialize recursion
     M = reshape([1.0 1; 0 0], (1,1,q,q))
@@ -61,7 +61,7 @@ function f_bp_sis(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j::In
     end
 
     # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij_sis(mᵢⱼₗ₁, λ, κ, pᵢ⁰, ϕᵢ)
+    B = f_bp_partial_ij_sis(mᵢⱼₗ₁, λ, ρ, pᵢ⁰, ϕᵢ)
     return B
 end
 
@@ -93,7 +93,7 @@ function f_bp_partial_sis(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F},
 end
 
 # compute m(i→j) from m(i→j,d)
-function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, κ::Real, 
+function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, ρ::Real, 
         pᵢ⁰, ϕᵢ) where {q,T,F}
 
     B = Vector{Array{F,5}}(undef, T+1)
@@ -105,7 +105,7 @@ function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, κ::Real,
     for xᵢ¹ in 1:q, xᵢ⁰ in 1:q
         for y⁰ in 1:q
             for xⱼ⁰ in 1:q
-                p = prob_ijy_sis(xᵢ¹, xᵢ⁰,xⱼ⁰, y⁰, λ, κ)
+                p = prob_ijy_sis(xᵢ¹, xᵢ⁰,xⱼ⁰, y⁰, λ, ρ)
                 B⁰[xᵢ⁰,xⱼ⁰,1,:,xᵢ¹] .+= p * A⁰[1,:,y⁰,xᵢ⁰]
             end
         end
@@ -122,7 +122,7 @@ function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, κ::Real,
             for xᵢᵗ in 1:q
                 for xⱼᵗ in 1:q
                     for yᵗ in 1:q
-                        p = prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, κ)
+                        p = prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
                         Bᵗ[xᵢᵗ,xⱼᵗ,:,:,xᵢᵗ⁺¹] .+= p * Aᵗ[:,:,yᵗ,xᵢᵗ]
                     end
                 end
@@ -160,13 +160,13 @@ function prob_partial_msg_sis(yₖ, yₖ₁, xₖ, λ)
     end
 end
 
-function prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, κ)
+function prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
     z = 1 - λ*(xⱼᵗ==INFECTED)
     w = (yᵗ==SUSCEPTIBLE)
     if xᵢᵗ⁺¹ == INFECTED
-        return (xᵢᵗ==INFECTED) * (1 - κ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - z * w) 
+        return (xᵢᵗ==INFECTED) * (1 - ρ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - z * w) 
     elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
-        return (xᵢᵗ==INFECTED) * κ + (xᵢᵗ==SUSCEPTIBLE) * z * w
+        return (xᵢᵗ==INFECTED) * ρ + (xᵢᵗ==SUSCEPTIBLE) * z * w
     end
     error("shouldn't be here")
     return -Inf
