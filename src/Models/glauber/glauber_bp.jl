@@ -62,13 +62,7 @@ function glauber_factors(ising::Ising, T::Integer)
     end
 end
 
-# the sum of n spins can be one of (n+1) values. We sort them increasingly and
-#  index them by k
-function idx_map(n::Integer, k::Integer) 
-    @assert n ≥ 0
-    @assert k ∈ 1:(n+1)
-    return - n + 2*(k-1)
-end
+idx_to_value(::Type{<:GlauberFactor}, x) = potts2spin(x)
 
 # compute outgoing message efficiently for any degree
 # return a `MPMEM3` just like `f_bp`
@@ -103,6 +97,14 @@ function f_bp_glauber(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
     return B
 end
 
+# the sum of n spins can be one of (n+1) values. We sort them increasingly and
+#  index them by k
+function _idx_map(n::Integer, k::Integer) 
+    @assert n ≥ 0
+    @assert k ∈ 1:(n+1)
+    return - n + 2*(k-1)
+end
+
 # compute message m(i→j, l) from m(i→j, l-1) 
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
 function f_bp_partial_glauber(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q1,T,F}, 
@@ -115,10 +117,10 @@ function f_bp_partial_glauber(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q1,T,F
         nrows = size(Aᵗ, 1); ncols = size(Aᵗ, 2)
         AAᵗ = zeros(nrows, ncols, l+1, l+1)
         for zₗᵗ in 1:(l+1)    # loop over 1:(l+1) but then y take +/- values
-            yₗᵗ = idx_map(l, zₗᵗ)
+            yₗᵗ = _idx_map(l, zₗᵗ)
             for xᵢᵗ in 1:q
                 for zₗ₁ᵗ in 1:l
-                    yₗ₁ᵗ = idx_map(l-1, zₗ₁ᵗ) 
+                    yₗ₁ᵗ = _idx_map(l-1, zₗ₁ᵗ) 
                     for xₗᵗ in 1:q
                         p = prob_partial_msg_glauber(yₗᵗ, yₗ₁ᵗ, xₗᵗ)
                         AAᵗ[:,:,zₗᵗ,xᵢᵗ] .+= p * Aᵗ[:,:,xᵢᵗ,xₗᵗ,zₗ₁ᵗ] 
@@ -144,7 +146,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
 
     for xᵢ¹ in 1:q, xᵢ⁰ in 1:q
         for z⁰ in 1:(d+1)
-            y⁰ = idx_map(d, z⁰)
+            y⁰ = _idx_map(d, z⁰)
             for xⱼ⁰ in 1:q
                 p = prob_ijy_glauber(xᵢ¹, xⱼ⁰, y⁰, βJ, βh)
                 B⁰[xᵢ⁰,xⱼ⁰,1,:,xᵢ¹] .+= p * A⁰[1,:,z⁰,xᵢ⁰]
@@ -163,7 +165,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
             for xᵢᵗ in 1:q
                 for xⱼᵗ in 1:q
                     for zᵗ in 1:(d+1)
-                        yᵗ = idx_map(d, zᵗ)
+                        yᵗ = _idx_map(d, zᵗ)
                         p = prob_ijy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
                         Bᵗ[xᵢᵗ,xⱼᵗ,:,:,xᵢᵗ⁺¹] .+= p * Aᵗ[:,:,zᵗ,xᵢᵗ]
                     end
@@ -183,7 +185,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
         for xᵢᵀ in 1:q
             for xⱼᵀ in 1:q
                 for zᵀ in 1:(d+1)
-                    yᵀ = idx_map(d, zᵀ)
+                    yᵀ = _idx_map(d, zᵀ)
                     Bᵀ[xᵢᵀ,xⱼᵀ,:,:,xᵢᵀ⁺¹] .+= Aᵀ[:,:,zᵀ,xᵢᵀ]
                 end
             end

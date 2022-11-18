@@ -105,7 +105,56 @@ function accumulate_R(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F
     return R
 end
 
-# compute bᵢⱼ(xᵢ,xⱼ) from μᵢⱼ and μⱼᵢ
+function accumulate_M(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
+    M = [zeros(0,0,0,0) for _ in 0:T, _ in 0:T]
+
+    # initial condition
+    for t in 1:T
+        range_aᵗ⁺¹ = axes(Aᵢⱼ[t+1], 1)
+        range_bᵗ⁺¹ = axes(Aⱼᵢ[t+1], 1)
+        Mᵗᵗ⁺¹ = [float((a==c)*(b==d)) for a in range_aᵗ⁺¹, c in range_aᵗ⁺¹, b in range_bᵗ⁺¹, d in range_bᵗ⁺¹]
+        M[t,t+1] = Mᵗᵗ⁺¹
+    end
+
+    for t in 1:T
+        Mᵗᵘ⁻¹ = M[t,t+1]
+        for u in t+2:T+1
+            Aᵢⱼᵘ⁻¹ = Aᵢⱼ[u-1]; Aⱼᵢᵘ⁻¹ = Aⱼᵢ[u-1]
+            @reduce Mᵗᵘ⁻¹[aᵗ⁺¹,aᵘ,bᵗ⁺¹,bᵘ] |= sum(aᵘ⁻¹,bᵘ⁻¹,xᵢᵘ⁻¹,xⱼᵘ⁻¹) Mᵗᵘ⁻¹[aᵗ⁺¹,aᵘ⁻¹,bᵗ⁺¹,bᵘ⁻¹] * Aᵢⱼᵘ⁻¹[aᵘ⁻¹,aᵘ,xᵢᵘ⁻¹,xⱼᵘ⁻¹] * Aⱼᵢᵘ⁻¹[bᵘ⁻¹,bᵘ,xⱼᵘ⁻¹,xᵢᵘ⁻¹]
+            M[t,u] = Mᵗᵘ⁻¹
+        end
+    end
+
+    return M
+end
+
+
+function pair_belief_tu(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
+    
+    L = accumulate_L(Aᵢⱼ, Aⱼᵢ); R = accumulate_R(Aᵢⱼ, Aⱼᵢ)
+    M = accumulate_M(Aᵢⱼ, Aⱼᵢ)    
+    b = [zeros(q,q,q,q) for _ in 0:T, _ in 0:T]
+
+   
+    for t in 1:T
+        Lᵗ⁻¹ = t==1 ? [1.0;;] : L[t-1]; 
+        Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]
+        for u in t+1:T+1
+            Rᵘ⁺¹ = u==T+1 ? [1.0;;] : R[u+1]; 
+            Aᵢⱼᵘ = Aᵢⱼ[u]; Aⱼᵢᵘ = Aⱼᵢ[u]
+            Mᵗᵘ = M[t,u]
+            @reduce bᵗᵘ[xᵢᵗ, xⱼᵗ,xᵢᵘ, xⱼᵘ] := 
+                sum(aᵗ,aᵗ⁺¹,aᵘ,aᵘ⁺¹,bᵗ,bᵗ⁺¹,bᵘ,bᵘ⁺¹) Lᵗ⁻¹[aᵗ,bᵗ] * Aᵢⱼᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] *
+                Aⱼᵢᵗ[bᵗ,bᵗ⁺¹,xⱼᵗ,xᵢᵗ] * Mᵗᵘ[aᵗ⁺¹,aᵘ,bᵗ⁺¹,bᵘ] * Aᵢⱼᵘ[aᵘ,aᵘ⁺¹,xᵢᵘ,xⱼᵘ] *
+                Aⱼᵢᵘ[bᵘ,bᵘ⁺¹,xⱼᵘ,xᵢᵘ] * Rᵘ⁺¹[aᵘ⁺¹,bᵘ⁺¹]
+            b[t,u] .= bᵗᵘ ./ sum(bᵗᵘ)
+        end
+    end
+
+    return b
+end
+
+# compute bᵢⱼᵗ(xᵢᵗ,xⱼᵗ) from μᵢⱼ and μⱼᵢ
 # also return normalization zᵢⱼ
 function pair_belief(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
 
@@ -131,6 +180,7 @@ function pair_belief(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
 
     return [b⁰, b..., bᵀ], z
 end
+
 
 
 # #### OLD

@@ -1,7 +1,7 @@
 module Models
 
 import MatrixProductBP: exact_prob, _onebpiter!, onebpiter!, getT, getq, mpbp, 
-    kron2
+    kron2, idx_to_value
 using MatrixProductBP
 
 import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, ne, nv, outedges, idx,

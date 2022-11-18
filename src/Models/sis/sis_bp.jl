@@ -39,6 +39,8 @@ function mpbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
     return mpbp(g, w, q_sis, T, p⁰=sis_.p⁰, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
 end
 
+idx_to_value(::Type{SISFactor}, x) = x - 1
+
 # compute outgoing message efficiently for any degree
 # return a `MPMEM3` just like `f_bp`
 function f_bp_sis(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j::Integer;

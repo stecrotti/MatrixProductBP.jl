@@ -193,7 +193,61 @@ function beliefs(bp::MPBP; bij = pair_beliefs(bp)[1])
     b
 end
 
-function bethe_free_energy(bp::MPBP, logz_factors, logz_edges)
+# compute joint beliefs for all pairs of neighbors for all pairs of times t,u
+# p(xᵢᵗ,xⱼᵗ,xᵢᵘ,xⱼᵘ)
+function pair_beliefs_tu(bp::MPBP{q,T,F,U}) where {q,T,F,U}
+    b = [[zeros(q,q,q,q) for _ in 0:T, _ in 0:T] for _ in 1:(ne(bp.g))]
+    X = bp.g.X
+    N = nv(bp.g)
+    rows = rowvals(X)
+    vals = nonzeros(X)
+    for j in 1:N
+        dⱼ = length(nzrange(X, j))
+        for k in nzrange(X, j)
+            i = rows[k]
+            ji = k          # idx of message i→j
+            ij = vals[k]    # idx of message j→i
+            μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
+            bᵢⱼ = pair_belief_tu(μᵢⱼ, μⱼᵢ)
+            b[ij] .= bᵢⱼ
+        end
+    end
+    b
+end
+
+function beliefs_tu(bp::MPBP; bij_tu = pair_beliefs_tu(bp))
+    b = map(vertices(bp.g)) do i 
+        ij = idx(first(outedges(bp.g, i)))
+        bb = bij_tu[ij]
+        map(bb) do bᵢⱼᵗᵘ
+            bᵢᵗᵘ = sum(sum(bᵢⱼᵗᵘ, dims=2),dims=4)[:,1,:,1]
+        end
+    end
+    b
+end
+
+"""
+In this code variables take value in {1,2,...,q} but in models these can correspond to other, more physically significant values (e.g. +1,-1 spins)
+This function, if implemented for a subtype of `BPFactor`, converts to the correct values. Those can now be used to compute expectations
+By default, nothing happens and the values are just {1,2,...,q}
+"""
+idx_to_value(::Type{<:BPFactor}, x) = x
+
+
+function autocorrelations(bp::MPBP{q,T,F,U}) where {q,T,F,U}
+    b_tu = beliefs_tu(bp)
+    map(b_tu) do bᵢ
+        map(bᵢ) do bᵢᵗᵘ
+            rᵢᵗᵘ = 0.0
+            for xᵢᵗ in 1:q, xᵢᵘ in 1:q
+                rᵢᵗᵘ += idx_to_value(U, xᵢᵗ) * idx_to_value(U, xᵢᵘ) * bᵢᵗᵘ[xᵢᵗ,xᵢᵘ]
+            end
+            rᵢᵗᵘ
+        end
+    end
+end
+
+function bethe_free_energy(::MPBP, logz_factors, logz_edges)
     - sum(logz_factors) - sum(logz_edges)
 end
 
