@@ -28,7 +28,7 @@ function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U}) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     N = nv(bp.g)
     @assert size(x) == (N , T+1)
-    wg = 1.0
+    logl = 0.0
 
     for i in 1:N
         x[i, 1] = sample_noalloc(p⁰[i])
@@ -40,15 +40,15 @@ function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U}) where {q,T,F,U}
             p = [w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q]
             xᵢᵗ = sample_noalloc(p)
             x[i, t+1] = xᵢᵗ
-            wg *= ϕ[i][t][xᵢᵗ]
+            logl += log( ϕ[i][t][xᵢᵗ] )
         end
     end
     for t in 1:T
         for (i, j, ij) in edges(bp.g)
-            wg *= sqrt( ψ[ij][t][x[i,t+1], x[j,t+1]] )
+            logl += 1/2 * log( ψ[ij][t][x[i,t+1], x[j,t+1]] )
         end
     end
-    return x, wg
+    return x, exp(logl)
 end
 function onesample(bp::MPBP{q,T,F,U}) where {q,T,F,U}  
     N = nv(bp.g)

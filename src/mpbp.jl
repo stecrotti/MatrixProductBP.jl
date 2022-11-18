@@ -262,6 +262,32 @@ function bethe_free_energy(bp::MPBP; svd_trunc=TruncThresh(1e-4))
     sum(fa)
 end
 
+# compute log of prior probability and log of likelihood for a trajectory `x`
+function logprior_loglikelihood(bp::MPBP{q,T,F,U}, x::Matrix{<:Integer}) where {q,T,F,U}
+    @unpack g, w, ϕ, ψ, p⁰, μ = bp
+    N = nv(bp.g)
+    @assert size(x) == (N , T+1)
+    logp = 0.0; logl = 0.0
+
+    for i in 1:N
+        logp += log(p⁰[i][x[i,1]])
+    end
+
+    for t in 1:T
+        for i in 1:N
+            ∂i = neighbors(bp.g, i)
+            logp += log( w[i][t](x[i, t+1], x[∂i, t], x[i, t]) )
+            logl += log( ϕ[i][t][x[i, t+1]] )
+        end
+    end
+    for t in 1:T
+        for (i, j, ij) in edges(bp.g)
+            logl += 1/2 * log( ψ[ij][t][x[i,t+1], x[j,t+1]] )
+        end
+    end
+    return logp, logl
+end
+
 
 #### OLD
 # function belief_slow(bp::MPBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))

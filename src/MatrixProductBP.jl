@@ -19,7 +19,7 @@ import LogExpFunctions: logistic, logsumexp
 export
     BPFactor, MPBP, mpbp, reset_messages!, onebpiter!, CB_BP, iterate!, 
     pair_beliefs, pair_beliefs_tu, beliefs_tu, autocorrelations,
-    beliefs, bethe_free_energy,
+    beliefs, bethe_free_energy, logprior_loglikelihood,
     exact_prob, site_marginals, site_time_marginals, 
     SoftMarginSampler, onesample!, onesample, sample!, sample, marginals, 
     draw_node_observations!
