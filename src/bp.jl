@@ -120,6 +120,7 @@ function accumulate_M(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F
         Mᵗᵘ⁻¹ = M[t,t+1]
         for u in t+2:T+1
             Aᵢⱼᵘ⁻¹ = Aᵢⱼ[u-1]; Aⱼᵢᵘ⁻¹ = Aⱼᵢ[u-1]
+            
             @reduce Mᵗᵘ⁻¹[aᵗ⁺¹,aᵘ,bᵗ⁺¹,bᵘ] |= sum(aᵘ⁻¹,bᵘ⁻¹,xᵢᵘ⁻¹,xⱼᵘ⁻¹) Mᵗᵘ⁻¹[aᵗ⁺¹,aᵘ⁻¹,bᵗ⁺¹,bᵘ⁻¹] * Aᵢⱼᵘ⁻¹[aᵘ⁻¹,aᵘ,xᵢᵘ⁻¹,xⱼᵘ⁻¹] * Aⱼᵢᵘ⁻¹[bᵘ⁻¹,bᵘ,xⱼᵘ⁻¹,xᵢᵘ⁻¹]
             M[t,u] = Mᵗᵘ⁻¹
         end

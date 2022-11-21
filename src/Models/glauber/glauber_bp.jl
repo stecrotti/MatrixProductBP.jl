@@ -25,7 +25,7 @@ function GenericGlauberFactor(J::Vector{T}, h::T, β::T) where {T<:Real}
     GenericGlauberFactor(J.*β, h*β)
 end
 
-function (fᵢ::GlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer}, 
+function (fᵢ::GlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
         xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:q_glauber
     @assert all(x ∈ 1:q_glauber for x in xₙᵢᵗ)

@@ -14,7 +14,7 @@ h = randn(N)
 ising = Ising(J, h, β)
 
 p⁰ = map(1:N) do i
-    r = 0.15
+    r = 0.75
     [r, 1-r]
 end
 
@@ -24,19 +24,19 @@ bp = mpbp(gl)
 draw_node_observations!(bp, N)
 
 cb = CB_BP(bp; showprogress=false)
-svd_trunc = TruncThresh(1e-12)
+svd_trunc = TruncThresh(0.0)
 iterate!(bp, maxiter=10; svd_trunc, cb)
 
 b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
 p_exact, Z_exact = exact_prob(bp)
-b_exact = site_time_marginals(bp; m = site_marginals(bp; p=p_exact))
+b_exact = exact_marginals(bp; m = site_marginals(bp; p=p_exact))
 p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
 f_bethe = bethe_free_energy(bp)
 
 @testset "Glauber small tree" begin
-    @test Z_exact ≈ exp(-f_bethe)
+    @test isapprox(Z_exact, exp(-f_bethe))
     @test p_ex ≈ p_bp
 end

@@ -12,7 +12,7 @@ struct SISFactor{T<:AbstractFloat} <: BPFactor
     end
 end
 
-function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::Vector{<:Integer}, xᵢᵗ::Integer)
+function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:q_sis
     @assert all(x ∈ 1:q_sis for x in xₙᵢᵗ)
 

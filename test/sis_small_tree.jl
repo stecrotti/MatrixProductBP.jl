@@ -20,7 +20,7 @@ b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
 p_exact, Z_exact = exact_prob(bp)
-b_exact = site_time_marginals(bp; m = site_marginals(bp; p=p_exact))
+b_exact = exact_marginals(bp; m = site_marginals(bp; p=p_exact))
 p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
 f_bethe = bethe_free_energy(bp)

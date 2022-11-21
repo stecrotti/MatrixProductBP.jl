@@ -159,7 +159,7 @@ end
 # return also logzᵢⱼ contributions to logzᵢ
 function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     b = [[zeros(q,q) for _ in 0:T] for _ in 1:(ne(bp.g))]
-    z = ones(nv(bp.g))
+    # z = ones(nv(bp.g))
     logz = zeros(nv(bp.g))
     X = bp.g.X
     N = nv(bp.g)
@@ -173,7 +173,7 @@ function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
             ij = vals[k]    # idx of message j→i
             μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
             bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ)
-            z[j] *= zᵢⱼ ^ (1/dⱼ- 1/2)
+            # z[j] *= zᵢⱼ ^ (1/dⱼ- 1/2)
             logz[j] += (1/dⱼ- 1/2) * log(zᵢⱼ)
             b[ij] .= bᵢⱼ
         end
@@ -193,39 +193,6 @@ function beliefs(bp::MPBP; bij = pair_beliefs(bp)[1])
     b
 end
 
-# compute joint beliefs for all pairs of neighbors for all pairs of times t,u
-# p(xᵢᵗ,xⱼᵗ,xᵢᵘ,xⱼᵘ)
-function pair_beliefs_tu(bp::MPBP{q,T,F,U}) where {q,T,F,U}
-    b = [[zeros(q,q,q,q) for _ in 0:T, _ in 0:T] for _ in 1:(ne(bp.g))]
-    X = bp.g.X
-    N = nv(bp.g)
-    rows = rowvals(X)
-    vals = nonzeros(X)
-    for j in 1:N
-        dⱼ = length(nzrange(X, j))
-        for k in nzrange(X, j)
-            i = rows[k]
-            ji = k          # idx of message i→j
-            ij = vals[k]    # idx of message j→i
-            μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
-            bᵢⱼ = pair_belief_tu(μᵢⱼ, μⱼᵢ)
-            b[ij] .= bᵢⱼ
-        end
-    end
-    b
-end
-
-function beliefs_tu(bp::MPBP; bij_tu = pair_beliefs_tu(bp))
-    b = map(vertices(bp.g)) do i 
-        ij = idx(first(outedges(bp.g, i)))
-        bb = bij_tu[ij]
-        map(bb) do bᵢⱼᵗᵘ
-            bᵢᵗᵘ = sum(sum(bᵢⱼᵗᵘ, dims=2),dims=4)[:,1,:,1]
-        end
-    end
-    b
-end
-
 """
 In this code variables take value in {1,2,...,q} but in models these can correspond to other, more physically significant values (e.g. +1,-1 spins)
 This function, if implemented for a subtype of `BPFactor`, converts to the correct values. Those can now be used to compute expectations
@@ -233,19 +200,87 @@ By default, nothing happens and the values are just {1,2,...,q}
 """
 idx_to_value(::Type{<:BPFactor}, x) = x
 
+function marginal_to_expectation(p::Matrix{<:Real}, U::Type{<:BPFactor})
+    μ = 0.0
+    for xi in axes(p,1) , xj in axes(p, 2)
+        μ += idx_to_value(U, xi) * idx_to_value(U, xj) * p[xi, xj]
+    end
+    μ
+end
 
-function autocorrelations(bp::MPBP{q,T,F,U}) where {q,T,F,U}
-    b_tu = beliefs_tu(bp)
-    map(b_tu) do bᵢ
-        map(bᵢ) do bᵢᵗᵘ
-            rᵢᵗᵘ = 0.0
-            for xᵢᵗ in 1:q, xᵢᵘ in 1:q
-                rᵢᵗᵘ += idx_to_value(U, xᵢᵗ) * idx_to_value(U, xᵢᵘ) * bᵢᵗᵘ[xᵢᵗ,xᵢᵘ]
-            end
-            rᵢᵗᵘ
+function marginal_to_expectation(p::Vector{<:Real}, U::Type{<:BPFactor})
+    μ = 0.0
+    for xi in eachindex(p)
+        μ += idx_to_value(U, xi) * p[xi]
+    end
+    μ
+end
+
+function belief_expectations(bp::MPBP{q,T,F,U}; b = beliefs(bp)) where {q,T,F,U}
+    map(vertices(bp.g)) do i 
+        map(1:T+1) do t
+            # sum(idx_to_value(U,x)*b[i][t][x] for x in 1:q)
+            marginal_to_expectation(b[i][t], U)
         end
     end
 end
+
+# compute joint beliefs for all pairs of neighbors for all pairs of times t,u
+# p(xᵢᵗ,xⱼᵗ,xᵢᵘ,xⱼᵘ)
+function pair_beliefs_tu(bp::MPBP{q,T,F,U}; showprogress::Bool=true) where {q,T,F,U}
+    b = [[zeros(q,q,q,q) for _ in 0:T, _ in 0:T] for _ in 1:(ne(bp.g))]
+    X = bp.g.X
+    N = nv(bp.g)
+    rows = rowvals(X)
+    vals = nonzeros(X)
+    dt = showprogress ? 0.1 : Inf
+    prog = Progress(N, desc="Computing pair beliefs at pairs of times"; dt)
+    for j in 1:N
+        dⱼ = length(nzrange(X, j))
+        for k in nzrange(X, j)
+            i = rows[k]
+            ji = k          # idx of message i→j
+            ij = vals[k]    # idx of message j→i
+            μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
+            b[ij] = pair_belief_tu(μᵢⱼ, μⱼᵢ)
+        end
+        next!(prog)
+    end
+    b
+end
+
+function beliefs_tu(bp::MPBP{q,T,F,U}; 
+        bij_tu::Vector{Matrix{Array{F, 4}}} = pair_beliefs_tu(bp)) where {q,T,F,U}
+    b = map(vertices(bp.g)) do i 
+        ij = idx(first(outedges(bp.g, i)))::Int
+        bb = bij_tu[ij]
+        map(bb) do bᵢⱼᵗᵘ
+            sum(sum(bᵢⱼᵗᵘ, dims=2),dims=4)[:,1,:,1]
+        end
+    end
+    b
+end
+
+
+function autocorrelations(bp::MPBP{q,T,F,U}) where {q,T,F,U}
+    b_tu = beliefs_tu(bp)
+    c = [zeros(size(bb)...) for bb in b_tu]
+    for i in eachindex(b_tu)
+        for t in axes(b_tu[i], 1), u in axes(b_tu[i], 2)
+            c[i][t,u] = marginal_to_expectation(b_tu[i][t, u], U)
+        end
+    end
+    c
+end
+
+function autocovariances(bp::MPBP)
+    r = autocorrelations(bp)
+    b = belief_expectations(bp)
+    map(eachindex(r)) do i
+        [ r[i][t,u] - b[i][t]*b[i][u] for t in axes(r[i],1), u in axes(r[i],2) ]
+    end
+end
+
 
 function bethe_free_energy(::MPBP, logz_factors, logz_edges)
     - sum(logz_factors) - sum(logz_edges)
@@ -276,7 +311,7 @@ function logprior_loglikelihood(bp::MPBP{q,T,F,U}, x::Matrix{<:Integer}) where {
     for t in 1:T
         for i in 1:N
             ∂i = neighbors(bp.g, i)
-            logp += log( w[i][t](x[i, t+1], x[∂i, t], x[i, t]) )
+            @views logp += log( w[i][t](x[i, t+1], x[∂i, t], x[i, t]) )
             logl += log( ϕ[i][t][x[i, t+1]] )
         end
     end

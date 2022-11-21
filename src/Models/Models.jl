@@ -19,7 +19,7 @@ export
     onebpiter!, pair_observations_directed, 
     pair_observations_nondirected, magnetizations, mpbp,
     glauber_infinite_graph,
-    SIS, q_sis, SUSCEPTIBLE, INFECTED,
+    SIS, SISFactor, q_sis, SUSCEPTIBLE, INFECTED,
     kl_marginals, l1_marginals, find_infected_bp, auc
 
 include("glauber/glauber.jl")

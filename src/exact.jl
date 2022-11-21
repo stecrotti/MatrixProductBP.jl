@@ -43,7 +43,7 @@ function site_marginals(bp::MPBP{q,T,F,U};
         p = exact_prob(bp)[1],
         m = [zeros(fill(2,T+1)...) for i in 1:nv(bp.g)]) where {q,T,F,U}
     N = nv(bp.g)
-    prog = Progress(2^(N*(T+1)), desc="Computing site marginals")
+    prog = Progress(2^(N*(T+1)), desc="Computing exact marginals")
     X = zeros(Int, T+1, N)
     for x in 1:2^(N*(T+1))
         X .= _int_to_matrix(x-1, (T+1,N))
@@ -56,7 +56,7 @@ function site_marginals(bp::MPBP{q,T,F,U};
     m
 end
 
-function site_time_marginals(bp::MPBP{q,T,F,U}; 
+function exact_marginals(bp::MPBP{q,T,F,U}; 
         m = site_marginals(bp)) where {q,T,F,U}
     N = nv(bp.g)
     pp = [[zeros(2) for t in 0:T] for i in 1:N]
@@ -71,3 +71,4 @@ function site_time_marginals(bp::MPBP{q,T,F,U};
     end
     pp
 end
+
