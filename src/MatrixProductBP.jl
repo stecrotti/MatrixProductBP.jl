@@ -21,7 +21,8 @@ export
     pair_beliefs, pair_beliefs_tu, beliefs_tu, autocorrelations,
     autocovariances, beliefs, belief_expectations, bethe_free_energy, 
     logprior_loglikelihood, marginal_to_expectation,
-    exact_prob, exact_marginals, site_time_marginals, 
+    exact_prob, exact_marginals, site_marginals, exact_autocorrelations,
+    exact_autocovariances, exact_marginal_expectations, 
     SoftMarginSampler, onesample!, onesample, sample!, sample, marginals, 
     draw_node_observations!
 

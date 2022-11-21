@@ -62,7 +62,7 @@ function glauber_factors(ising::Ising, T::Integer)
     end
 end
 
-idx_to_value(::Type{<:GlauberFactor}, x) = potts2spin(x)
+idx_to_value(x::Integer, ::Type{<:GlauberFactor}) = potts2spin(x)
 
 # compute outgoing message efficiently for any degree
 # return a `MPMEM3` just like `f_bp`

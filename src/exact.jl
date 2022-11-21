@@ -39,10 +39,9 @@ function exact_prob(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     p, Z
 end
 
-function site_marginals(bp::MPBP{q,T,F,U}; 
-        p = exact_prob(bp)[1],
-        m = [zeros(fill(2,T+1)...) for i in 1:nv(bp.g)]) where {q,T,F,U}
+function site_marginals(bp::MPBP{q,T,F,U}; p = exact_prob(bp)[1]) where {q,T,F,U}
     N = nv(bp.g)
+    m = [zeros(fill(2,T+1)...) for i in 1:N]
     prog = Progress(2^(N*(T+1)), desc="Computing exact marginals")
     X = zeros(Int, T+1, N)
     for x in 1:2^(N*(T+1))
@@ -57,18 +56,65 @@ function site_marginals(bp::MPBP{q,T,F,U};
 end
 
 function exact_marginals(bp::MPBP{q,T,F,U}; 
-        m = site_marginals(bp)) where {q,T,F,U}
+        p_exact = exact_prob(bp)[1]) where {q,T,F,U}
+    m = site_marginals(bp; p = p_exact)
     N = nv(bp.g)
     pp = [[zeros(2) for t in 0:T] for i in 1:N]
     for i in 1:N
         for t in 1:T+1
-            for xᵢᵗ in 1:2
+            for xᵢᵗ in 1:q
                 indices = [s==t ? xᵢᵗ : Colon() for s in 1:T+1]
                 pp[i][t][xᵢᵗ] = sum(m[i][indices...])
             end
-            pp[i][t] ./= sum(pp[i][t])
+            # pp[i][t] ./= sum(pp[i][t])
         end
     end
     pp
+end
+
+function exact_marginal_expectations(bp::MPBP{q,T,F,U}; 
+        m_exact = exact_marginals(bp)) where {q,T,F,U}
+    μ = [zeros(T+1) for _ in eachindex(m_exact)]
+    for i in eachindex(m_exact)
+        for t in eachindex(m_exact[i])
+            μ[i][t] = marginal_to_expectation(m_exact[i][t], U)
+        end
+    end
+    μ
+end
+
+function exact_autocorrelations(bp::MPBP{q,T,F,U}; 
+        p_exact = exact_prob(bp)[1]) where {q,T,F,U}
+    m = site_marginals(bp; p = p_exact)
+    N = nv(bp.g)
+    r = [zeros(T+1, T+1) for i in 1:N]
+    for i in 1:N
+        for t in axes(r[i], 1), u in 1:t-1
+            p = zeros(q, q)
+            for xᵢᵗ in 1:q, xᵢᵘ in 1:q
+                # indices = [s ∈ (t,u) ? xᵢᵗ : Colon() for s in 1:T+1]
+                indices = map(1:T+1) do s
+                    if s == t
+                        return xᵢᵗ
+                    elseif s == u
+                        return xᵢᵘ
+                    else
+                        return Colon()
+                    end
+                end
+                p[xᵢᵗ, xᵢᵘ] = sum(m[i][indices...])
+            end 
+            r[i][u, t] = marginal_to_expectation(p, U)
+        end
+    end
+    r
+end
+
+function exact_autocovariances(bp::MPBP{q,T,F,U}) where {q,T,F,U}
+    r = exact_autocorrelations(bp)
+    b = exact_marginal_expectations(bp)
+    map(eachindex(r)) do i
+        [ r[i][t,u] - idx_to_value(U, b[i][t])*idx_to_value(U, b[i][u]) for t in axes(r[i],1), u in axes(r[i],2) ]
+    end
 end
 

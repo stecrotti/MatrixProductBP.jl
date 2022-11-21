@@ -32,7 +32,7 @@ function iterate_glauber_infinite_graph(T::Integer, k::Integer, pᵢ⁰, wᵢ;
         Δs[it] = Δ
         Δ < tol && return A, it, Δs, b
         b, b_new = b_new, b
-        rounded_Δ = round(Δ, digits=ceil(Int,log(tol)))
+        rounded_Δ = round(Δ, digits=ceil(Int,abs(log(tol))))
         next!(prog, showvalues=[(:iter, "$it/$maxiter"), (:Δ,"$rounded_Δ/$tol")])
     end
     A, maxiter, Δs, b
@@ -46,4 +46,12 @@ function glauber_infinite_graph(T::Integer, k::Integer, m⁰::Real;
     wᵢ = fill(HomogeneousGlauberFactor(fill(J, k), h, β), T)
     A, maxiter, Δs, b = iterate_glauber_infinite_graph(T, k, pᵢ⁰, wᵢ; 
         svd_trunc, maxiter, tol, showprogress)
+end
+
+function autocovariance(A::MPEM2, U::Type{<:BPFactor}; showprogress::Bool=true)
+    b = belief(A)
+    μ = marginal_to_expectation.(b,(U,))
+    b_tu = MatrixProductBP.pair_belief_tu(A, A; showprogress)
+    r = MatrixProductBP.autocorrelation(b_tu, U)
+    MatrixProductBP.autocovariance(r, μ)
 end

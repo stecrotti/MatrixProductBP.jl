@@ -198,12 +198,12 @@ In this code variables take value in {1,2,...,q} but in models these can corresp
 This function, if implemented for a subtype of `BPFactor`, converts to the correct values. Those can now be used to compute expectations
 By default, nothing happens and the values are just {1,2,...,q}
 """
-idx_to_value(::Type{<:BPFactor}, x) = x
+idx_to_value(x::Integer, ::Type{<:BPFactor}) = x
 
 function marginal_to_expectation(p::Matrix{<:Real}, U::Type{<:BPFactor})
     μ = 0.0
     for xi in axes(p,1) , xj in axes(p, 2)
-        μ += idx_to_value(U, xi) * idx_to_value(U, xj) * p[xi, xj]
+        μ += idx_to_value(xi, U) * idx_to_value(xj, U) * p[xi, xj]
     end
     μ
 end
@@ -211,7 +211,7 @@ end
 function marginal_to_expectation(p::Vector{<:Real}, U::Type{<:BPFactor})
     μ = 0.0
     for xi in eachindex(p)
-        μ += idx_to_value(U, xi) * p[xi]
+        μ += idx_to_value(xi, U) * p[xi]
     end
     μ
 end
@@ -219,7 +219,6 @@ end
 function belief_expectations(bp::MPBP{q,T,F,U}; b = beliefs(bp)) where {q,T,F,U}
     map(vertices(bp.g)) do i 
         map(1:T+1) do t
-            # sum(idx_to_value(U,x)*b[i][t][x] for x in 1:q)
             marginal_to_expectation(b[i][t], U)
         end
     end
@@ -261,23 +260,39 @@ function beliefs_tu(bp::MPBP{q,T,F,U};
     b
 end
 
+function autocorrelation(b_tu::Matrix{Array{F, 4}}, 
+        U::Type{<:BPFactor}) where {F<:Real}
+    r = zeros(size(b_tu)...)
+    for t in axes(b_tu, 1), u in axes(b_tu, 2)
+        p = sum(sum(b_tu[t, u], dims=2),dims=4)[:,1,:,1]
+        r[t,u] = marginal_to_expectation(p, U)
+    end
+    r
+end
 
-function autocorrelations(bp::MPBP{q,T,F,U}) where {q,T,F,U}
-    b_tu = beliefs_tu(bp)
-    c = [zeros(size(bb)...) for bb in b_tu]
-    for i in eachindex(b_tu)
-        for t in axes(b_tu[i], 1), u in axes(b_tu[i], 2)
-            c[i][t,u] = marginal_to_expectation(b_tu[i][t, u], U)
-        end
+function autocorrelations(bp::MPBP{q,T,F,U}; 
+        b_tu = beliefs_tu(bp)) where {q,T,F,U}
+    autocorrelations(b_tu, U)
+end
+
+function autocorrelations(b_tu::Vector{Matrix{Array{F,4}}},
+        U::Type{<:BPFactor}) where {F<:Real}
+    [autocorrelation(bi_tu, U) for bi_tu in b_tu]
+end
+
+function autocovariance(r::Matrix{F}, μ::Vector{F}) where {F<:Real}
+    c = zero(r)
+    for u in axes(r,2), t in 1:u-1
+        c[t, u] = r[t, u] - μ[t]*μ[u]
     end
     c
 end
 
 function autocovariances(bp::MPBP)
     r = autocorrelations(bp)
-    b = belief_expectations(bp)
+    μ = belief_expectations(bp)
     map(eachindex(r)) do i
-        [ r[i][t,u] - b[i][t]*b[i][u] for t in axes(r[i],1), u in axes(r[i],2) ]
+        autocovariance(r[i], μ[i])
     end
 end
 

@@ -31,12 +31,20 @@ b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
 p_exact, Z_exact = exact_prob(bp)
-b_exact = exact_marginals(bp; m = site_marginals(bp; p=p_exact))
+b_exact = exact_marginals(bp; p_exact)
 p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
 f_bethe = bethe_free_energy(bp)
 
+r_bp = autocorrelations(bp)
+r_exact = exact_autocorrelations(bp)
+
+c_bp = autocovariances(bp)
+c_exact = exact_autocovariances(bp)
+
 @testset "Glauber small tree" begin
     @test isapprox(Z_exact, exp(-f_bethe))
     @test p_ex ≈ p_bp
+    @test r_bp ≈ r_exact
+    @test c_bp ≈ c_exact
 end

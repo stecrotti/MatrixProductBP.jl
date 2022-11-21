@@ -1,7 +1,7 @@
 module Models
 
 import MatrixProductBP: exact_prob, _onebpiter!, onebpiter!, getT, getq, mpbp, 
-    kron2, idx_to_value
+    kron2, idx_to_value, pair_belief_tu
 using MatrixProductBP
 
 import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, ne, nv, outedges, idx,
@@ -18,7 +18,7 @@ export
     q_glauber, GlauberFactor, HomogeneousGlauberFactor, GenericGlauberFactor, 
     onebpiter!, pair_observations_directed, 
     pair_observations_nondirected, magnetizations, mpbp,
-    glauber_infinite_graph,
+    glauber_infinite_graph, autocovariance,
     SIS, SISFactor, q_sis, SUSCEPTIBLE, INFECTED,
     kl_marginals, l1_marginals, find_infected_bp, auc
 
