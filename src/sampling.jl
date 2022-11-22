@@ -102,6 +102,41 @@ function marginals(sms::SoftMarginSampler)
    return marg
 end
 
+function autocorrelations(sms::SoftMarginSampler; showprogress::Bool=true)
+    @unpack bp, X, w = sms
+    N = nv(bp.g); T = getT(bp); q = getq(bp)
+    r = [fill(zero(Measurement), T+1, T+1) for i in 1:N]
+    @assert all(>=(0), w)
+    wv = weights(w)
+    nsamples = length(X)
+    U = getU(sms.bp)
+    dt = showprogress ? 0.1 : Inf
+    prog = Progress(N, desc="Autocorrelations from Soft Margin"; dt)
+
+    for i in 1:N
+        for u in axes(r[i], 2), t in 1:u-1
+            x = [[xx[i,t], xx[i,u]] for xx in X]
+            mtu_avg = zeros(q, q)
+            for i in eachindex(x)
+                xx = x[i]
+                mtu_avg[xx[1], xx[2]] += wv[i] / wv.sum
+            end
+            mtu_var = mtu_avg .* (1 .- mtu_avg) ./ nsamples
+            r[i][t,u] = marginal_to_expectation(mtu_avg .± sqrt.( mtu_var ), U)  
+        end
+        next!(prog)
+    end
+    r
+end
+
+function autocovariances(sms::SoftMarginSampler; showprogress::Bool=true,
+        r = autocorrelations(sms; showprogress), m = marginals(sms))
+    U = getU(sms.bp)
+    μ = [marginal_to_expectation.(mᵢ, U) for mᵢ in m] 
+    _autocovariances(r, μ)
+end
+
+
 # draw `nobs` observations from the prior
 # flag `last_time` draws all observations from time T
 function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}}, 
