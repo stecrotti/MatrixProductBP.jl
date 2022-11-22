@@ -27,7 +27,8 @@ struct MPBP{q,T,F<:Real,U<:BPFactor}
         @assert all( size(ψ[ij][t]) == (q,q) for ij in eachindex(ψ) for t in eachindex(ψ[ij]) )
         @assert check_ψs(ψ, g)
         @assert all( length(pᵢ⁰) == q for pᵢ⁰ in p⁰ )
-        @assert all( length(ϕᵢ) == T for ϕᵢ in ϕ )
+        @assert all( length(ϕᵢ) == T+1 for ϕᵢ in ϕ )
+        @assert all( length(ψᵢ) == T+1 for ψᵢ in ψ )
         @assert length(μ) == ne(g)
         normalize!.(μ)
         return new{q,T,F,U}(g, w, ϕ, ψ, p⁰, μ)
@@ -63,8 +64,8 @@ end
 
 function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}}, 
         q::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
-        ϕ = [[ones(q) for t in 1:T] for _ in vertices(g)],
-        ψ = [[ones(q,q) for t in 1:T] for _ in edges(g)],
+        ϕ = [[ones(q) for t in 0:T] for _ in vertices(g)],
+        ψ = [[ones(q,q) for t in 0:T] for _ in edges(g)],
         p⁰ = [ones(q) for i in 1:nv(g)],
         μ = [mpem2(q, T; d, bondsizes) for e in edges(g)])
     return MPBP(g, w, ϕ, ψ, p⁰, μ)
@@ -326,16 +327,17 @@ function logprior_loglikelihood(bp::MPBP{q,T,F,U}, x::Matrix{<:Integer}) where {
 
     for i in 1:N
         logp += log(p⁰[i][x[i,1]])
+        logl += log(ϕ[1][x[i,1]])
     end
 
     for t in 1:T
         for i in 1:N
             ∂i = neighbors(bp.g, i)
             @views logp += log( w[i][t](x[i, t+1], x[∂i, t], x[i, t]) )
-            logl += log( ϕ[i][t][x[i, t+1]] )
+            logl += log( ϕ[i][t+1][x[i, t+1]] )
         end
     end
-    for t in 1:T
+    for t in 1:T+1
         for (i, j, ij) in edges(bp.g)
             logl += 1/2 * log( ψ[ij][t][x[i,t+1], x[j,t+1]] )
         end

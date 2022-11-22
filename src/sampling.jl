@@ -31,7 +31,9 @@ function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U}) where {q,T,F,U}
     logl = 0.0
 
     for i in 1:N
-        x[i, 1] = sample_noalloc(p⁰[i])
+        xᵢ⁰ = sample_noalloc(p⁰[i])
+        x[i, 1] = xᵢ⁰
+        logl += log( ϕ[i][1][xᵢ⁰] )
     end
 
     for t in 1:T
@@ -40,12 +42,12 @@ function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U}) where {q,T,F,U}
             p = [w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q]
             xᵢᵗ = sample_noalloc(p)
             x[i, t+1] = xᵢᵗ
-            logl += log( ϕ[i][t][xᵢᵗ] )
+            logl += log( ϕ[i][t+1][xᵢᵗ] )
         end
     end
-    for t in 1:T
+    for t in 1:T+1
         for (i, j, ij) in edges(bp.g)
-            logl += 1/2 * log( ψ[ij][t][x[i,t+1], x[j,t+1]] )
+            logl += 1/2 * log( ψ[ij][t][x[i,t], x[j,t]] )
         end
     end
     return x, exp(logl)
@@ -146,11 +148,11 @@ function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}},
     it = if last_time
         sample(rng,  collect(Iterators.product(T:T, 1:N)), nobs, replace=false)
     else
-        sample(rng,  collect(Iterators.product(1:T, 1:N)), nobs, replace=false)
+        sample(rng,  collect(Iterators.product(1:T+1, 1:N)), nobs, replace=false)
     end
     softone = logistic(log(softinf)); softzero = logistic(-log(softinf))
     for (t, i) in it
-        ϕ[i][t] .= [x==X[i,t+1] ? softone : softzero for x in eachindex(ϕ[i][t])]
+        ϕ[i][t] .= [x==X[i,1] ? softone : softzero for x in eachindex(ϕ[i][t])]
     end
     ϕ
 end

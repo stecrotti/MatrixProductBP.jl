@@ -48,17 +48,17 @@ struct Glauber{T, N, F<:AbstractFloat}
         N = length(p⁰)
         @assert length(ϕ) == N
         @assert length(ψ) == ne(ising.g)
-        T = length(ϕ[1])
-        @assert all(length(ϕᵢ) == T for ϕᵢ in ϕ)
-        @assert all(length(ψᵢⱼ) == T for ψᵢⱼ in ψ)
+        T = length(ϕ[1]) - 1
+        @assert all(length(ϕᵢ) == T+1 for ϕᵢ in ϕ)
+        @assert all(length(ψᵢⱼ) == T+1 for ψᵢⱼ in ψ)
         new{T,N,F}(ising, p⁰, ϕ, ψ)
     end
 end
 
 function Glauber(ising::Ising, T::Integer;
         p⁰ = [ones(q_glauber) for i in 1:nv(ising.g)],
-        ϕ = [[ones(q_glauber) for t in 1:T] for _ in vertices(ising.g)],
-        ψ = [[ones(q_glauber,q_glauber) for t in 1:T] for _ in edges(ising.g)])
+        ϕ = [[ones(q_glauber) for t in 1:T+1] for _ in vertices(ising.g)],
+        ψ = [[ones(q_glauber,q_glauber) for t in 1:T+1] for _ in edges(ising.g)])
    Glauber(ising, p⁰, ϕ, ψ) 
 end
 

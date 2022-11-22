@@ -18,15 +18,16 @@ function exact_prob(bp::MPBP{q,T,F,U}) where {q,T,F,U}
         X .= _int_to_matrix(x-1, (T+1,N))
         for i in 1:N
             logp[x] += log( p⁰[i][X[1,i]] )
+            logp[x] += log( ϕ[i][1][X[1,i]] )
             ∂i = neighbors(g, i)
             for t in 1:T
                 logp[x] += log( w[i][t](X[t+1,i], X[t,∂i], X[t,i]) )
-                logp[x] += log( ϕ[i][t][X[t+1,i]] )
+                logp[x] += log( ϕ[i][t+1][X[t+1,i]] )
             end
         end
         for (i, j, ij) in edges(g)
-            for t in 1:T
-                logp[x] += 1/2 * log( ψ[ij][t][X[t+1,i],X[t+1,j]] )
+            for t in 1:T+1
+                logp[x] += 1/2 * log( ψ[ij][t][X[t,i],X[t,j]] )
             end
         end
         next!(prog)

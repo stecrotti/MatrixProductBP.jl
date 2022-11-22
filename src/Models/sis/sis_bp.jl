@@ -111,7 +111,7 @@ function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, ρ::Real,
                 B⁰[xᵢ⁰,xⱼ⁰,1,:,xᵢ¹] .+= p * A⁰[1,:,y⁰,xᵢ⁰]
             end
         end
-        B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= ϕᵢ[1][xᵢ¹] * pᵢ⁰[xᵢ⁰] 
+        B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= ϕᵢ[1][xᵢ⁰] * ϕᵢ[2][xᵢ¹] * pᵢ⁰[xᵢ⁰] 
     end
     B[begin] = B⁰
 
@@ -129,7 +129,7 @@ function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, ρ::Real,
                     end
                 end
             end
-            Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+1][xᵢᵗ⁺¹]
+            Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+2][xᵢᵗ⁺¹]
         end
         any(isnan, Bᵗ) && println("NaN in tensor at time $t")
         B[begin+t] = Bᵗ
