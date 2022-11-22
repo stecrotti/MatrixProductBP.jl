@@ -24,14 +24,15 @@ function SoftMarginSampler(bp::MPBP)
 end
 
 # a sample with its weight
-function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U}) where {q,T,F,U}
+function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U};
+        rng = GLOBAL_RNG) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     N = nv(bp.g)
     @assert size(x) == (N , T+1)
     logl = 0.0
 
     for i in 1:N
-        xᵢ⁰ = sample_noalloc(p⁰[i])
+        xᵢ⁰ = sample_noalloc(rng, p⁰[i])
         x[i, 1] = xᵢ⁰
         logl += log( ϕ[i][1][xᵢ⁰] )
     end
@@ -40,7 +41,7 @@ function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U}) where {q,T,F,U}
         for i in 1:N
             ∂i = neighbors(bp.g, i)
             p = [w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q]
-            xᵢᵗ = sample_noalloc(p)
+            xᵢᵗ = sample_noalloc(rng, p)
             x[i, t+1] = xᵢᵗ
             logl += log( ϕ[i][t+1][xᵢᵗ] )
         end
@@ -52,10 +53,10 @@ function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U}) where {q,T,F,U}
     end
     return x, exp(logl)
 end
-function onesample(bp::MPBP{q,T,F,U}) where {q,T,F,U}  
+function onesample(bp::MPBP{q,T,F,U}; kw...) where {q,T,F,U}  
     N = nv(bp.g)
     x = zeros(Int, N, T+1)
-    onesample!(x, bp)
+    onesample!(x, bp; kw...)
 end
 
 function sample!(sms::SoftMarginSampler, nsamples::Integer;
@@ -146,13 +147,13 @@ function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}},
         last_time::Bool=false, rng=GLOBAL_RNG) where {F<:Real}
     N, T = size(X) .- (0, 1)
     it = if last_time
-        sample(rng,  collect(Iterators.product(T:T, 1:N)), nobs, replace=false)
+        sample(rng,  collect(Iterators.product(T+1:T+1, 1:N)), nobs, replace=false)
     else
         sample(rng,  collect(Iterators.product(1:T+1, 1:N)), nobs, replace=false)
     end
     softone = logistic(log(softinf)); softzero = logistic(-log(softinf))
     for (t, i) in it
-        ϕ[i][t] .= [x==X[i,1] ? softone : softzero for x in eachindex(ϕ[i][t])]
+        ϕ[i][t] .= [x==X[i,t] ? softone : softzero for x in eachindex(ϕ[i][t])]
     end
     ϕ
 end

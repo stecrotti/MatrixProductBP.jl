@@ -327,7 +327,7 @@ function logprior_loglikelihood(bp::MPBP{q,T,F,U}, x::Matrix{<:Integer}) where {
 
     for i in 1:N
         logp += log(p⁰[i][x[i,1]])
-        logl += log(ϕ[1][x[i,1]])
+        logl += log(ϕ[i][1][x[i,1]])
     end
 
     for t in 1:T
@@ -339,7 +339,7 @@ function logprior_loglikelihood(bp::MPBP{q,T,F,U}, x::Matrix{<:Integer}) where {
     end
     for t in 1:T+1
         for (i, j, ij) in edges(bp.g)
-            logl += 1/2 * log( ψ[ij][t][x[i,t+1], x[j,t+1]] )
+            logl += 1/2 * log( ψ[ij][t][x[i,t], x[j,t]] )
         end
     end
     return logp, logl
