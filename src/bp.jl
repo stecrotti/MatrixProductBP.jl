@@ -5,7 +5,7 @@ function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
         showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
     @assert length(pᵢ⁰) == q
     @assert length(wᵢ) == T
-    @assert length(ϕᵢ) == T
+    @assert length(ϕᵢ) == T + 1 
     @assert j_index in eachindex(A)
     z = length(A)      # z = |∂i|
     x_neigs = Iterators.product(fill(1:q, z)...) .|> collect
@@ -21,10 +21,11 @@ function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
             xₙᵢ₋ⱼ⁰ = xₙᵢ⁰[Not(j_index)]
             for a¹ in axes(A⁰, 2)
                 B⁰[xᵢ⁰,xⱼ⁰,1,a¹,xᵢ¹] += wᵢ[1](xᵢ¹, xₙᵢ⁰,xᵢ⁰) *
-                    A⁰[1,a¹,xᵢ⁰,xₙᵢ₋ⱼ⁰...]
+                    A⁰[1,a¹,xᵢ⁰,xₙᵢ₋ⱼ⁰...] * 
+                    prod(sqrt, ψₙᵢ[k][1][xᵢ⁰,xₖ⁰] for (k,xₖ⁰) in enumerate(xₙᵢ⁰))
             end
         end
-        B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= ϕᵢ[1][xᵢ¹] * pᵢ⁰[xᵢ⁰] 
+        B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= pᵢ⁰[xᵢ⁰]  * ϕᵢ[1][xᵢ⁰] * ϕᵢ[2][xᵢ¹]
     end
     B[begin] = B⁰
 
@@ -43,10 +44,10 @@ function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
                     xₙᵢ₋ⱼᵗ = xₙᵢᵗ[Not(j_index)]
                     Bᵗ[xᵢᵗ,xⱼᵗ,:,:,xᵢᵗ⁺¹] .+= wᵢ[t+1](xᵢᵗ⁺¹,xₙᵢᵗ,xᵢᵗ) *
                             Aᵗ[:,:,xᵢᵗ,xₙᵢ₋ⱼᵗ...] *
-                            prod(sqrt, ψₙᵢ[k][t][xᵢᵗ,xₖᵗ] for (k,xₖᵗ) in enumerate(xₙᵢᵗ))
+                            prod(sqrt, ψₙᵢ[k][t+1][xᵢᵗ,xₖᵗ] for (k,xₖᵗ) in enumerate(xₙᵢᵗ))
                 end
             end
-            Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+1][xᵢᵗ⁺¹]
+            Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+2][xᵢᵗ⁺¹]
         end
         B[begin+t] = Bᵗ
         any(isnan, Bᵗ) && println("NaN in tensor at time $t")
@@ -65,7 +66,7 @@ function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
                 xₙᵢ₋ⱼᵀ = xₙᵢᵀ[Not(j_index)]
                 Bᵀ[xᵢᵀ,xⱼᵀ,:,:,xᵢᵀ⁺¹] .+= 
                         Aᵀ[:,:,xᵢᵀ,xₙᵢ₋ⱼᵀ...] *
-                        prod(sqrt, ψₙᵢ[k][T][xᵢᵀ,xₖᵀ] for (k,xₖᵀ) in enumerate(xₙᵢᵀ))
+                        prod(sqrt, ψₙᵢ[k][T+1][xᵢᵀ,xₖᵀ] for (k,xₖᵀ) in enumerate(xₙᵢᵀ))
             end
         end
     end

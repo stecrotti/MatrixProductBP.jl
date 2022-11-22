@@ -152,7 +152,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
                 B⁰[xᵢ⁰,xⱼ⁰,1,:,xᵢ¹] .+= p * A⁰[1,:,z⁰,xᵢ⁰]
             end
         end
-        B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= ϕᵢ[1][xᵢ¹] * pᵢ⁰[xᵢ⁰] 
+        B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= ϕᵢ[1][xᵢ⁰] * ϕᵢ[2][xᵢ¹] * pᵢ⁰[xᵢ⁰] 
     end
     B[begin] = B⁰
 
@@ -171,7 +171,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
                     end
                 end
             end
-            Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+1][xᵢᵗ⁺¹]
+            Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+2][xᵢᵗ⁺¹]
         end
         any(isnan, Bᵗ) && println("NaN in tensor at time $t")
         B[begin+t] = Bᵗ
@@ -227,7 +227,7 @@ function pair_observations_directed(O::Vector{<:Tuple{I,I,I,V}},
     @assert all(size(obs[4])==(q,q) for obs in O)
     cnt = 0
     ψ = map(edges(g)) do (i, j, ij)
-        map(1:T) do t
+        map(0:T) do t
             id_ij = findall(obs->obs[1:3]==(i,j,t), O)
             id_ji = findall(obs->obs[1:3]==(j,i,t), O)
             if !isempty(id_ij)
@@ -252,7 +252,7 @@ function pair_observations_nondirected(O::Vector{<:Tuple{I,I,I,V}},
     @assert all(size(obs[4])==(q,q) for obs in O)
     cnt = 0
     ψ = map(edges(g)) do (i, j, ij)
-        map(1:T) do t
+        map(0:T) do t
             id = findall(obs->(obs[1:3]==(i,j,t) || obs[1:3]==(j,i,t)), O)
             if !isempty(id)
                 cnt += 1
@@ -266,8 +266,9 @@ function pair_observations_nondirected(O::Vector{<:Tuple{I,I,I,V}},
     ψ
 end
 
-function pair_obs_undirected_to_directed(ψ_undirected::Vector{<:T}, g::IndexedGraph) where {T<:Vector{<:Matrix}}
-    ψ_directed = T[]
+function pair_obs_undirected_to_directed(ψ_undirected::Vector{<:F}, 
+        g::IndexedGraph) where {F<:Vector{<:Matrix}}
+    ψ_directed = F[]
     sizehint!(ψ_directed, 2*length(ψ_directed)) 
     A = g.A
     vals = nonzeros(A)
