@@ -28,7 +28,7 @@ export
 
 
 include("utils.jl")
-include("MPEMs.jl")
+include("MPEMs/MPEMs.jl")
 using .MPEMs, Reexport
 @reexport import .MPEMs: SVDTrunc, TruncBond, TruncThresh,
     MPEM, normalize_eachmatrix!, -, isapprox, evaluate, getq, getT, bond_dims,
