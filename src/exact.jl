@@ -89,7 +89,7 @@ function exact_autocorrelations(bp::MPBP{q,T,F,U};
     N = nv(bp.g)
     r = [zeros(T+1, T+1) for i in 1:N]
     for i in 1:N
-        for t in axes(r[i], 1), u in 1:t-1
+        for u in axes(r[i], 2), t in 1:u-1
             p = zeros(q, q)
             for xᵢᵗ in 1:q, xᵢᵘ in 1:q
                 # indices = [s ∈ (t,u) ? xᵢᵗ : Colon() for s in 1:T+1]
@@ -104,17 +104,15 @@ function exact_autocorrelations(bp::MPBP{q,T,F,U};
                 end
                 p[xᵢᵗ, xᵢᵘ] = sum(m[i][indices...])
             end 
-            r[i][u, t] = marginal_to_expectation(p, U)
+            r[i][t, u] = marginal_to_expectation(p, U)
         end
     end
     r
 end
 
-function exact_autocovariances(bp::MPBP{q,T,F,U}) where {q,T,F,U}
-    r = exact_autocorrelations(bp)
-    b = exact_marginal_expectations(bp)
-    map(eachindex(r)) do i
-        [ r[i][t,u] - idx_to_value(U, b[i][t])*idx_to_value(U, b[i][u]) for t in axes(r[i],1), u in axes(r[i],2) ]
-    end
+function exact_autocovariances(bp::MPBP{q,T,F,U};
+    r = exact_autocorrelations(bp), μ = exact_marginal_expectations(bp)) where {q,T,F,U}
+    
+    _autocovariances(r, μ)
 end
 

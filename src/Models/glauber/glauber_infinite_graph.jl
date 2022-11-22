@@ -53,5 +53,5 @@ function autocovariance(A::MPEM2, U::Type{<:BPFactor}; showprogress::Bool=true)
     μ = marginal_to_expectation.(b,(U,))
     b_tu = MatrixProductBP.pair_belief_tu(A, A; showprogress)
     r = MatrixProductBP.autocorrelation(b_tu, U)
-    MatrixProductBP.autocovariance(r, μ)
+    MatrixProductBP.covariance(r, μ)
 end

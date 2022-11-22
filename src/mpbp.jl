@@ -37,6 +37,7 @@ end
 getT(::MPBP{q,T,F,U}) where {q,T,F,U} = T
 getq(::MPBP{q,T,F,U}) where {q,T,F,U} = q
 getN(bp::MPBP) = nv(bp.g)
+getU(::MPBP{q,T,F,U}) where {q,T,F,U} = U
 
 # check that observation on edge i→j is the same as the one on j→i
 function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
@@ -260,12 +261,11 @@ function beliefs_tu(bp::MPBP{q,T,F,U};
     b
 end
 
-function autocorrelation(b_tu::Matrix{Array{F, 4}}, 
+function autocorrelation(b_tu::Matrix{Matrix{F}}, 
         U::Type{<:BPFactor}) where {F<:Real}
     r = zeros(size(b_tu)...)
     for t in axes(b_tu, 1), u in axes(b_tu, 2)
-        p = sum(sum(b_tu[t, u], dims=2),dims=4)[:,1,:,1]
-        r[t,u] = marginal_to_expectation(p, U)
+        r[t,u] = marginal_to_expectation(b_tu[t,u], U)
     end
     r
 end
@@ -275,12 +275,12 @@ function autocorrelations(bp::MPBP{q,T,F,U};
     autocorrelations(b_tu, U)
 end
 
-function autocorrelations(b_tu::Vector{Matrix{Array{F,4}}},
+function autocorrelations(b_tu::Vector{Matrix{Matrix{F}}},
         U::Type{<:BPFactor}) where {F<:Real}
     [autocorrelation(bi_tu, U) for bi_tu in b_tu]
 end
 
-function autocovariance(r::Matrix{F}, μ::Vector{F}) where {F<:Real}
+function covariance(r::Matrix{F}, μ::Vector{F}) where {F<:Real}
     c = zero(r)
     for u in axes(r,2), t in 1:u-1
         c[t, u] = r[t, u] - μ[t]*μ[u]
@@ -288,12 +288,17 @@ function autocovariance(r::Matrix{F}, μ::Vector{F}) where {F<:Real}
     c
 end
 
+# r: autocorrelations, μ: expectations of marginals
+function _autocovariances(r::Vector{Matrix{F}}, μ::Vector{Vector{F}}) where {F<:Real}
+    map(eachindex(r)) do i
+        covariance(r[i], μ[i])
+    end
+end
+
 function autocovariances(bp::MPBP)
     r = autocorrelations(bp)
     μ = belief_expectations(bp)
-    map(eachindex(r)) do i
-        autocovariance(r[i], μ[i])
-    end
+    _autocovariances(r, μ)
 end
 
 

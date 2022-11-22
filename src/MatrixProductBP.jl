@@ -17,7 +17,7 @@ import StatsBase: weights, proportions
 import LogExpFunctions: logistic, logsumexp
 
 export
-    BPFactor, MPBP, mpbp, reset_messages!, onebpiter!, CB_BP, iterate!, 
+    BPFactor, MPBP, mpbp, getU, reset_messages!, onebpiter!, CB_BP, iterate!, 
     pair_beliefs, pair_beliefs_tu, beliefs_tu, autocorrelations,
     autocovariances, beliefs, belief_expectations, bethe_free_energy, 
     logprior_loglikelihood, marginal_to_expectation,
