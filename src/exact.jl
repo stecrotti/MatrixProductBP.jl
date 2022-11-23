@@ -1,21 +1,21 @@
 # first turn integer `x` into its binary representation, then reshape the
 #  resulting bit vector into a matrix of size specified by `dims`
-function _int_to_matrix(x::Integer, dims)
-    y = digits(x, base=2, pad=prod(dims))
+function _int_to_matrix(x::Integer, q::Integer, dims)
+    y = digits(x, base=q, pad=prod(dims))
     return reshape(y, dims) .+ 1
 end
 
 function exact_prob(bp::MPBP{q,T,F,U}) where {q,T,F,U}
-    @assert q==2 "Can compute exact prob only for binary variables (for now)"
+    # @assert q==2 "Can compute exact prob only for binary variables (for now)"
     @unpack g, w, p⁰, ϕ, ψ = bp
     N = nv(g)
     T*N > 15 && @warn "T*N=$(T*N). This will take some time!"
     
-    logp = zeros(2^(N*(T+1)))
-    prog = Progress(2^(N*(T+1)), desc="Computing joint probability")
+    logp = zeros(q^(N*(T+1)))
+    prog = Progress(q^(N*(T+1)), desc="Computing joint probability")
     X = zeros(Int, T+1, N)
-    for x in 1:2^(N*(T+1))
-        X .= _int_to_matrix(x-1, (T+1,N))
+    for x in 1:q^(N*(T+1))
+        X .= _int_to_matrix(x-1, q, (T+1,N))
         for i in 1:N
             logp[x] += log( p⁰[i][X[1,i]] )
             logp[x] += log( ϕ[i][1][X[1,i]] )
@@ -45,8 +45,8 @@ function site_marginals(bp::MPBP{q,T,F,U}; p = exact_prob(bp)[1]) where {q,T,F,U
     m = [zeros(fill(2,T+1)...) for i in 1:N]
     prog = Progress(2^(N*(T+1)), desc="Computing exact marginals")
     X = zeros(Int, T+1, N)
-    for x in 1:2^(N*(T+1))
-        X .= _int_to_matrix(x-1, (T+1,N))
+    for x in 1:q^(N*(T+1))
+        X .= _int_to_matrix(x-1, q, (T+1,N))
         for i in 1:N
             m[i][X[:,i]...] += p[x]
         end
@@ -60,7 +60,7 @@ function exact_marginals(bp::MPBP{q,T,F,U};
         p_exact = exact_prob(bp)[1]) where {q,T,F,U}
     m = site_marginals(bp; p = p_exact)
     N = nv(bp.g)
-    pp = [[zeros(2) for t in 0:T] for i in 1:N]
+    pp = [[zeros(q) for t in 0:T] for i in 1:N]
     for i in 1:N
         for t in 1:T+1
             for xᵢᵗ in 1:q
