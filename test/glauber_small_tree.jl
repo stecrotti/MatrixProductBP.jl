@@ -1,11 +1,10 @@
 ```Glauber on a small tree, comparison with exact solution```
 q = q_glauber
 T = 3
-J = [0 1 0 0 0;
-     1 0 1 0 0;
-     0 1 0 1 1;
-     0 0 1 0 0;
-     0 0 1 0 0] .|> float
+J = [0 1 0 0;
+     1 0 1 1;
+     0 1 0 0;
+     0 1 0 0] .|> float
 
 N = size(J, 1)
 h = randn(N)
@@ -22,7 +21,7 @@ gl = Glauber(ising, T; p⁰)
 bp = mpbp(gl)
 
 rng = MersenneTwister(111)
-draw_node_observations!(bp, N; rng)
+X = draw_node_observations!(bp, N; rng)
 
 cb = CB_BP(bp; showprogress=false)
 svd_trunc = TruncThresh(0.0)
@@ -48,4 +47,16 @@ c_exact = exact_autocovariances(bp; r = r_exact)
     @test p_ex ≈ p_bp
     @test isapprox(r_bp, r_exact; atol=1e-6)
     @test isapprox(c_bp, c_exact; atol=1e-6)
+end
+
+# observe everything and check that the free energy corresponds to the prior of the sample `X`
+draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
+reset_messages!(bp)
+iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
+f_bp = bethe_free_energy(bp)
+logl_bp = -f_bp
+logp, logl = logprior_loglikelihood(bp, X)
+
+@testset "Glauber small tree - observe everything" begin
+    @test isapprox(logl_bp, logp)
 end

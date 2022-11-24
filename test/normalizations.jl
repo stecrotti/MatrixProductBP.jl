@@ -23,7 +23,7 @@ p⁰ = map(1:N) do i
     r = rand()
     [r, 1-r]
 end
-ϕ = [[ones(2) for t in 1:T] for i in 1:N]
+ϕ = [[ones(2) for t in 1:T+1] for i in 1:N]
 
 O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
       (3, 4, 2, [0.4 0.6; 0.5 0.9]),
