@@ -144,15 +144,17 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
     nrows = size(A⁰, 1); ncols = size(A⁰, 2)
     B⁰ = zeros(q, q, nrows, ncols, q)
 
-    for xᵢ¹ in 1:q, xᵢ⁰ in 1:q
-        for z⁰ in 1:(d+1)
-            y⁰ = _idx_map(d, z⁰)
-            for xⱼ⁰ in 1:q
-                p = prob_ijy_glauber(xᵢ¹, xⱼ⁰, y⁰, βJ, βh)
-                B⁰[xᵢ⁰,xⱼ⁰,1,:,xᵢ¹] .+= p * A⁰[1,:,z⁰,xᵢ⁰]
+    for xᵢ⁰ in 1:q
+        for xᵢ¹ in 1:q
+            for z⁰ in 1:(d+1)
+                y⁰ = _idx_map(d, z⁰)
+                for xⱼ⁰ in 1:q
+                    p = prob_ijy_glauber(xᵢ¹, xⱼ⁰, y⁰, βJ, βh)
+                    B⁰[xᵢ⁰,xⱼ⁰,1,:,xᵢ¹] .+= p * A⁰[1,:,z⁰,xᵢ⁰]
+                end
             end
         end
-        B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= ϕᵢ[1][xᵢ⁰] * ϕᵢ[2][xᵢ¹] * pᵢ⁰[xᵢ⁰] 
+        B⁰[xᵢ⁰,:,:,:,:] .*= pᵢ⁰[xᵢ⁰]  * ϕᵢ[begin][xᵢ⁰]
     end
     B[begin] = B⁰
 
@@ -161,8 +163,8 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
         nrows = size(Aᵗ, 1); ncols = size(Aᵗ, 2)
         Bᵗ = zeros(q, q, nrows, ncols, q)
 
-        for xᵢᵗ⁺¹ in 1:q
-            for xᵢᵗ in 1:q
+        for xᵢᵗ in 1:q
+            for xᵢᵗ⁺¹ in 1:q
                 for xⱼᵗ in 1:q
                     for zᵗ in 1:(d+1)
                         yᵗ = _idx_map(d, zᵗ)
@@ -171,7 +173,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
                     end
                 end
             end
-            Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+2][xᵢᵗ⁺¹]
+            Bᵗ[xᵢᵗ,:,:,:,:] *= ϕᵢ[t+1][xᵢᵗ]
         end
         any(isnan, Bᵗ) && println("NaN in tensor at time $t")
         B[begin+t] = Bᵗ
@@ -181,8 +183,8 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
     nrows = size(Aᵀ, 1); ncols = size(Aᵀ, 2)
     Bᵀ = zeros(q, q, nrows, ncols, q)
 
-    for xᵢᵀ⁺¹ in 1:q
-        for xᵢᵀ in 1:q
+    for xᵢᵀ in 1:q
+        for xᵢᵀ⁺¹ in 1:q
             for xⱼᵀ in 1:q
                 for zᵀ in 1:(d+1)
                     yᵀ = _idx_map(d, zᵀ)
@@ -190,6 +192,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
                 end
             end
         end
+        Bᵀ[xᵢᵀ,:,:,:,:] *= ϕᵢ[end][xᵢᵀ]
     end
     B[end] = Bᵀ
     any(isnan, Bᵀ) && println("NaN in tensor at time $T")

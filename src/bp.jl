@@ -15,17 +15,19 @@ function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
     nrows = size(A⁰, 1); ncols = size(A⁰, 2)
     B⁰ = zeros(q, q, nrows, ncols, q)
     
-    for xᵢ¹ in 1:q, xᵢ⁰ in 1:q
-        for xₙᵢ⁰ in x_neigs
-            xⱼ⁰ = xₙᵢ⁰[j_index]
-            xₙᵢ₋ⱼ⁰ = xₙᵢ⁰[Not(j_index)]
-            for a¹ in axes(A⁰, 2)
-                B⁰[xᵢ⁰,xⱼ⁰,1,a¹,xᵢ¹] += wᵢ[1](xᵢ¹, xₙᵢ⁰,xᵢ⁰) *
-                    A⁰[1,a¹,xᵢ⁰,xₙᵢ₋ⱼ⁰...] * 
-                    prod(sqrt, ψₙᵢ[k][1][xᵢ⁰,xₖ⁰] for (k,xₖ⁰) in enumerate(xₙᵢ⁰))
+    for xᵢ⁰ in 1:q
+        for xᵢ¹ in 1:q
+            for xₙᵢ⁰ in x_neigs
+                xⱼ⁰ = xₙᵢ⁰[j_index]
+                xₙᵢ₋ⱼ⁰ = xₙᵢ⁰[Not(j_index)]
+                for a¹ in axes(A⁰, 2)
+                    B⁰[xᵢ⁰,xⱼ⁰,1,a¹,xᵢ¹] += wᵢ[1](xᵢ¹, xₙᵢ⁰,xᵢ⁰) *
+                        A⁰[1,a¹,xᵢ⁰,xₙᵢ₋ⱼ⁰...] * 
+                        prod(sqrt, ψₙᵢ[k][begin][xᵢ⁰,xₖ⁰] for (k,xₖ⁰) in enumerate(xₙᵢ⁰))
+                end
             end
         end
-        B⁰[xᵢ⁰,:,:,:,xᵢ¹] .*= pᵢ⁰[xᵢ⁰]  * ϕᵢ[1][xᵢ⁰] * ϕᵢ[2][xᵢ¹]
+        B⁰[xᵢ⁰,:,:,:,:] .*= pᵢ⁰[xᵢ⁰]  * ϕᵢ[begin][xᵢ⁰]
     end
     B[begin] = B⁰
 
@@ -37,8 +39,8 @@ function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
         nrows = size(Aᵗ, 1); ncols = size(Aᵗ, 2)
         Bᵗ = zeros(q, q, nrows, ncols, q)
 
-        for xᵢᵗ⁺¹ in 1:q
-            for xᵢᵗ in 1:q
+        for xᵢᵗ in 1:q
+            for xᵢᵗ⁺¹ in 1:q
                 for xₙᵢᵗ in x_neigs
                     xⱼᵗ = xₙᵢᵗ[j_index]
                     xₙᵢ₋ⱼᵗ = xₙᵢᵗ[Not(j_index)]
@@ -47,7 +49,7 @@ function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
                             prod(sqrt, ψₙᵢ[k][t+1][xᵢᵗ,xₖᵗ] for (k,xₖᵗ) in enumerate(xₙᵢᵗ))
                 end
             end
-            Bᵗ[:,:,:,:,xᵢᵗ⁺¹] *= ϕᵢ[t+2][xᵢᵗ⁺¹]
+            Bᵗ[xᵢᵗ,:,:,:,:] *= ϕᵢ[t+1][xᵢᵗ]
         end
         B[begin+t] = Bᵗ
         any(isnan, Bᵗ) && println("NaN in tensor at time $t")
@@ -59,16 +61,17 @@ function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
     nrows = size(Aᵀ, 1); ncols = size(Aᵀ, 2)
     Bᵀ = zeros(q, q, nrows, ncols, q)
 
-    for xᵢᵀ⁺¹ in 1:q
-        for xᵢᵀ in 1:q
+    for xᵢᵀ in 1:q
+        for xᵢᵀ⁺¹ in 1:q
             for xₙᵢᵀ in x_neigs
                 xⱼᵀ = xₙᵢᵀ[j_index]
                 xₙᵢ₋ⱼᵀ = xₙᵢᵀ[Not(j_index)]
                 Bᵀ[xᵢᵀ,xⱼᵀ,:,:,xᵢᵀ⁺¹] .+= 
                         Aᵀ[:,:,xᵢᵀ,xₙᵢ₋ⱼᵀ...] *
-                        prod(sqrt, ψₙᵢ[k][T+1][xᵢᵀ,xₖᵀ] for (k,xₖᵀ) in enumerate(xₙᵢᵀ))
+                        prod(sqrt, ψₙᵢ[k][end][xᵢᵀ,xₖᵀ] for (k,xₖᵀ) in enumerate(xₙᵢᵀ))
             end
         end
+        Bᵀ[xᵢᵀ,:,:,:,:] *= ϕᵢ[end][xᵢᵀ]
     end
     B[end] = Bᵀ
     any(isnan, Bᵀ) && println("NaN in tensor at time $T")
