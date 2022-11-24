@@ -40,7 +40,7 @@ function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U};
     for t in 1:T
         for i in 1:N
             ∂i = neighbors(bp.g, i)
-            p = [w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q]
+            @views p = [w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q]
             xᵢᵗ = sample_noalloc(rng, p)
             x[i, t+1] = xᵢᵗ
             logl += log( ϕ[i][t+1][xᵢᵗ] )
@@ -118,12 +118,11 @@ function autocorrelations(sms::SoftMarginSampler; showprogress::Bool=true)
 
     for i in 1:N
         for u in axes(r[i], 2), t in 1:u-1
-            x = [[xx[i,t], xx[i,u]] for xx in X]
             mtu_avg = zeros(q, q)
-            for i in eachindex(x)
-                xx = x[i]
-                mtu_avg[xx[1], xx[2]] += wv[i] / wv.sum
+            for (n, x) in enumerate(X)
+                mtu_avg[x[i,t], x[i,u]] += wv[n]
             end
+            mtu_avg ./= wv.sum
             mtu_var = mtu_avg .* (1 .- mtu_avg) ./ nsamples
             r[i][t,u] = marginal_to_expectation(mtu_avg .± sqrt.( mtu_var ), U)  
         end
