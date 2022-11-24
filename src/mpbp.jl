@@ -296,9 +296,10 @@ function _autocovariances(r::Vector{Matrix{F}}, μ::Vector{Vector{F}}) where {F<
     end
 end
 
-function autocovariances(bp::MPBP)
-    r = autocorrelations(bp)
-    μ = belief_expectations(bp)
+function autocovariances(bp::MPBP; r = autocorrelations(bp), 
+    m = beliefs(bp))
+    U = getU(bp)
+    μ = [marginal_to_expectation.(mᵢ, U) for mᵢ in m] 
     _autocovariances(r, μ)
 end
 
