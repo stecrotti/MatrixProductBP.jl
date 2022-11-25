@@ -33,6 +33,8 @@ using .MPEMs, Reexport
 @reexport import .MPEMs: SVDTrunc, TruncBond, TruncThresh,
     MPEM, normalize_eachmatrix!, -, isapprox, evaluate, getq, getT, bond_dims,
     MPEM2, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!,
+    accumulate_L, accumulate_R, accumulate_M, pair_marginal, firstvar_marginal,
+    pair_marginal_tu, firstvar_marginal_tu,
     normalization, normalize!, MPEM3
 
 include("bp.jl")

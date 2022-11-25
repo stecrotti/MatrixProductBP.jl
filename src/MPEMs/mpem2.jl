@@ -146,6 +146,85 @@ function accumulate_R(A::MPEM2{q,T,F}) where {q,T,F}
     return R
 end
 
+function accumulate_M(A::MPEM2{q,T,F}) where {q,T,F}
+    M = [zeros(q, q) for _ in 0:T, _ in 0:T]
+    
+    # initial condition
+    for t in 1:T
+        range_aᵗ⁺¹ = axes(A[t+1], 1)
+        Mᵗᵗ⁺¹ = [float((a == c)) for a in range_aᵗ⁺¹, c in range_aᵗ⁺¹]
+        M[t, t+1] = Mᵗᵗ⁺¹
+    end
+
+    for t in 1:T
+        Mᵗᵘ⁻¹ = M[t, t+1]
+        for u in t+2:T+1
+            Aᵘ⁻¹ = A[u-1]
+            @reduce Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ] |= sum(aᵘ⁻¹, xᵢᵘ⁻¹, xⱼᵘ⁻¹) Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ⁻¹] * Aᵘ⁻¹[aᵘ⁻¹, aᵘ, xᵢᵘ⁻¹, xⱼᵘ⁻¹]
+            M[t, u] = Mᵗᵘ⁻¹
+        end
+    end
+
+    return M
+end
+
+# at each time t, return p(xᵢᵗ, xⱼᵗ)
+function pair_marginal(A::MPEM2{q,T,F}) where {q,T,F}
+    L = accumulate_L(A)
+    R = accumulate_R(A)
+
+    A⁰ = A[begin]; R¹ = R[2]
+    @reduce p⁰[xᵢ⁰,xⱼ⁰] := sum(a¹) A⁰[1,a¹,xᵢ⁰,xⱼ⁰] * R¹[a¹]
+    p⁰ ./= sum(p⁰)
+
+    Aᵀ = A[end]; Lᵀ⁻¹ = L[end-1]
+    @reduce pᵀ[xᵢᵀ,xⱼᵀ] := sum(aᵀ) Lᵀ⁻¹[aᵀ] * Aᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ]
+    pᵀ ./= sum(pᵀ)
+
+    p = map(2:T) do t 
+        Lᵗ⁻¹ = L[t-1]
+        Aᵗ = A[t]
+        Rᵗ⁺¹ = R[t+1]
+        @reduce pᵗ[xᵢᵗ,xⱼᵗ] := sum(aᵗ,aᵗ⁺¹) Lᵗ⁻¹[aᵗ] * Aᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] * Rᵗ⁺¹[aᵗ⁺¹]  
+        pᵗ ./= sum(pᵗ)
+    end
+
+    return [p⁰, p..., pᵀ]
+end
+
+function firstvar_marginal(A::MPEM2{q,T,F}; p = pair_marginal(A)) where {q,T,F}
+    map(p) do pₜ
+        pᵢᵗ =  sum(pₜ, dims=2) |> vec
+        pᵢᵗ ./= sum(pᵢᵗ)
+    end
+end
+
+function pair_marginal_tu(A::MPEM2{q,T,F}; showprogress::Bool=true) where {q,T,F}
+    l = accumulate_L(A); r = accumulate_R(A); m = accumulate_M(A)
+    b = [zeros(q, q, q, q) for _ in 0:T, _ in 0:T]
+    for t in 1:T
+        lᵗ⁻¹ = t == 1 ? [1.0;] : l[t-1]
+        Aᵗ = A[t]
+        for u in t+1:T+1
+            rᵘ⁺¹ = u == T + 1 ? [1.0;] : r[u+1]
+            Aᵘ = A[u]
+            mᵗᵘ = m[t, u]
+            @tullio bᵗᵘ[xᵢᵗ, xⱼᵗ, xᵢᵘ, xⱼᵘ] :=
+                lᵗ⁻¹[aᵗ] * Aᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * mᵗᵘ[aᵗ⁺¹, aᵘ] * 
+                Aᵘ[aᵘ, aᵘ⁺¹, xᵢᵘ, xⱼᵘ] * rᵘ⁺¹[aᵘ⁺¹]
+            b[t, u] .= bᵗᵘ ./ sum(bᵗᵘ)
+        end
+    end
+    b
+end
+
+function firstvar_marginal_tu(A::MPEM2{q,T,F};
+        showprogress::Bool=true, 
+        p_tu = pair_marginal_tu(A; showprogress)) where {q,T,F}
+    map(p_tu) do pᵗᵘ
+        pᵢᵗᵘ =  sum(sum(pᵗᵘ, dims=2), dims=4)[:,1,:,1]
+    end
+end
 
 # compute normalization of an MPEM2 efficiently
 function normalization(A::MPEM2; l = accumulate_L(A), r = accumulate_R(A))

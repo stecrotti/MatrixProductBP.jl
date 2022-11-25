@@ -27,7 +27,7 @@ cb = CB_BP(bp; showprogress=false)
 svd_trunc = TruncThresh(0.0)
 iterate!(bp; maxiter=20, svd_trunc, cb)
 
-b_bp = beliefs(bp)
+b_bp = beliefs(bp; svd_trunc)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
 p_exact, Z_exact = exact_prob(bp)

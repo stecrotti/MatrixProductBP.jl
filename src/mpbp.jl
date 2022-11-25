@@ -81,12 +81,16 @@ function reset_messages!(bp::MPBP)
     nothing
 end
 
+# wrapper around the generic `_onebpiter!`
+# can be specialized by defining a new version of `f_bp` to pass to `_onebpiter!`,
+#  see e.g. `f_bp_glauber`
 function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer; 
     svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
 
-    _onebpiter!(bp, i, f_bp_generic; svd_trunc)
+    _onebpiter!(bp, i, f_bp_generic)
 end
 
+# compute outgoing messages from node `i`
 function _onebpiter!(bp::MPBP{q,T,F,U}, i::Integer, f_bp::Function; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
@@ -104,6 +108,25 @@ function _onebpiter!(bp::MPBP{q,T,F,U}, i::Integer, f_bp::Function;
     end
     dᵢ = length(ein)
     return (1 / dᵢ) * logzᵢ
+end
+
+function onebpiter_dummy_neighbor(bp::MPBP{q,T,F,U}, i::Integer; 
+    svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
+
+    _onebpiter_dummy_neighbor(bp, i, f_bp_dummy_neighbor_generic; svd_trunc)
+end
+
+# compute outgoing message from node `i` to dummy neighbor
+function _onebpiter_dummy_neighbor(bp::MPBP{q,T,F,U}, i::Integer, 
+        f_bp_dummy_neighbor::Function; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
+    @unpack g, w, ϕ, ψ, p⁰, μ = bp
+    ein = inedges(g,i)
+    eout = outedges(g, i)
+    A = μ[ein.|>idx]
+    B = f_bp_dummy_neighbor(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc)
+    C = mpem2(B)
+    A = sweep_RtoL!(C; svd_trunc)
 end
 
 # A callback to print info and save stuff during the iterations 
@@ -128,7 +151,7 @@ end
 function (cb::CB_BP)(bp::MPBP, it::Integer, logz_msg::Vector)
     bij, logz_belief = pair_beliefs(bp)
     f = bethe_free_energy(bp, logz_msg, logz_belief)
-    marg_new = getindex.(beliefs(bp; bij), 1)
+    marg_new = getindex.(beliefs(bp), 1)
     marg_old = cb.b[end]
     Δ = sum(sum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
     push!(cb.Δs, Δ)
@@ -154,8 +177,6 @@ function iterate!(bp::MPBP; maxiter::Integer=5,
     end
     return maxiter, cb
 end
-
-
 
 # compute joint beliefs for all pairs of neighbors
 # return also logzᵢⱼ contributions to logzᵢ
@@ -184,7 +205,8 @@ function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     b, logz
 end
 
-function beliefs(bp::MPBP; bij = pair_beliefs(bp)[1])
+function beliefs(bp::MPBP{q,T,F,<:BPFactor}; 
+        bij = pair_beliefs(bp)[1]) where {q,T,F}
     b = map(vertices(bp.g)) do i 
         ij = idx(first(outedges(bp.g, i)))
         bb = bij[ij]
