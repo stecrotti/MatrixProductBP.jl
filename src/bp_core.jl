@@ -1,3 +1,11 @@
+```
+Factor for the factor graph of a model solvable with MPBP.
+Any `BPFactor` subtype must implement a functor that computes the Boltzmann
+contribution to the joint probability
+```
+abstract type BPFactor; end
+
+
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)
 # ψᵢⱼ are the ones living on the outedges of node i

@@ -1,12 +1,4 @@
 
-```
-Factor for the factor graph of a model solvable with MPBP.
-Any `BPFactor` subtype must implement a functor that computes the Boltzmann
-contribution to the joint probability
-```
-abstract type BPFactor; end
-
-
 struct MPBP{q,T,F<:Real,U<:BPFactor}
     g  :: IndexedBiDiGraph{Int}          # graph
     w  :: Vector{Vector{U}}              # factors, one per variable
@@ -82,7 +74,7 @@ function reset_messages!(bp::MPBP)
 end
 
 # compute outgoing messages from node `i`
-function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer, f_bp::Function; 
+function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     ein = inedges(g,i)
@@ -102,8 +94,7 @@ function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer, f_bp::Function;
 end
 
 # compute outgoing message from node `i` to dummy neighbor
-function onebpiter_dummy_neighbor(bp::MPBP{q,T,F,U}, i::Integer, 
-        f_bp_dummy_neighbor::Function; 
+function onebpiter_dummy_neighbor(bp::MPBP{q,T,F,U}, i::Integer; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     ein = inedges(g,i)
@@ -191,7 +182,7 @@ function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
 end
 
 function beliefs(bp::MPBP{q,T,F,<:BPFactor}; 
-        bij = pair_beliefs(bp)[1]) where {q,T,F}
+        bij = pair_beliefs(bp)[1], kw...) where {q,T,F}
     b = map(vertices(bp.g)) do i 
         ij = idx(first(outedges(bp.g, i)))
         bb = bij[ij]
@@ -258,7 +249,8 @@ function pair_beliefs_tu(bp::MPBP{q,T,F,U}; showprogress::Bool=true) where {q,T,
 end
 
 function beliefs_tu(bp::MPBP{q,T,F,U}; 
-        bij_tu::Vector{Matrix{Array{F, 4}}} = pair_beliefs_tu(bp)) where {q,T,F,U}
+        bij_tu::Vector{Matrix{Array{F, 4}}} = pair_beliefs_tu(bp), 
+        kw...) where {q,T,F,U}
     b = map(vertices(bp.g)) do i 
         ij = idx(first(outedges(bp.g, i)))::Int
         bb = bij_tu[ij]
@@ -279,7 +271,8 @@ function autocorrelation(b_tu::Matrix{Matrix{F}},
 end
 
 function autocorrelations(bp::MPBP{q,T,F,U}; 
-        b_tu = beliefs_tu(bp)) where {q,T,F,U}
+        svd_trunc::SVDTrunc = TruncThresh(1e-6),
+        b_tu = beliefs_tu(bp; svd_trunc)) where {q,T,F,U}
     autocorrelations(b_tu, U)
 end
 
@@ -303,8 +296,8 @@ function _autocovariances(r::Vector{Matrix{F}}, μ::Vector{Vector{F}}) where {F<
     end
 end
 
-function autocovariances(bp::MPBP; r = autocorrelations(bp), 
-    m = beliefs(bp))
+function autocovariances(bp::MPBP; svd_trunc::SVDTrunc = TruncThresh(1e-6),
+        r = autocorrelations(bp; svd_trunc), m = beliefs(bp))
     U = getU(bp)
     μ = [marginal_to_expectation.(mᵢ, U) for mᵢ in m] 
     _autocovariances(r, μ)

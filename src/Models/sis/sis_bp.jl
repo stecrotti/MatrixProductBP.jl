@@ -67,6 +67,31 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ::Vector{<:SISFactor}, ϕᵢ
     return B
 end
 
+function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, 
+        wᵢ::Vector{<:SISFactor}, ϕᵢ, ψₙᵢ;
+        svd_trunc=TruncThresh(1e-6)) where {q,T,F}
+
+    λ = wᵢ[1].λ; @assert all(wᵢᵗ.λ == λ for wᵢᵗ in wᵢ)
+    ρ = wᵢ[1].ρ; @assert all(wᵢᵗ.ρ == ρ for wᵢᵗ in wᵢ)
+
+    # initialize recursion
+    M = reshape([1.0 1; 0 0], (1,1,q,q))
+    mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
+
+    for l in eachindex(A)
+        mᵢⱼₗ₁ = f_bp_partial_sis(A[k], mᵢⱼₗ₁, λ)
+        # SVD L to R with no truncation
+        sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
+        # SVD R to L with truncations
+        sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
+    end
+
+    # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
+    B = f_bp_partial_ij_sis(mᵢⱼₗ₁, λ, ρ, pᵢ⁰, ϕᵢ;
+        prob = prob_ijy_dummy_sis)
+    return B
+end
+
 # compute message m(i→j, l) from m(i→j, l-1) 
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
 function f_bp_partial_sis(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F}, 
@@ -96,7 +121,7 @@ end
 
 # compute m(i→j) from m(i→j,d)
 function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, ρ::Real, 
-        pᵢ⁰, ϕᵢ) where {q,T,F}
+        pᵢ⁰, ϕᵢ; prob = prob_ijy_sis) where {q,T,F}
 
     B = Vector{Array{F,5}}(undef, T+1)
 
@@ -175,4 +200,30 @@ function prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
     end
     error("shouldn't be here")
     return -Inf
+end
+
+# neighbor j is susceptible -> does nothing
+function prob_ijy_dummy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
+    xⱼᵗ = SUSCEPTIBLE
+    return prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
+end
+
+function beliefs(bp::MPBP{q,T,F,<:SISFactor};
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
+    b = [[zeros(q) for _ in 0:T] for _ in vertices(bp.g)]
+    for i in eachindex(b)
+        A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
+        b[i] .= firstvar_marginal(A)
+    end
+    b
+end
+
+function beliefs_tu(bp::MPBP{q,T,F,<:SISFactor};
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
+    b = [[zeros(q, q) for _ in 0:T, _ in 0:T] for _ in vertices(bp.g)]
+    for i in eachindex(b)
+        A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
+        b[i] .= firstvar_marginal_tu(A)
+    end
+    b
 end

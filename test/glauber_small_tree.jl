@@ -34,19 +34,20 @@ p_exact, Z_exact = exact_prob(bp)
 b_exact = exact_marginals(bp; p_exact)
 p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
-f_bethe = bethe_free_energy(bp; svd_trunc)
+f_bp = bethe_free_energy(bp; svd_trunc)
+Z_bp = exp(-f_bp)
 
-r_bp = autocorrelations(bp)
+r_bp = autocorrelations(bp; svd_trunc)
 r_exact = exact_autocorrelations(bp; p_exact)
 
-c_bp = autocovariances(bp)
+c_bp = autocovariances(bp; svd_trunc)
 c_exact = exact_autocovariances(bp; r = r_exact)
 
 @testset "Glauber small tree" begin
-    @test isapprox(Z_exact, exp(-f_bethe); atol=1e-6)
+    @test Z_exact ≈ Z_bp
     @test p_ex ≈ p_bp
-    @test isapprox(r_bp, r_exact; atol=1e-6)
-    @test isapprox(c_bp, c_exact; atol=1e-6)
+    @test r_bp ≈ r_exact
+    @test c_bp ≈ c_exact
 end
 
 # observe everything and check that the free energy corresponds to the prior of the sample `X`

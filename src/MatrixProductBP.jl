@@ -37,7 +37,7 @@ using .MPEMs, Reexport
     pair_marginal_tu, firstvar_marginal_tu,
     normalization, normalize!, MPEM3
 
-include("bp.jl")
+include("bp_core.jl")
 include("mpbp.jl")
 include("exact.jl")
 include("sampling.jl")

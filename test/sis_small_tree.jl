@@ -18,27 +18,27 @@ draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 svd_trunc = TruncThresh(0.0)
 iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
 
-b_bp = beliefs(bp)
+b_bp = beliefs(bp; svd_trunc)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
 p_exact, Z_exact = exact_prob(bp)
 b_exact = exact_marginals(bp; p_exact)
 p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
-f_bp = bethe_free_energy(bp)
+f_bp = bethe_free_energy(bp; svd_trunc)
 Z_bp = exp(-f_bp)
 
-r_bp = autocorrelations(bp)
+r_bp = autocorrelations(bp; svd_trunc)
 r_exact = exact_autocorrelations(bp)
 
-c_bp = autocovariances(bp)
+c_bp = autocovariances(bp; svd_trunc)
 c_exact = exact_autocovariances(bp)
 
 @testset "SIS small tree" begin
-    @test isapprox(Z_exact, Z_bp, atol=1e-5)
+    @test Z_exact ≈ Z_bp
     @test p_ex ≈ p_bp
-    @test isapprox(r_bp, r_exact, atol=1e-3)
-    @test isapprox(c_bp, c_exact, atol=1e-3)
+    @test r_bp ≈ r_exact
+    @test c_bp ≈ c_exact
 end
 
 # observe everything and check that the free energy corresponds to the prior of the sample `X`
