@@ -45,6 +45,7 @@ It contains model definitions and specialized versions of the BP equations that 
  
 ## TO DO:
 - reasoning on matrix size for SI
-- Calculations and code for autocorrelation
+- autocorrelation computed from single belief instead of pair belief
 - Check error bars from soft margin
-- Pass seed to sampler
+- ~~Pass seed to sampler~~
+- make smart BP compaitible with pair observations
