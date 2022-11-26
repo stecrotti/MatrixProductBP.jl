@@ -43,8 +43,8 @@ idx_to_value(x::Integer, ::Type{<:SISFactor}) = x - 1
 
 # compute outgoing message efficiently for any degree
 # return a `MPMEM3` just like `f_bp`
-function f_bp_sis(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j::Integer;
-        svd_trunc=TruncThresh(1e-6)) where {q,T,F}
+function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ::Vector{<:SISFactor}, ϕᵢ, ψₙᵢ, 
+        j::Integer; svd_trunc=TruncThresh(1e-6)) where {q,T,F}
     
     λ = wᵢ[1].λ; @assert all(wᵢᵗ.λ == λ for wᵢᵗ in wᵢ)
     ρ = wᵢ[1].ρ; @assert all(wᵢᵗ.ρ == ρ for wᵢᵗ in wᵢ)
@@ -175,10 +175,4 @@ function prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
     end
     error("shouldn't be here")
     return -Inf
-end
-
-function onebpiter!(bp::MPBP{q,T,F,<:SISFactor}, i::Integer; 
-    svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
-
-    _onebpiter!(bp, i, f_bp_sis; svd_trunc)
 end

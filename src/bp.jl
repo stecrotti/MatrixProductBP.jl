@@ -1,8 +1,9 @@
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)
 # ψᵢⱼ are the ones living on the outedges of node i
-function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j_index::Integer;
-    showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
+function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ::Vector{<:BPFactor}, ϕᵢ, 
+        ψₙᵢ, j_index::Integer;
+        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
     @assert length(pᵢ⁰) == q
     @assert length(wᵢ) == T
     @assert length(ϕᵢ) == T + 1
@@ -83,8 +84,9 @@ function f_bp_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
 end
 
 # compute outgoing message to dummy neighbor to get the belief
-function f_bp_dummy_neighbor_generic(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ;
-    showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
+function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, 
+        wᵢ::Vector{<:BPFactor}, ϕᵢ, ψₙᵢ;
+        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
     @assert length(pᵢ⁰) == q
     @assert length(wᵢ) == T
     @assert length(ϕᵢ) == T + 1

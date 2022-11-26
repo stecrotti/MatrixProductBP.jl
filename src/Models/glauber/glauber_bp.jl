@@ -66,7 +66,8 @@ idx_to_value(x::Integer, ::Type{<:GlauberFactor}) = potts2spin(x)
 
 # compute outgoing message efficiently for any degree
 # return a `MPMEM3` just like `f_bp`
-function f_bp_glauber(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j::Integer;
+function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, 
+        wᵢ::Vector{<:HomogeneousGlauberFactor}, ϕᵢ, ψₙᵢ, j::Integer;
         svd_trunc=TruncThresh(1e-6)) where {q,T,F}
     d = length(A) - 1   # number of neighbors other than j
     βJ = wᵢ[1].βJ[1]
@@ -96,7 +97,8 @@ function f_bp_glauber(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, j
     return B
 end
 
-function f_bp_dummy_neighbor_glauber(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ;
+function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, 
+        wᵢ::Vector{<:HomogeneousGlauberFactor}, ϕᵢ, ψₙᵢ;
         svd_trunc=TruncThresh(1e-6)) where {q,T,F}
     d = length(A)
     βJ = wᵢ[1].βJ[1]
@@ -243,18 +245,6 @@ function prob_ijy_dummy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
     p
 end
 
-function onebpiter!(bp::MPBP{q,T,F,<:HomogeneousGlauberFactor}, i::Integer; 
-    svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
-
-    _onebpiter!(bp, i, f_bp_glauber; svd_trunc)
-end
-
-function onebpiter_dummy_neighbor(bp::MPBP{q,T,F,<:HomogeneousGlauberFactor}, 
-    i::Integer; 
-    svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
-
-    _onebpiter_dummy_neighbor(bp, i, f_bp_dummy_neighbor_glauber; svd_trunc)
-end
 
 function beliefs(bp::MPBP{q,T,F,<:HomogeneousGlauberFactor};
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}

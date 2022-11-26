@@ -81,17 +81,8 @@ function reset_messages!(bp::MPBP)
     nothing
 end
 
-# wrapper around the generic `_onebpiter!`
-# can be specialized by defining a new version of `f_bp` to pass to `_onebpiter!`,
-#  see e.g. `f_bp_glauber`
-function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer; 
-    svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
-
-    _onebpiter!(bp, i, f_bp_generic)
-end
-
 # compute outgoing messages from node `i`
-function _onebpiter!(bp::MPBP{q,T,F,U}, i::Integer, f_bp::Function; 
+function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer, f_bp::Function; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     ein = inedges(g,i)
@@ -110,14 +101,8 @@ function _onebpiter!(bp::MPBP{q,T,F,U}, i::Integer, f_bp::Function;
     return (1 / dᵢ) * logzᵢ
 end
 
-function onebpiter_dummy_neighbor(bp::MPBP{q,T,F,U}, i::Integer; 
-    svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
-
-    _onebpiter_dummy_neighbor(bp, i, f_bp_dummy_neighbor_generic; svd_trunc)
-end
-
 # compute outgoing message from node `i` to dummy neighbor
-function _onebpiter_dummy_neighbor(bp::MPBP{q,T,F,U}, i::Integer, 
+function onebpiter_dummy_neighbor(bp::MPBP{q,T,F,U}, i::Integer, 
         f_bp_dummy_neighbor::Function; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
