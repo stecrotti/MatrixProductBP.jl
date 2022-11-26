@@ -75,7 +75,7 @@ end
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U<:BPFactor}
     @unpack g, w, ϕ, ψ, p⁰, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)

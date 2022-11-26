@@ -1,8 +1,8 @@
 module Models
 
-import MatrixProductBP: exact_prob, _onebpiter!, onebpiter!, getT, getq, mpbp, 
-    kron2, idx_to_value, pair_belief_tu, onebpiter_dummy_neighbor,
-    _onebpiter_dummy_neighbor, beliefs, beliefs_tu, firstvar_marginal_tu
+import MatrixProductBP: exact_prob, onebpiter!, getT, getq, mpbp, 
+    kron2, idx_to_value, f_bp, pair_belief_tu, onebpiter_dummy_neighbor,
+    beliefs, beliefs_tu, firstvar_marginal_tu
 using MatrixProductBP
 
 import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, ne, nv, outedges, idx,
@@ -15,14 +15,16 @@ import LogExpFunctions: xlogx, xlogy
 import Statistics: mean
 
 export 
+    SimpleBPFactor,
     Ising, Glauber, 
-    q_glauber, GlauberFactor, HomogeneousGlauberFactor, GenericGlauberFactor, 
+    q_glauber, HomogeneousGlauberFactor, GenericGlauberFactor, 
     onebpiter!, pair_observations_directed, 
-    pair_observations_nondirected, magnetizations, mpbp, beliefs, beliefs_tu,
+    pair_observations_nondirected, mpbp, beliefs, beliefs_tu,
     glauber_infinite_graph, observables_glauber_infinite_graph,
     SIS, SISFactor, q_sis, SUSCEPTIBLE, INFECTED,
     kl_marginals, l1_marginals, find_infected_bp, auc
 
+include("simple_bp_factor.jl")
 include("glauber/glauber.jl")
 include("glauber/glauber_bp.jl")
 include("glauber/glauber_infinite_graph.jl")

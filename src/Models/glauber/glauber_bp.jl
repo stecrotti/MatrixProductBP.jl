@@ -1,37 +1,45 @@
 const q_glauber = 2
 
-abstract type GlauberFactor <: BPFactor; end
+# abstract type GlauberFactor <: BPFactor; end
 
-struct GenericGlauberFactor{T<:Real} <: GlauberFactor 
+struct GenericGlauberFactor{T<:Real}  <: BPFactor 
     βJ :: Vector{T}      
     βh :: T
 end
 
-struct HomogeneousGlauberFactor{T<:Real} <: GlauberFactor 
-    βJ :: Vector{T}      
+struct HomogeneousGlauberFactor{T<:Real} <: SimpleBPFactor 
+    βJ :: T     
     βh :: T
-
-    function HomogeneousGlauberFactor(βJ::Vector{T}, βh::T) where {T<:Real}
-        all(isequal(βJ[1]), βJ) || throw(ArgumentError("Couplings should be uniform"))
-        new{T}(βJ, βh)
-    end
 end
 
-function HomogeneousGlauberFactor(J::Vector{T}, h::T, β::T) where {T<:Real}
-    HomogeneousGlauberFactor(J.*β, h*β)
+function HomogeneousGlauberFactor(J::T, h::T, β::T) where {T<:Real}
+    HomogeneousGlauberFactor(J*β, h*β)
 end
 
 function GenericGlauberFactor(J::Vector{T}, h::T, β::T) where {T<:Real}
     GenericGlauberFactor(J.*β, h*β)
 end
 
-function (fᵢ::GlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
+function (fᵢ::GenericGlauberFactor)(xᵢᵗ⁺¹::Integer, 
+        xₙᵢᵗ::AbstractVector{<:Integer}, 
         xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:q_glauber
     @assert all(x ∈ 1:q_glauber for x in xₙᵢᵗ)
     @assert length(xₙᵢᵗ) == length(fᵢ.βJ)
 
     hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.βJ))
+    E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.βh)
+    exp( -E ) / (2cosh(E))
+end
+
+function (fᵢ::HomogeneousGlauberFactor)(xᵢᵗ⁺¹::Integer, 
+        xₙᵢᵗ::AbstractVector{<:Integer}, 
+        xᵢᵗ::Integer)
+    @assert xᵢᵗ⁺¹ ∈ 1:q_glauber
+    @assert all(x ∈ 1:q_glauber for x in xₙᵢᵗ)
+
+    hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.βJ))
+    hⱼᵢ = fᵢ.βJ * sum(potts2spin, xₙᵢᵗ)
     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.βh)
     exp( -E ) / (2cosh(E))
 end
@@ -47,6 +55,7 @@ end
 
 
 # construct an array of GlauberFactors corresponding to gl
+# seems to be type stable
 function glauber_factors(ising::Ising, T::Integer)
     map(1:nv(ising.g)) do i
         ei = outedges(ising.g, i)
@@ -54,7 +63,7 @@ function glauber_factors(ising::Ising, T::Integer)
         J = ising.J[∂i]
         h = ising.h[i]
         wᵢᵗ = if is_homogeneous(ising)
-            HomogeneousGlauberFactor(J, h, ising.β)
+            HomogeneousGlauberFactor(J[1], h, ising.β)
         else
             GenericGlauberFactor(J, h, ising.β)
         end
@@ -62,69 +71,10 @@ function glauber_factors(ising::Ising, T::Integer)
     end
 end
 
-idx_to_value(x::Integer, ::Type{<:GlauberFactor}) = potts2spin(x)
+idx_to_value(x::Integer, ::Type{<:GenericGlauberFactor}) = potts2spin(x)
+idx_to_value(x::Integer, ::Type{<:HomogeneousGlauberFactor}) = potts2spin(x)
 
-# compute outgoing message efficiently for any degree
-# return a `MPMEM3` just like `f_bp`
-function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, 
-        wᵢ::Vector{<:HomogeneousGlauberFactor}, ϕᵢ, ψₙᵢ, j::Integer;
-        svd_trunc=TruncThresh(1e-6)) where {q,T,F}
-    d = length(A) - 1   # number of neighbors other than j
-    βJ = wᵢ[1].βJ[1]
-    @assert all(all(βJij == βJ for βJij in wᵢᵗ.βJ) for wᵢᵗ in wᵢ)
-    βh = wᵢ[1].βh
-    @assert all(wᵢᵗ.βh  == βh for wᵢᵗ in wᵢ)
-    @assert j ∈ eachindex(A)
-
-    # initialize recursion
-    M = reshape([1.0 1; 0 0], (1,1,q,q))
-    mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
-  
-    l = 1
-    for k in eachindex(A)
-        k == j && continue
-        mᵢⱼₗ₁ = f_bp_partial_glauber(A[k], mᵢⱼₗ₁, l)
-        l += 1
-        # SVD L to R with no truncation
-        sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
-        # SVD R to L with truncations
-        sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
-    end
-   
-    # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij_glauber(mᵢⱼₗ₁, βJ, βh, pᵢ⁰, ϕᵢ, d)
-
-    return B
-end
-
-function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, 
-        wᵢ::Vector{<:HomogeneousGlauberFactor}, ϕᵢ, ψₙᵢ;
-        svd_trunc=TruncThresh(1e-6)) where {q,T,F}
-    d = length(A)
-    βJ = wᵢ[1].βJ[1]
-    @assert all(all(βJij == βJ for βJij in wᵢᵗ.βJ) for wᵢᵗ in wᵢ)
-    βh = wᵢ[1].βh
-    @assert all(wᵢᵗ.βh  == βh for wᵢᵗ in wᵢ)
-
-    # initialize recursion
-    M = reshape([1.0 1; 0 0], (1,1,q,q))
-    mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
-
-    # compute partial messages from all neighbors
-    for l in eachindex(A)
-        mᵢⱼₗ₁ = f_bp_partial_glauber(A[l], mᵢⱼₗ₁, l)
-        # SVD L to R with no truncation
-        sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
-        # SVD R to L with truncations
-        sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
-    end
-
-    # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij_glauber(mᵢⱼₗ₁, βJ, βh, pᵢ⁰, ϕᵢ, d; 
-        prob = prob_ijy_dummy_glauber)
-
-    return B
-end
+prob_partial_msg_glauber(yₗᵗ, yₗ₁ᵗ, xₗᵗ) = ( yₗᵗ == ( yₗ₁ᵗ + potts2spin(xₗᵗ) ) )
 
 # the sum of n spins can be one of (n+1) values. We sort them increasingly and
 #  index them by k
@@ -134,12 +84,10 @@ function _idx_map(n::Integer, k::Integer)
     return - n + 2*(k-1)
 end
 
-prob_partial_msg_glauber(yₗᵗ, yₗ₁ᵗ, xₗᵗ) = ( yₗᵗ == ( yₗ₁ᵗ + potts2spin(xₗᵗ) ) )
-
 # compute message m(i→j, l) from m(i→j, l-1) 
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
-function f_bp_partial_glauber(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q1,T,F}, 
-       l::Integer) where {q,q1,T,F}
+function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q1,T,F}, 
+        wᵢ::Vector{U}, l::Integer) where {q,q1,T,F,U<:HomogeneousGlauberFactor}
     @assert q==q_glauber
     AA = Vector{Array{F,4}}(undef, T+1)
 
@@ -166,8 +114,8 @@ function f_bp_partial_glauber(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q1,T,F
 end
 
 # compute m(i→j) from m(i→j,d)
-function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰, ϕᵢ, 
-        d::Integer; prob = prob_ijy_glauber) where {Q,T,F}
+function f_bp_partial_ij(A::MPEM2{Q,T,F}, pᵢ⁰, wᵢ::Vector{U}, ϕᵢ, 
+        d::Integer; prob = prob_ijy(U)) where {Q,T,F,U<:HomogeneousGlauberFactor}
     q = q_glauber
     B = Vector{Array{F,5}}(undef, T+1)
 
@@ -180,7 +128,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
             for z⁰ in 1:(d+1)
                 y⁰ = _idx_map(d, z⁰)
                 for xⱼ⁰ in 1:q
-                    p = prob(xᵢ¹, xⱼ⁰, y⁰, βJ, βh)
+                    p = prob(xᵢ¹, xⱼ⁰, y⁰, wᵢ[begin].βJ, wᵢ[begin].βh)
                     B⁰[xᵢ⁰,xⱼ⁰,1,:,xᵢ¹] .+= p * A⁰[1,:,z⁰,xᵢ⁰]
                 end
             end
@@ -199,7 +147,7 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
                 for xⱼᵗ in 1:q
                     for zᵗ in 1:(d+1)
                         yᵗ = _idx_map(d, zᵗ)
-                        p = prob(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
+                        p = prob(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, wᵢ[t+1].βJ, wᵢ[t+1].βh)
                         Bᵗ[xᵢᵗ,xⱼᵗ,:,:,xᵢᵗ⁺¹] .+= p * Aᵗ[:,:,zᵗ,xᵢᵗ]
                     end
                 end
@@ -230,45 +178,22 @@ function f_bp_partial_ij_glauber(A::MPEM2{Q,T,F}, βJ::Real, βh::Real, pᵢ⁰,
     return MPEM3(B)
 end
 
-function prob_ijy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
-    h = βJ * (potts2spin(xⱼᵗ) + yᵗ) + βh
-    p = exp(potts2spin(xᵢᵗ⁺¹) * h) / (2*cosh(h))
-    @assert 0 ≤ p ≤ 1
-    p
-end
-
-# ignore neighbor because it doesn't exist
-function prob_ijy_dummy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
-    h = βJ * yᵗ + βh
-    p = exp(potts2spin(xᵢᵗ⁺¹) * h) / (2*cosh(h))
-    @assert 0 ≤ p ≤ 1
-    p
-end
-
-
-function beliefs(bp::MPBP{q,T,F,<:HomogeneousGlauberFactor};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
-    b = [[zeros(q) for _ in 0:T] for _ in vertices(bp.g)]
-    for i in eachindex(b)
-        A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
-        b[i] .= firstvar_marginal(A)
+function prob_ijy(::Type{<:HomogeneousGlauberFactor})
+    function prob_ijy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
+        h = βJ * (potts2spin(xⱼᵗ) + yᵗ) + βh
+        p = exp(potts2spin(xᵢᵗ⁺¹) * h) / (2*cosh(h))
+        @assert 0 ≤ p ≤ 1
+        p
     end
-    b
 end
 
-function beliefs_tu(bp::MPBP{q,T,F,<:HomogeneousGlauberFactor};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
-    b = [[zeros(q, q) for _ in 0:T, _ in 0:T] for _ in vertices(bp.g)]
-    for i in eachindex(b)
-        A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
-        b[i] .= firstvar_marginal_tu(A)
-    end
-    b
-end
-
-function magnetizations(bp::MPBP{q,T,F,<:GlauberFactor}) where {q,T,F}
-    map(beliefs(bp)) do bᵢ
-        reduce.(-, bᵢ)
+function prob_ijy_dummy(::Type{<:HomogeneousGlauberFactor})
+    # ignore neighbor because it doesn't exist
+    function prob_ijy_dummy_glauber(xᵢᵗ⁺¹, xⱼᵗ, yᵗ, βJ, βh)
+        h = βJ * yᵗ + βh
+        p = exp(potts2spin(xᵢᵗ⁺¹) * h) / (2*cosh(h))
+        @assert 0 ≤ p ≤ 1
+        p
     end
 end
 

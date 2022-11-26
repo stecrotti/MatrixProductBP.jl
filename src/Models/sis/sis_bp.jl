@@ -2,7 +2,7 @@ const SUSCEPTIBLE = 1
 const INFECTED = 2
 const q_sis = 2
 
-struct SISFactor{T<:AbstractFloat} <: BPFactor
+struct SISFactor{T<:AbstractFloat} <: SimpleBPFactor
     λ :: T  # infection rate
     ρ :: T  # recovery rate
     function SISFactor(λ::T, ρ::T) where {T<:AbstractFloat}
@@ -41,63 +41,22 @@ end
 
 idx_to_value(x::Integer, ::Type{<:SISFactor}) = x - 1
 
-# compute outgoing message efficiently for any degree
-# return a `MPMEM3` just like `f_bp`
-function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ::Vector{<:SISFactor}, ϕᵢ, ψₙᵢ, 
-        j::Integer; svd_trunc=TruncThresh(1e-6)) where {q,T,F}
-    
-    λ = wᵢ[1].λ; @assert all(wᵢᵗ.λ == λ for wᵢᵗ in wᵢ)
-    ρ = wᵢ[1].ρ; @assert all(wᵢᵗ.ρ == ρ for wᵢᵗ in wᵢ)
-
-    # initialize recursion
-    M = reshape([1.0 1; 0 0], (1,1,q,q))
-    mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
-
-    for k in eachindex(A)
-        k == j && continue
-        mᵢⱼₗ₁ = f_bp_partial_sis(A[k], mᵢⱼₗ₁, λ)
-        # SVD L to R with no truncation
-        sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
-        # SVD R to L with truncations
-        sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
+function prob_partial_msg_sis(yₖ, yₖ₁, xₖ, λ)
+    if yₖ == INFECTED
+        return 1 - (yₖ₁==SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
+    elseif yₖ == SUSCEPTIBLE
+        return (yₖ₁==SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
     end
-
-    # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij_sis(mᵢⱼₗ₁, λ, ρ, pᵢ⁰, ϕᵢ)
-    return B
-end
-
-function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, 
-        wᵢ::Vector{<:SISFactor}, ϕᵢ, ψₙᵢ;
-        svd_trunc=TruncThresh(1e-6)) where {q,T,F}
-
-    λ = wᵢ[1].λ; @assert all(wᵢᵗ.λ == λ for wᵢᵗ in wᵢ)
-    ρ = wᵢ[1].ρ; @assert all(wᵢᵗ.ρ == ρ for wᵢᵗ in wᵢ)
-
-    # initialize recursion
-    M = reshape([1.0 1; 0 0], (1,1,q,q))
-    mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
-
-    for l in eachindex(A)
-        mᵢⱼₗ₁ = f_bp_partial_sis(A[k], mᵢⱼₗ₁, λ)
-        # SVD L to R with no truncation
-        sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
-        # SVD R to L with truncations
-        sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
-    end
-
-    # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij_sis(mᵢⱼₗ₁, λ, ρ, pᵢ⁰, ϕᵢ;
-        prob = prob_ijy_dummy_sis)
-    return B
 end
 
 # compute message m(i→j, l) from m(i→j, l-1) 
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
-function f_bp_partial_sis(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F}, 
-        λ::Real) where {q,T,F}
+function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F}, 
+        wᵢ::Vector{U}, l::Integer) where {q,T,F,U<:SISFactor}
     @assert q==q_sis
     AA = Vector{Array{F,4}}(undef, T+1)
+
+    λ = wᵢ[1].λ     # can be improved
 
     for t in eachindex(AA)
         Aᵗ = kron2(mₗᵢ[t], mᵢⱼₗ₁[t])
@@ -120,8 +79,8 @@ function f_bp_partial_sis(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F},
 end
 
 # compute m(i→j) from m(i→j,d)
-function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, ρ::Real, 
-        pᵢ⁰, ϕᵢ; prob = prob_ijy_sis) where {q,T,F}
+function f_bp_partial_ij(A::MPEM2{q,T,F}, pᵢ⁰, wᵢ::Vector{U}, ϕᵢ, 
+        d::Integer; prob = prob_ijy(U)) where {q,T,F,U<:SISFactor}
 
     B = Vector{Array{F,5}}(undef, T+1)
 
@@ -133,7 +92,7 @@ function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, ρ::Real,
         for xᵢ¹ in 1:q
             for y⁰ in 1:q
                 for xⱼ⁰ in 1:q
-                    p = prob_ijy_sis(xᵢ¹, xᵢ⁰,xⱼ⁰, y⁰, λ, ρ)
+                    p = prob(xᵢ¹, xᵢ⁰,xⱼ⁰, y⁰, wᵢ[begin].λ, wᵢ[begin].ρ)
                     B⁰[xᵢ⁰,xⱼ⁰,1,:,xᵢ¹] .+= p * A⁰[1,:,y⁰,xᵢ⁰]
                 end
             end
@@ -151,7 +110,7 @@ function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, ρ::Real,
             for xᵢᵗ⁺¹ in 1:q
                 for xⱼᵗ in 1:q
                     for yᵗ in 1:q
-                        p = prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
+                        p = prob(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, wᵢ[t+1].λ, wᵢ[t+1].ρ)
                         Bᵗ[xᵢᵗ,xⱼᵗ,:,:,xᵢᵗ⁺¹] .+= p * Aᵗ[:,:,yᵗ,xᵢᵗ]
                     end
                 end
@@ -182,48 +141,24 @@ function f_bp_partial_ij_sis(A::MPEM2{q,T,F}, λ::Real, ρ::Real,
     return MPEM3(B)
 end
 
-function prob_partial_msg_sis(yₖ, yₖ₁, xₖ, λ)
-    if yₖ == INFECTED
-        return 1 - (yₖ₁==SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
-    elseif yₖ == SUSCEPTIBLE
-        return (yₖ₁==SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
+function prob_ijy(::Type{<:SISFactor})
+    function prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
+        z = 1 - λ*(xⱼᵗ==INFECTED)
+        w = (yᵗ==SUSCEPTIBLE)
+        if xᵢᵗ⁺¹ == INFECTED
+            return (xᵢᵗ==INFECTED) * (1 - ρ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - z * w) 
+        elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
+            return (xᵢᵗ==INFECTED) * ρ + (xᵢᵗ==SUSCEPTIBLE) * z * w
+        end
+        error("shouldn't be here")
+        return -Inf
     end
 end
 
-function prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
-    z = 1 - λ*(xⱼᵗ==INFECTED)
-    w = (yᵗ==SUSCEPTIBLE)
-    if xᵢᵗ⁺¹ == INFECTED
-        return (xᵢᵗ==INFECTED) * (1 - ρ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - z * w) 
-    elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
-        return (xᵢᵗ==INFECTED) * ρ + (xᵢᵗ==SUSCEPTIBLE) * z * w
+function prob_ijy_dummy(::Type{<:SISFactor})
+    # neighbor j is susceptible -> does nothing
+    function prob_ijy_dummy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
+        xⱼᵗ = SUSCEPTIBLE
+        return prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
     end
-    error("shouldn't be here")
-    return -Inf
-end
-
-# neighbor j is susceptible -> does nothing
-function prob_ijy_dummy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
-    xⱼᵗ = SUSCEPTIBLE
-    return prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
-end
-
-function beliefs(bp::MPBP{q,T,F,<:SISFactor};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
-    b = [[zeros(q) for _ in 0:T] for _ in vertices(bp.g)]
-    for i in eachindex(b)
-        A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
-        b[i] .= firstvar_marginal(A)
-    end
-    b
-end
-
-function beliefs_tu(bp::MPBP{q,T,F,<:SISFactor};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
-    b = [[zeros(q, q) for _ in 0:T, _ in 0:T] for _ in vertices(bp.g)]
-    for i in eachindex(b)
-        A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
-        b[i] .= firstvar_marginal_tu(A)
-    end
-    b
 end

@@ -45,8 +45,8 @@ include("sampling.jl")
 include("Models/Models.jl")
 using .Models
 import .Models: Ising, Glauber, exact_prob,
-    q_glauber, GlauberFactor, onebpiter!, pair_observations_directed, 
-    pair_observations_nondirected, magnetizations, mpbp,
+    q_glauber, onebpiter!, pair_observations_directed, 
+    pair_observations_nondirected, mpbp,
     SIS, q_sis, SUSCEPTIBLE, INFECTED
 
 end # end module

@@ -25,8 +25,8 @@ p_exact, Z_exact = exact_prob(bp)
 b_exact = exact_marginals(bp; p_exact)
 p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
-f_bp = bethe_free_energy(bp; svd_trunc)
-Z_bp = exp(-f_bp)
+f_bethe = bethe_free_energy(bp; svd_trunc)
+Z_bp = exp(-f_bethe)
 
 r_bp = autocorrelations(bp; svd_trunc)
 r_exact = exact_autocorrelations(bp)
@@ -45,11 +45,11 @@ end
 draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
 reset_messages!(bp)
 iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
-f_bp = bethe_free_energy(bp)
-logl_bp = -f_bp
+f_bethe = bethe_free_energy(bp)
+logl_bp = - f_bethe
 logp, logl = logprior_loglikelihood(bp, X)
 
 @testset "SIS small tree - observe everything" begin
-    @test isapprox(logl_bp, logp)
+    @test logl_bp ≈ logp
 end
 
