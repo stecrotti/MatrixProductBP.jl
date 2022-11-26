@@ -12,6 +12,8 @@ struct SISFactor{T<:AbstractFloat} <: SimpleBPFactor
     end
 end
 
+getq(::Type{<:SISFactor}) = q_sis
+
 function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:q_sis
     @assert all(x ∈ 1:q_sis for x in xₙᵢᵗ)

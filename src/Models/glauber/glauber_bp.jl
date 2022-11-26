@@ -1,7 +1,5 @@
 const q_glauber = 2
 
-# abstract type GlauberFactor <: BPFactor; end
-
 struct GenericGlauberFactor{T<:Real}  <: BPFactor 
     βJ :: Vector{T}      
     βh :: T
@@ -11,6 +9,9 @@ struct HomogeneousGlauberFactor{T<:Real} <: SimpleBPFactor
     βJ :: T     
     βh :: T
 end
+
+getq(::Type{<:GenericGlauberFactor}) = q_glauber
+getq(::Type{<:HomogeneousGlauberFactor}) = q_glauber
 
 function HomogeneousGlauberFactor(J::T, h::T, β::T) where {T<:Real}
     HomogeneousGlauberFactor(J*β, h*β)
@@ -116,7 +117,7 @@ end
 # compute m(i→j) from m(i→j,d)
 function f_bp_partial_ij(A::MPEM2{Q,T,F}, pᵢ⁰, wᵢ::Vector{U}, ϕᵢ, 
         d::Integer; prob = prob_ijy(U)) where {Q,T,F,U<:HomogeneousGlauberFactor}
-    q = q_glauber
+    q = getq(U)
     B = Vector{Array{F,5}}(undef, T+1)
 
     A⁰ = A[begin]
@@ -266,4 +267,13 @@ function pair_obs_undirected_to_directed(ψ_undirected::Vector{<:F},
     end
 
     ψ_directed
+end
+
+function glauber_infinite_graph(T::Integer, k::Integer, pᵢ⁰;
+        β::Real=1.0, J::Real=1.0, h::Real=0.0,
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), maxiter=5, tol=1e-5,
+        showprogress=true)
+    wᵢ = fill(HomogeneousGlauberFactor(J, h, β), T)
+    A, maxiter, Δs = iterate_bp_infinite_graph(T, k, pᵢ⁰, wᵢ; 
+        svd_trunc, maxiter, tol, showprogress)
 end

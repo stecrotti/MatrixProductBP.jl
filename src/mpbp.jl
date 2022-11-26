@@ -1,4 +1,3 @@
-
 struct MPBP{q,T,F<:Real,U<:BPFactor}
     g  :: IndexedBiDiGraph{Int}          # graph
     w  :: Vector{Vector{U}}              # factors, one per variable
@@ -28,7 +27,7 @@ struct MPBP{q,T,F<:Real,U<:BPFactor}
 end
 
 getT(::MPBP{q,T,F,U}) where {q,T,F,U} = T
-getq(::MPBP{q,T,F,U}) where {q,T,F,U} = q
+getq(::MPBP{q,T,F,U}) where {q,T,F,U} = getq(U)
 getN(bp::MPBP) = nv(bp.g)
 getU(::MPBP{q,T,F,U}) where {q,T,F,U} = U
 

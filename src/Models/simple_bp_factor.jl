@@ -50,7 +50,7 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰,
 
     # compute partial messages from all neighbors
     for l in eachindex(A)
-        mᵢⱼₗ₁ = f_bp_partial(A[l], mᵢⱼₗ₁, U, l)
+        mᵢⱼₗ₁ = f_bp_partial(A[l], mᵢⱼₗ₁, wᵢ, l)
         # SVD L to R with no truncation
         sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
         # SVD R to L with truncations
@@ -81,4 +81,70 @@ function beliefs_tu(bp::MPBP{q,T,F,<:SimpleBPFactor};
         b[i] .= firstvar_marginal_tu(A)
     end
     b
+end
+
+### INFINITE REGULAR GRAPHS
+
+function onebpiter_infinite_graph(A::MPEM2, k::Integer, pᵢ⁰, wᵢ::Vector{U}, 
+        ϕᵢ, ψₙᵢ;
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:SimpleBPFactor}
+
+    B = f_bp(fill(A, k), pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, 1)
+    C = mpem2(B)
+    A_new = sweep_RtoL!(C; svd_trunc)
+    normalize_eachmatrix!(A_new)
+    A_new
+end
+
+function iterate_bp_infinite_graph(T::Integer, k::Integer, pᵢ⁰, wᵢ::Vector{U};
+        ϕᵢ = fill(ones(getq(U)), T),
+        ψₙᵢ = fill(fill(ones(getq(U), getq(U)), T), k),
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), maxiter=5, tol=1e-5,
+        showprogress=true) where {U<:SimpleBPFactor}
+
+    A = mpem2(getq(U), T)
+    Δs = fill(NaN, maxiter)
+    m = firstvar_marginal(A)
+    dt = showprogress ? 0.1 : Inf
+    prog = Progress(maxiter; dt, desc="Iterating BP on infinite graph")
+    for it in 1:maxiter
+        A = onebpiter_infinite_graph(A, k, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ; 
+            svd_trunc)
+        m_new = firstvar_marginal(A)
+        Δ = maximum(abs, bb_new[1] - bb[1] for (bb_new, bb) in zip(m_new, m))
+        Δs[it] = Δ
+        Δ < tol && return A, it, Δs
+        m, m_new = m_new, m
+        rounded_Δ = round(Δ, digits=ceil(Int,abs(log(tol))))
+        next!(prog, showvalues=[(:iter, "$it/$maxiter"), (:Δ,"$rounded_Δ/$tol")])
+    end
+    A, maxiter, Δs
+end
+
+function onebpiter_dummy_infinite_graph(A::MPEM2, k::Integer, pᵢ⁰, 
+        wᵢ::Vector{U}, ϕᵢ, ψₙᵢ; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:SimpleBPFactor}
+
+    B = f_bp_dummy_neighbor(fill(A, k), pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ)
+    C = mpem2(B)
+    A_new = sweep_RtoL!(C; svd_trunc)
+    normalize_eachmatrix!(A_new)
+    A_new
+end
+
+# A is the message already converged
+# return marginals, expectations of marginals and covariances
+function observables_infinite_graph(A::MPEM2, k::Integer, 
+        pᵢ⁰, wᵢ; ϕᵢ = fill(ones(q_glauber), length(A)),
+        ψₙᵢ = fill(fill(ones(q_glauber,q_glauber), length(A)), k),
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), showprogress=true)
+
+    Anew = onebpiter_dummy_infinite_graph(A, k, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ; 
+        svd_trunc)
+    b = firstvar_marginal(Anew)
+    b_tu = firstvar_marginal_tu(Anew; showprogress)
+    r = marginal_to_expectation.(b_tu, (HomogeneousGlauberFactor,))
+    m = marginal_to_expectation.(b, (HomogeneousGlauberFactor,))
+    c = MatrixProductBP.covariance(r, m)
+    b, m, c
 end

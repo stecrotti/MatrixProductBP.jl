@@ -5,6 +5,8 @@ contribution to the joint probability
 ```
 abstract type BPFactor; end
 
+getq(::Type{<:BPFactor}) = error("Not implemented")
+
 
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)

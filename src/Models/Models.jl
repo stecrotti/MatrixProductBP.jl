@@ -20,14 +20,15 @@ export
     q_glauber, HomogeneousGlauberFactor, GenericGlauberFactor, 
     onebpiter!, pair_observations_directed, 
     pair_observations_nondirected, mpbp, beliefs, beliefs_tu,
-    glauber_infinite_graph, observables_glauber_infinite_graph,
+    iterate_bp_infinite_graph, observables_infinite_graph,
     SIS, SISFactor, q_sis, SUSCEPTIBLE, INFECTED,
     kl_marginals, l1_marginals, find_infected_bp, auc
 
 include("simple_bp_factor.jl")
+
 include("glauber/glauber.jl")
 include("glauber/glauber_bp.jl")
-include("glauber/glauber_infinite_graph.jl")
+
 include("sis/sis.jl")
 include("sis/sis_bp.jl")
 include("sis/sis_inference.jl")
