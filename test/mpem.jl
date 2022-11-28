@@ -1,3 +1,5 @@
+import MatrixProductBP: sweep_RtoL!, sweep_LtoR!
+
 svd_trunc = TruncThresh(0.0)
 
 @testset "MPEM2" begin

@@ -93,7 +93,6 @@ function exact_autocorrelations(bp::MPBP{q,T,F,U};
         for u in axes(r[i], 2), t in 1:u-1
             p = zeros(q, q)
             for xᵢᵗ in 1:q, xᵢᵘ in 1:q
-                # indices = [s ∈ (t,u) ? xᵢᵗ : Colon() for s in 1:T+1]
                 indices = map(1:T+1) do s
                     if s == t
                         return xᵢᵗ

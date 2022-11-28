@@ -17,9 +17,9 @@ import StatsBase: weights, proportions
 import LogExpFunctions: logistic, logsumexp
 
 export
-    BPFactor, MPBP, mpbp, getU, reset_messages!, onebpiter!, CB_BP, iterate!, 
+    BPFactor, MPBP, mpbp, reset_messages!, onebpiter!, CB_BP, iterate!, 
     pair_beliefs, pair_beliefs_tu, beliefs_tu, autocorrelations,
-    autocovariances, beliefs, belief_expectations, bethe_free_energy, 
+    autocovariances, beliefs, bethe_free_energy, 
     logprior_loglikelihood, marginal_to_expectation,
     exact_prob, exact_marginals, site_marginals, exact_autocorrelations,
     exact_autocovariances, exact_marginal_expectations, 
@@ -43,10 +43,5 @@ include("exact.jl")
 include("sampling.jl")
 
 include("Models/Models.jl")
-using .Models
-import .Models: Ising, Glauber, exact_prob,
-    q_glauber, onebpiter!, pair_observations_directed, 
-    pair_observations_nondirected, mpbp,
-    SIS, q_sis, SUSCEPTIBLE, INFECTED
 
 end # end module

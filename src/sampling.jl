@@ -1,5 +1,5 @@
 # as in https://doi.org/10.1103/PhysRevLett.114.248701
-# draws samples from the prior and weights them with their likelihood
+# draw samples from the prior and weight them with their likelihood
 struct SoftMarginSampler{B<:MPBP, F<:AbstractFloat}
     bp :: B
     X  :: Vector{Matrix{Int}}
@@ -163,31 +163,3 @@ function draw_node_observations!(bp::MPBP, nobs::Integer; kw...)
     draw_node_observations!(bp.ϕ, X, nobs; kw...)
     X
 end
-
-#### OLD
-
-# # return a sampled trajectory. Better use `SoftMarginSampler`
-# function sample!(X, gl::Glauber{T,N,F}) where {T,N,F}
-#     @assert is_free_dynamics(gl)
-#     @unpack ising = gl
-
-#     # t=0
-#     for i in 1:N
-#         p = p⁰[i][2]
-#         X[1,i] = rand(Bernoulli(p)) + 1
-#     end
-
-#     for t in 1:T
-#         for i in 1:N
-#             ∂i = neighbors(ising.g, i)
-#             p = local_w(ising.g, ising.J, ising.h, i, 2, 
-#                     X[t,∂i], ising.β)
-#             X[t+1,i] = rand(Bernoulli(p)) + 1
-#         end
-#     end
-#     X
-# end
-# function _sample(gl::Glauber{T,N,F}) where {T,N,F}
-#     X = zeros(Int, T+1, N)
-#     sample!(X, gl)
-# end

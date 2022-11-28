@@ -27,9 +27,8 @@ struct MPBP{q,T,F<:Real,U<:BPFactor}
 end
 
 getT(::MPBP{q,T,F,U}) where {q,T,F,U} = T
-getq(::MPBP{q,T,F,U}) where {q,T,F,U} = getq(U)
+getq(::MPBP{q,T,F,U}) where {q,T,F,U} = q
 getN(bp::MPBP) = nv(bp.g)
-getU(::MPBP{q,T,F,U}) where {q,T,F,U} = U
 
 # check that observation on edge i→j is the same as the one on j→i
 function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
@@ -158,7 +157,6 @@ end
 # return also logzᵢⱼ contributions to logzᵢ
 function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     b = [[zeros(q,q) for _ in 0:T] for _ in 1:(ne(bp.g))]
-    # z = ones(nv(bp.g))
     logz = zeros(nv(bp.g))
     X = bp.g.X
     N = nv(bp.g)
@@ -172,12 +170,10 @@ function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
             ij = vals[k]    # idx of message j→i
             μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
             bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ)
-            # z[j] *= zᵢⱼ ^ (1/dⱼ- 1/2)
             logz[j] += (1/dⱼ- 1/2) * log(zᵢⱼ)
             b[ij] .= bᵢⱼ
         end
     end
-    # b, z
     b, logz
 end
 
@@ -193,13 +189,6 @@ function beliefs(bp::MPBP{q,T,F,<:BPFactor};
     b
 end
 
-"""
-In this code variables take value in {1,2,...,q} but in models these can correspond to other, more physically significant values (e.g. +1,-1 spins)
-This function, if implemented for a subtype of `BPFactor`, converts to the correct values. Those can now be used to compute expectations
-By default, nothing happens and the values are just {1,2,...,q}
-"""
-idx_to_value(x::Integer, ::Type{<:BPFactor}) = x
-
 function marginal_to_expectation(p::Matrix{<:Real}, U::Type{<:BPFactor})
     μ = 0.0
     for xi in axes(p,1) , xj in axes(p, 2)
@@ -214,14 +203,6 @@ function marginal_to_expectation(p::Vector{<:Real}, U::Type{<:BPFactor})
         μ += idx_to_value(xi, U) * p[xi]
     end
     μ
-end
-
-function belief_expectations(bp::MPBP{q,T,F,U}; b = beliefs(bp)) where {q,T,F,U}
-    map(vertices(bp.g)) do i 
-        map(1:T+1) do t
-            marginal_to_expectation(b[i][t], U)
-        end
-    end
 end
 
 # compute joint beliefs for all pairs of neighbors for all pairs of times t,u
@@ -296,9 +277,8 @@ function _autocovariances(r::Vector{Matrix{F}}, μ::Vector{Vector{F}}) where {F<
     end
 end
 
-function autocovariances(bp::MPBP; svd_trunc::SVDTrunc = TruncThresh(1e-6),
-        r = autocorrelations(bp; svd_trunc), m = beliefs(bp))
-    U = getU(bp)
+function autocovariances(bp::MPBP{q,T,F,U}; svd_trunc::SVDTrunc = TruncThresh(1e-6),
+        r = autocorrelations(bp; svd_trunc), m = beliefs(bp)) where {q,T,F,U}
     μ = [marginal_to_expectation.(mᵢ, U) for mᵢ in m] 
     _autocovariances(r, μ)
 end
@@ -345,27 +325,3 @@ function logprior_loglikelihood(bp::MPBP{q,T,F,U}, x::Matrix{<:Integer}) where {
     end
     return logp, logl
 end
-
-
-#### OLD
-# function belief_slow(bp::MPBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
-#     @unpack g, w, ϕ, p⁰, μ = bp
-#     A = μ[inedges(g,i).|>idx]
-#     B = f_bp(A, p⁰[i], w[i], ϕ[i])
-#     C = mpem2(B)
-#     sweep_RtoL!(C; svd_trunc)
-#     return firstvar_marginals(C)
-# end
-
-# function beliefs_slow(bp::MPBP; kw...)
-#     [belief_slow(bp, i; kw...) for i in vertices(bp.g)]
-# end
-
-# function magnetizations_slow(bp::MPBP{q,T,F,U}; 
-#         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
-#     @assert q == 2
-#     map(vertices(bp.g)) do i
-#         bᵢ = belief(bp, i; svd_trunc)
-#         reduce.(-, bᵢ)
-#     end
-# end
