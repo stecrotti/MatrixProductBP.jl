@@ -135,16 +135,17 @@ end
 # A is the message already converged
 # return marginals, expectations of marginals and covariances
 function observables_infinite_graph(A::MPEM2, k::Integer, 
-        pᵢ⁰, wᵢ; ϕᵢ = fill(ones(q_glauber), length(A)),
+        pᵢ⁰, wᵢ::Vector{<:U}; ϕᵢ = fill(ones(q_glauber), length(A)),
         ψₙᵢ = fill(fill(ones(q_glauber,q_glauber), length(A)), k),
-        svd_trunc::SVDTrunc=TruncThresh(1e-6), showprogress=true)
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), 
+        showprogress=true) where {U<:SimpleBPFactor}
 
     Anew = onebpiter_dummy_infinite_graph(A, k, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ; 
         svd_trunc)
     b = firstvar_marginal(Anew)
     b_tu = firstvar_marginal_tu(Anew; showprogress)
-    r = marginal_to_expectation.(b_tu, (HomogeneousGlauberFactor,))
-    m = marginal_to_expectation.(b, (HomogeneousGlauberFactor,))
+    r = marginal_to_expectation.(b_tu, (U,))
+    m = marginal_to_expectation.(b, (U,))
     c = MatrixProductBP.covariance(r, m)
     b, m, c
 end
