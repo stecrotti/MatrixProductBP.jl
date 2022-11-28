@@ -111,19 +111,20 @@ struct CB_BP{TP<:ProgressUnknown}
     Δs   :: Vector{Float64}
     f    :: Vector{Float64}
 
-    function CB_BP(bp::MPBP{q,T,F,U}; showprogress::Bool=true) where {q,T,F,U}
+    function CB_BP(bp::MPBP{q,T,F,U}; showprogress::Bool=true, 
+            svd_trunc::SVDTrunc=TruncThresh(1e-6),) where {q,T,F,U}
         @assert q == 2
         dt = showprogress ? 0.1 : Inf
         prog = ProgressUnknown(desc="Running MPBP: iter", dt=dt)
         TP = typeof(prog)
-        b = [getindex.(beliefs(bp), 1)] 
+        b = [getindex.(beliefs(bp; svd_trunc), 1)] 
         Δs = zeros(0)
         f = zeros(0)
         new{TP}(prog, b, Δs, f)
     end
 end
 
-function (cb::CB_BP)(bp::MPBP, it::Integer, logz_msg::Vector)
+function (cb::CB_BP)(bp::MPBP, it::Integer, logz_msg::Vector, svd_trunc::SVDTrunc)
     bij, logz_belief = pair_beliefs(bp)
     f = bethe_free_energy(bp, logz_msg, logz_belief)
     marg_new = getindex.(beliefs(bp), 1)
@@ -146,7 +147,7 @@ function iterate!(bp::MPBP; maxiter::Integer=5,
         for i in nodes
             logz_msg[i] = onebpiter!(bp, i; svd_trunc)
         end
-        Δ = cb(bp, it, logz_msg)
+        Δ = cb(bp, it, logz_msg, svd_trunc)
         Δ < tol && return it, cb
         sample!(nodes, collect(vertices(bp.g)), replace=false)
     end

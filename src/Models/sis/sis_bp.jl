@@ -157,10 +157,18 @@ function prob_ijy(::Type{<:SISFactor})
     end
 end
 
-function prob_ijy_dummy(::Type{<:SISFactor})
+function prob_ijy_dummy(U::Type{<:SISFactor})
     # neighbor j is susceptible -> does nothing
     function prob_ijy_dummy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
         xⱼᵗ = SUSCEPTIBLE
-        return prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
+        return prob_ijy(U)(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
     end
+end
+
+function sis_infinite_graph(T::Integer, k::Integer, pᵢ⁰, λ::Real, ρ::Real;
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), maxiter=5, tol=1e-5,
+        showprogress=true)
+    wᵢ = fill(SISFactor(λ, ρ), T)
+    A, maxiter, Δs = iterate_bp_infinite_graph(T, k, pᵢ⁰, wᵢ; 
+        svd_trunc, maxiter, tol, showprogress)
 end

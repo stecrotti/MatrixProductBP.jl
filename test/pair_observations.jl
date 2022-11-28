@@ -50,7 +50,7 @@ p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 f_bethe = bethe_free_energy(bp)
 Z_bp = exp(-f_bethe)
 
-@testset "pair observations" begin
+@testset "Pair observations" begin
     @test isapprox(Z_exact, Z_bp, atol=1e-5)
     @test isapprox(p_ex, p_bp, atol=1e-5)
 end
