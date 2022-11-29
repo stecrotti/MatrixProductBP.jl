@@ -1,7 +1,15 @@
 """
 Factor for the factor graph of a model solvable with MPBP.
-Any `BPFactor` subtype must implement a functor that computes the Boltzmann
-contribution to the joint probability
+
+Any `BPFactor` subtype must implement:
+- A functor that computes the Boltzmann contribution to the joint probability
+- `getq(::Type{<:BPFactor})` returning the number of allowed states for a variable
+
+That's it!
+
+Optionally:
+- `idx_to_value(x::Integer, ::Type{<:BPFactor})` returning the actual values
+
 """
 abstract type BPFactor; end
 
