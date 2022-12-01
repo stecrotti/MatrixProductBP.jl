@@ -1,6 +1,5 @@
 const SUSCEPTIBLE = 1
 const INFECTED = 2
-const q_sis = 2
 
 struct SISFactor{T<:AbstractFloat} <: SimpleBPFactor
     λ :: T  # infection rate
@@ -12,11 +11,11 @@ struct SISFactor{T<:AbstractFloat} <: SimpleBPFactor
     end
 end
 
-getq(::Type{<:SISFactor}) = q_sis
+getq(::Type{<:SISFactor}) = 2
 
 function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, xᵢᵗ::Integer)
-    @assert xᵢᵗ⁺¹ ∈ 1:q_sis
-    @assert all(x ∈ 1:q_sis for x in xₙᵢᵗ)
+    @assert xᵢᵗ⁺¹ ∈ 1:2
+    @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
 
     @unpack λ, ρ = fᵢ
 
@@ -38,7 +37,7 @@ function mpbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
     sis_ = deepcopy(sis)
     g = IndexedBiDiGraph(sis_.g.A)
     w = sis_factors(sis_)
-    return mpbp(g, w, q_sis, T, p⁰=sis_.p⁰, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
+    return mpbp(g, w, T, p⁰=sis_.p⁰, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
 end
 
 idx_to_value(x::Integer, ::Type{<:SISFactor}) = x - 1
@@ -55,7 +54,7 @@ end
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
 function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F}, 
         wᵢ::Vector{U}, l::Integer) where {q,T,F,U<:SISFactor}
-    @assert q==q_sis
+    @assert q == 2
     AA = Vector{Array{F,4}}(undef, T+1)
 
     λ = wᵢ[1].λ     # can be improved

@@ -52,12 +52,12 @@ function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
     return true
 end
 
-function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}}, 
-        q::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
-        ϕ = [[ones(q) for t in 0:T] for _ in vertices(g)],
-        ψ = [[ones(q,q) for t in 0:T] for _ in edges(g)],
-        p⁰ = [ones(q) for i in 1:nv(g)],
-        μ = [mpem2(q, T; d, bondsizes) for e in edges(g)])
+function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{U}}, 
+        T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
+        ϕ = [[ones(getq(U)) for t in 0:T] for _ in vertices(g)],
+        ψ = [[ones(getq(U),getq(U)) for t in 0:T] for _ in edges(g)],
+        p⁰ = [ones(getq(U)) for i in 1:nv(g)],
+        μ = [mpem2(getq(U), T; d, bondsizes) for e in edges(g)]) where {U<:BPFactor}
     return MPBP(g, w, ϕ, ψ, p⁰, μ)
 end
 
@@ -111,7 +111,7 @@ struct CB_BP{TP<:ProgressUnknown}
     f    :: Vector{Float64}
 
     function CB_BP(bp::MPBP{q,T,F,U}; showprogress::Bool=true, 
-            svd_trunc::SVDTrunc=TruncThresh(1e-6),) where {q,T,F,U}
+            svd_trunc::SVDTrunc=TruncBond(1)) where {q,T,F,U}
         @assert q == 2
         dt = showprogress ? 0.1 : Inf
         prog = ProgressUnknown(desc="Running MPBP: iter", dt=dt)
@@ -139,16 +139,16 @@ end
 
 function iterate!(bp::MPBP; maxiter::Integer=5, 
         svd_trunc::SVDTrunc=TruncThresh(1e-6),
-        showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
+        showprogress=true, cb=CB_BP(bp; svd_trunc, showprogress), tol=1e-10, 
         logz_msg = zeros(nv(bp.g)),
-        nodes = collect(vertices(bp.g)))
+        nodes = collect(vertices(bp.g)), shuffle::Bool=true)
     for it in 1:maxiter
         for i in nodes
             logz_msg[i] = onebpiter!(bp, i; svd_trunc)
         end
         Δ = cb(bp, it, logz_msg, svd_trunc)
         Δ < tol && return it, cb
-        sample!(nodes, collect(vertices(bp.g)), replace=false)
+        shuffle && sample!(nodes, collect(vertices(bp.g)), replace=false)
     end
     return maxiter, cb
 end

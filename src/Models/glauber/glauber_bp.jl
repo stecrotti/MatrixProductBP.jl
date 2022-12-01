@@ -1,5 +1,3 @@
-const q_glauber = 2
-
 struct GenericGlauberFactor{T<:Real}  <: BPFactor 
     βJ :: Vector{T}      
     βh :: T
@@ -10,8 +8,8 @@ struct HomogeneousGlauberFactor{T<:Real} <: SimpleBPFactor
     βh :: T
 end
 
-getq(::Type{<:GenericGlauberFactor}) = q_glauber
-getq(::Type{<:HomogeneousGlauberFactor}) = q_glauber
+getq(::Type{<:GenericGlauberFactor}) = 2
+getq(::Type{<:HomogeneousGlauberFactor}) = 2
 
 function HomogeneousGlauberFactor(J::T, h::T, β::T) where {T<:Real}
     HomogeneousGlauberFactor(J*β, h*β)
@@ -24,8 +22,8 @@ end
 function (fᵢ::GenericGlauberFactor)(xᵢᵗ⁺¹::Integer, 
         xₙᵢᵗ::AbstractVector{<:Integer}, 
         xᵢᵗ::Integer)
-    @assert xᵢᵗ⁺¹ ∈ 1:q_glauber
-    @assert all(x ∈ 1:q_glauber for x in xₙᵢᵗ)
+    @assert xᵢᵗ⁺¹ ∈ 1:2
+    @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
     @assert length(xₙᵢᵗ) == length(fᵢ.βJ)
 
     hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.βJ))
@@ -36,8 +34,8 @@ end
 function (fᵢ::HomogeneousGlauberFactor)(xᵢᵗ⁺¹::Integer, 
         xₙᵢᵗ::AbstractVector{<:Integer}, 
         xᵢᵗ::Integer)
-    @assert xᵢᵗ⁺¹ ∈ 1:q_glauber
-    @assert all(x ∈ 1:q_glauber for x in xₙᵢᵗ)
+    @assert xᵢᵗ⁺¹ ∈ 1:2
+    @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
 
     hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.βJ))
     hⱼᵢ = fᵢ.βJ * sum(potts2spin, xₙᵢᵗ)
@@ -51,7 +49,7 @@ function mpbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
     ϕ = gl.ϕ
     ψ = pair_obs_undirected_to_directed(gl.ψ, gl.ising.g)
     p⁰ = gl.p⁰
-    return mpbp(g, w, 2, T; ϕ, ψ, p⁰, kw...)
+    return mpbp(g, w, T; ϕ, ψ, p⁰, kw...)
 end
 
 
@@ -89,7 +87,7 @@ end
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
 function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q1,T,F}, 
         wᵢ::Vector{U}, l::Integer) where {q,q1,T,F,U<:HomogeneousGlauberFactor}
-    @assert q==q_glauber
+    @assert q == 2
     AA = Vector{Array{F,4}}(undef, T+1)
 
     for t in eachindex(AA)

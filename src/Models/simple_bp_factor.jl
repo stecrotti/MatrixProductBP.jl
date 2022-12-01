@@ -24,6 +24,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰,
     for k in eachindex(A)
         k == j && continue
         mᵢⱼₗ₁ = f_bp_partial(A[k], mᵢⱼₗ₁, wᵢ, l)
+        # normalize!(mᵢⱼₗ₁)
         l += 1
         # SVD L to R with no truncation
         sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
@@ -51,6 +52,7 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰,
     # compute partial messages from all neighbors
     for l in eachindex(A)
         mᵢⱼₗ₁ = f_bp_partial(A[l], mᵢⱼₗ₁, wᵢ, l)
+        # normalize!(mᵢⱼₗ₁)
         # SVD L to R with no truncation
         sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
         # SVD R to L with truncations

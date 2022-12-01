@@ -50,3 +50,5 @@ It contains model definitions and specialized versions of the BP equations that 
 - ~~Pass seed to sampler~~
 - ~~make smart BP compaitible with pair observations~~
 - Efficient cavity computations
+- Correct free energy after normalizations
+- Convergence based on messages instead of beliefs
