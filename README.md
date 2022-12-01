@@ -48,7 +48,7 @@ It contains model definitions and specialized versions of the BP equations that 
 - ~~autocorrelation computed from single belief instead of pair belief~~
 - Check error bars from soft margin
 - ~~Pass seed to sampler~~
-- Make smart BP compaitible with pair observations
+- Make smart BP compatible with pair observations
 - Efficient cavity computations
-- Correct free energy after normalizations
+- ~~ Correct free energy after normalizations ~~
 - Convergence based on messages instead of beliefs
