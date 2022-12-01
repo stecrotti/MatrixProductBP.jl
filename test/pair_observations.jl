@@ -1,5 +1,5 @@
 ```Glauber on a small tree with pair observations, comparison with exact solution```
-q = q_glauber
+
 T = 2
 J = [0 1 0 0 0;
      1 0 1 0 0;
@@ -29,7 +29,7 @@ O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
       (3, 5, 2, rand(2,2)) ,
       (2, 3, T, rand(2,2))          ]
 
-ψ = pair_observations_nondirected(O, ising.g, T, q)
+ψ = pair_observations_nondirected(O, ising.g, T, 2)
 
 gl = Glauber(ising, T; p⁰, ψ)
 bp = mpbp(gl)
@@ -37,21 +37,21 @@ bp = mpbp(gl)
 draw_node_observations!(bp, N)
 
 cb = CB_BP(bp; showprogress=false)
-svd_trunc = TruncBond(4)
+svd_trunc = TruncThresh(0.0)
 iterate!(bp, maxiter=10; svd_trunc, cb, showprogress=false)
 
-b_bp = beliefs(bp)
+b_bp = beliefs(bp; svd_trunc)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
 p_exact, Z_exact = exact_prob(bp)
 b_exact = exact_marginals(bp)
 p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
-f_bethe = bethe_free_energy(bp)
+f_bethe = bethe_free_energy(bp; svd_trunc)
 Z_bp = exp(-f_bethe)
 
 @testset "Pair observations" begin
-    @test isapprox(Z_exact, Z_bp, atol=1e-5)
-    @test isapprox(p_ex, p_bp, atol=1e-5)
+    @test Z_exact ≈ Z_bp
+    @test p_ex ≈ p_bp
 end
 

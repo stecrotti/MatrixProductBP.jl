@@ -56,9 +56,9 @@ struct Glauber{T, N, F<:AbstractFloat}
 end
 
 function Glauber(ising::Ising, T::Integer;
-        p⁰ = [ones(q_glauber) for i in 1:nv(ising.g)],
-        ϕ = [[ones(q_glauber) for t in 1:T+1] for _ in vertices(ising.g)],
-        ψ = [[ones(q_glauber,q_glauber) for t in 1:T+1] for _ in edges(ising.g)])
+        p⁰ = [ones(2) for i in 1:nv(ising.g)],
+        ϕ = [[ones(2) for t in 1:T+1] for _ in vertices(ising.g)],
+        ψ = [[ones(2,2) for t in 1:T+1] for _ in edges(ising.g)])
    Glauber(ising, p⁰, ϕ, ψ) 
 end
 

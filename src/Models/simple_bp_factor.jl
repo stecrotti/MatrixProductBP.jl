@@ -20,11 +20,12 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰,
     M = reshape(vcat(ones(1,q), zeros(q-1,q)), (1,1,q,q))
     mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
 
+    logz = 0.0
     l = 1
     for k in eachindex(A)
         k == j && continue
         mᵢⱼₗ₁ = f_bp_partial(A[k], mᵢⱼₗ₁, wᵢ, l)
-        # normalize!(mᵢⱼₗ₁)
+        logz +=  normalize!(mᵢⱼₗ₁)
         l += 1
         # SVD L to R with no truncation
         sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
@@ -35,7 +36,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰,
     # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
     B = f_bp_partial_ij(mᵢⱼₗ₁, pᵢ⁰, wᵢ, ϕᵢ, d; prob = prob_ijy(U))
 
-    return B
+    return B, logz
 end
 
 
@@ -49,10 +50,11 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰,
     M = reshape(vcat(ones(1,q), zeros(q-1,q)), (1,1,q,q))
     mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
 
+    logz = 0.0
     # compute partial messages from all neighbors
     for l in eachindex(A)
         mᵢⱼₗ₁ = f_bp_partial(A[l], mᵢⱼₗ₁, wᵢ, l)
-        # normalize!(mᵢⱼₗ₁)
+        logz +=  normalize!(mᵢⱼₗ₁)
         # SVD L to R with no truncation
         sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
         # SVD R to L with truncations
@@ -62,7 +64,7 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰,
     # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
     B = f_bp_partial_ij(mᵢⱼₗ₁, pᵢ⁰, wᵢ, ϕᵢ, d; prob = prob_ijy_dummy(U))
 
-    return B
+    return B, logz
 end
 
 function beliefs(bp::MPBP{q,T,F,<:SimpleBPFactor};

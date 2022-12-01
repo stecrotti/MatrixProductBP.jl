@@ -81,10 +81,10 @@ function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer;
     @assert all(normalization(a) ≈ 1 for a in A)
     logzᵢ = 0.0
     for (j_ind, e_out) in enumerate(eout)
-        B = f_bp(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
+        B, logzᵢ₂ⱼ = f_bp(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
         C = mpem2(B)
         μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
-        logzᵢ₂ⱼ = normalize!(μ[idx(e_out)])
+        logzᵢ₂ⱼ += normalize!(μ[idx(e_out)])
         logzᵢ += logzᵢ₂ⱼ
     end
     dᵢ = length(ein)
@@ -98,7 +98,7 @@ function onebpiter_dummy_neighbor(bp::MPBP{q,T,F,U}, i::Integer;
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
-    B = f_bp_dummy_neighbor(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc)
+    B, _ = f_bp_dummy_neighbor(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc)
     C = mpem2(B)
     A = sweep_RtoL!(C; svd_trunc)
 end

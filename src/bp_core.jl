@@ -104,7 +104,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ::V, ϕᵢ,
     B[end] = Bᵀ
     any(isnan, Bᵀ) && println("NaN in tensor at time $T")
 
-    return MPEM3(B)
+    return MPEM3(B), 0.0
 end
 
 # compute outgoing message to dummy neighbor to get the belief
@@ -184,7 +184,7 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰,
     B[end] = Bᵀ
     any(isnan, Bᵀ) && println("NaN in tensor at time $T")
 
-    return MPEM3(B)
+    return MPEM3(B), 0.0
 end
 
 function accumulate_L(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
