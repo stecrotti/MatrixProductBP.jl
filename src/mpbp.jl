@@ -42,10 +42,9 @@ function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
             if i < j
                 ji = k          # idx of edge i→j
                 ij = vals[k]    # idx of edge j→i
-                check = map(zip(ψ[ij], ψ[ji])) do (ψᵢⱼᵗ, ψⱼᵢᵗ)
-                    ψᵢⱼᵗ == ψⱼᵢᵗ'
+                for (ψᵢⱼᵗ, ψⱼᵢᵗ) in zip(ψ[ij], ψ[ji])
+                    ψᵢⱼᵗ == ψⱼᵢᵗ' || return false
                 end
-                all(check) || return false
             end
         end
     end
