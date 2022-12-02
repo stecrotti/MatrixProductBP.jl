@@ -41,8 +41,8 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F},
 end
 
 
-function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, 
-        wᵢ::Vector{U}, ϕᵢ, ψₙᵢ;
+function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, 
+        wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
         svd_trunc=TruncThresh(1e-6)) where {q,T,F,U<:SimpleBPFactor}
     
     d = length(A)

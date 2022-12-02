@@ -108,8 +108,8 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFact
 end
 
 # compute outgoing message to dummy neighbor to get the belief
-function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, 
-        wᵢ::Vector{<:BPFactor}, ϕᵢ, ψₙᵢ;
+function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, 
+        wᵢ::Vector{<:BPFactor}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
         showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
     @assert length(pᵢ⁰) == q
     @assert length(wᵢ) == T
