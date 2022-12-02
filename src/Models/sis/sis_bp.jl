@@ -57,90 +57,34 @@ function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F},
     @assert q == 2
     AA = Vector{Array{F,4}}(undef, T+1)
 
-    λ = wᵢ[1].λ     # can be improved
-
     for t in eachindex(AA)
         Aᵗ = kron2(mₗᵢ[t], mᵢⱼₗ₁[t])
         nrows = size(Aᵗ, 1); ncols = size(Aᵗ, 2)
         AAᵗ = zeros(nrows, ncols, q, q)
-        for yₗᵗ in 1:q
-            for xᵢᵗ in 1:q
-                for yₗ₁ᵗ in 1:q
-                    for xₗᵗ in 1:q
-                        p = prob_partial_msg_sis(yₗᵗ, yₗ₁ᵗ, xₗᵗ, λ)
-                        AAᵗ[:,:,yₗᵗ,xᵢᵗ] .+= p * Aᵗ[:,:,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] 
-                    end
-                end
-            end
-        end
+        @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg_sis(yₗᵗ,yₗ₁ᵗ,xₗᵗ,wᵢ[1].λ) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ]
         AA[t] = AAᵗ
     end
 
     return MPEM2(AA)
 end
 
+
 # compute m(i→j) from m(i→j,d)
 function f_bp_partial_ij(A::MPEM2{q,T,F}, pᵢ⁰, wᵢ::Vector{U}, ϕᵢ, 
-        d::Integer; prob = prob_ijy(U)) where {q,T,F,U<:SISFactor}
-
-    B = Vector{Array{F,5}}(undef, T+1)
-
-    A⁰ = A[begin]
-    nrows = size(A⁰, 1); ncols = size(A⁰, 2)
-    B⁰ = zeros(q, q, nrows, ncols, q)
-
-    for xᵢ⁰ in 1:q
-        for xᵢ¹ in 1:q
-            for y⁰ in 1:q
-                for xⱼ⁰ in 1:q
-                    p = prob(xᵢ¹, xᵢ⁰,xⱼ⁰, y⁰, wᵢ[begin].λ, wᵢ[begin].ρ)
-                    B⁰[xᵢ⁰,xⱼ⁰,1,:,xᵢ¹] .+= p * A⁰[1,:,y⁰,xᵢ⁰]
-                end
-            end
-        end
-        B⁰[xᵢ⁰,:,:,:,:] .*= pᵢ⁰[xᵢ⁰]  * ϕᵢ[begin][xᵢ⁰] 
+    d::Integer; prob = prob_ijy(U)) where {q,T,F,U<:SISFactor}
+    B = [zeros(q, q, size(a,1), size(a,2), q) for a in A]
+    A⁰, B⁰ = A[begin], B[begin]
+    @tullio B⁰[xᵢ⁰,xⱼ⁰,1,n,xᵢ¹] = prob(xᵢ¹,xᵢ⁰,xⱼ⁰,y⁰,wᵢ[1].λ,wᵢ[1].ρ)*A⁰[1,n,y⁰,xᵢ⁰]*ϕᵢ[1][xᵢ⁰]*pᵢ⁰[xᵢ⁰]
+    for t in 2:T
+        Aᵗ,Bᵗ = A[t], B[t]
+        @tullio Bᵗ[xᵢᵗ,xⱼᵗ,m,n,xᵢᵗ⁺¹] = prob(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,wᵢ[t].λ,wᵢ[t].ρ)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[t+0][xᵢᵗ]
     end
-    B[begin] = B⁰
-
-    for t in 1:T-1
-        Aᵗ = A[begin+t]
-        nrows = size(Aᵗ, 1); ncols = size(Aᵗ, 2)
-        Bᵗ = zeros(q, q, nrows, ncols, q)
-
-        for xᵢᵗ in 1:q
-            for xᵢᵗ⁺¹ in 1:q
-                for xⱼᵗ in 1:q
-                    for yᵗ in 1:q
-                        p = prob(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, wᵢ[t+1].λ, wᵢ[t+1].ρ)
-                        Bᵗ[xᵢᵗ,xⱼᵗ,:,:,xᵢᵗ⁺¹] .+= p * Aᵗ[:,:,yᵗ,xᵢᵗ]
-                    end
-                end
-            end
-            Bᵗ[xᵢᵗ,:,:,:,:] *= ϕᵢ[t+1][xᵢᵗ]
-        end
-        any(isnan, Bᵗ) && println("NaN in tensor at time $t")
-        B[begin+t] = Bᵗ
-    end
-
-    Aᵀ = A[end]
-    nrows = size(Aᵀ, 1); ncols = size(Aᵀ, 2)
-    Bᵀ = zeros(q, q, nrows, ncols, q)
-
-    for xᵢᵀ in 1:q
-        for xᵢᵀ⁺¹ in 1:q
-            for xⱼᵀ in 1:q
-                for yᵀ in 1:q
-                    Bᵀ[xᵢᵀ,xⱼᵀ,:,:,xᵢᵀ⁺¹] .+= Aᵀ[:,:,yᵀ,xᵢᵀ]
-                end
-            end
-        end
-        Bᵀ[xᵢᵀ,:,:,:,:] *= ϕᵢ[end][xᵢᵀ]
-    end
-    B[end] = Bᵀ
-    any(isnan, Bᵀ) && println("NaN in tensor at time $T")
-
+    Aᵀ,Bᵀ = A[end], B[end]
+    @tullio Bᵀ[xᵢᵀ,xⱼᵀ,m,n,xᵢᵀ⁺¹] = Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
+    any(any(isnan, b) for b in B) && println("NaN in tensor train")
     return MPEM3(B)
 end
+
 
 function prob_ijy(::Type{<:SISFactor})
     function prob_ijy_sis(xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, λ, ρ)
