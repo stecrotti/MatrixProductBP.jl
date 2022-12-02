@@ -9,8 +9,9 @@ function prob_ijy_dummy(::Type{<:SimpleBPFactor})
     error("Not implemented")
 end
 
-function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, 
-        wᵢ::Vector{U}, ϕᵢ, ψₙᵢ, j::Integer;
+function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, 
+        wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}},
+        j::Integer;
         svd_trunc=TruncThresh(1e-6)) where {q,T,F,U<:SimpleBPFactor}
 
     d = length(A) - 1   # number of neighbors other than j

@@ -25,9 +25,9 @@ idx_to_value(x::Integer, ::Type{<:BPFactor}) = x
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)
 # ψᵢⱼ are the ones living on the outedges of node i
-function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰, wᵢ::V, ϕᵢ, 
-        ψₙᵢ, j_index::Integer;
-        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F,V<:Vector{<:BPFactor}}
+function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFactor}, 
+        ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}}, j_index::Integer;
+        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
     @assert length(pᵢ⁰) == q
     @assert length(wᵢ) == T
     @assert length(ϕᵢ) == T + 1
