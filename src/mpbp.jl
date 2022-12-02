@@ -106,32 +106,26 @@ end
 # A callback to print info and save stuff during the iterations 
 struct CB_BP{TP<:ProgressUnknown}
     prog :: TP
-    b    :: Vector{Vector{Vector{Float64}}}
+    m    :: Vector{Vector{Vector{Float64}}} 
     Δs   :: Vector{Float64}
-    f    :: Vector{Float64}
 
-    function CB_BP(bp::MPBP{q,T,F,U}; showprogress::Bool=true, 
-            svd_trunc::SVDTrunc=TruncBond(1)) where {q,T,F,U}
+    function CB_BP(bp::MPBP{q,T,F,U}; showprogress::Bool=true) where {q,T,F,U}
         @assert q == 2
         dt = showprogress ? 0.1 : Inf
         prog = ProgressUnknown(desc="Running MPBP: iter", dt=dt)
         TP = typeof(prog)
-        b = [getindex.(beliefs(bp; svd_trunc), 1)] 
+        m = [[marginal_to_expectation.(firstvar_marginal(msg), U) for msg in bp.μ]]
         Δs = zeros(0)
-        f = zeros(0)
-        new{TP}(prog, b, Δs, f)
+        new{TP}(prog, m, Δs)
     end
 end
 
-function (cb::CB_BP)(bp::MPBP, it::Integer, logz_msg::Vector, svd_trunc::SVDTrunc)
-    bij, logz_belief = pair_beliefs(bp)
-    f = bethe_free_energy(bp, logz_msg, logz_belief)
-    marg_new = getindex.(beliefs(bp), 1)
-    marg_old = cb.b[end]
-    Δ = sum(sum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
+function (cb::CB_BP)(bp::MPBP{q,T,F,U}, it::Integer) where {q,T,F,U}
+    marg_new = [marginal_to_expectation.(firstvar_marginal(msg), U) for msg in bp.μ]
+    marg_old = cb.m[end]
+    Δ = mean(mean(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
     push!(cb.Δs, Δ)
-    push!(cb.f, f)
-    push!(cb.b, marg_new)
+    push!(cb.m, marg_new)
     next!(cb.prog, showvalues=[(:Δ,Δ)])
     flush(stdout)
     return Δ
@@ -139,14 +133,13 @@ end
 
 function iterate!(bp::MPBP; maxiter::Integer=5, 
         svd_trunc::SVDTrunc=TruncThresh(1e-6),
-        showprogress=true, cb=CB_BP(bp; svd_trunc, showprogress), tol=1e-10, 
-        logz_msg = zeros(nv(bp.g)),
+        showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
         nodes = collect(vertices(bp.g)), shuffle::Bool=true)
     for it in 1:maxiter
         for i in nodes
-            logz_msg[i] = onebpiter!(bp, i; svd_trunc)
+            onebpiter!(bp, i; svd_trunc)
         end
-        Δ = cb(bp, it, logz_msg, svd_trunc)
+        Δ = cb(bp, it)
         Δ < tol && return it, cb
         shuffle && sample!(nodes, collect(vertices(bp.g)), replace=false)
     end
@@ -281,11 +274,6 @@ function autocovariances(bp::MPBP{q,T,F,U}; svd_trunc::SVDTrunc = TruncThresh(1e
         r = autocorrelations(bp; svd_trunc), m = beliefs(bp)) where {q,T,F,U}
     μ = [marginal_to_expectation.(mᵢ, U) for mᵢ in m] 
     _autocovariances(r, μ)
-end
-
-
-function bethe_free_energy(::MPBP, logz_factors, logz_edges)
-    - sum(logz_factors) - sum(logz_edges)
 end
 
 function bethe_free_energy(bp::MPBP; svd_trunc=TruncThresh(1e-4))
