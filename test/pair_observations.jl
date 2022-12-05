@@ -50,8 +50,16 @@ p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 f_bethe = bethe_free_energy(bp; svd_trunc)
 Z_bp = exp(-f_bethe)
 
+r_bp = autocorrelations(bp; svd_trunc)
+r_exact = exact_autocorrelations(bp)
+
+c_bp = autocovariances(bp; svd_trunc)
+c_exact = exact_autocovariances(bp)
+
 @testset "Pair observations" begin
     @test Z_exact ≈ Z_bp
     @test p_ex ≈ p_bp
+    @test r_bp ≈ r_exact
+    @test c_bp ≈ c_exact
 end
 

@@ -214,7 +214,7 @@ function pair_beliefs_tu(bp::MPBP{q,T,F,U}; showprogress::Bool=true) where {q,T,
             ji = k          # idx of message i→j
             ij = vals[k]    # idx of message j→i
             μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
-            b[ij] = pair_belief_tu(μᵢⱼ, μⱼᵢ)
+            b[ij] = pair_belief_tu(μᵢⱼ, μⱼᵢ, bp.ψ[ij])
         end
         next!(prog)
     end
