@@ -47,14 +47,10 @@ Z_bp = exp(-f_bethe)
 r_bp = autocorrelations(bp; svd_trunc)
 r_exact = exact_autocorrelations(bp)
 
-c_bp = autocovariances(bp; svd_trunc)
-c_exact = exact_autocovariances(bp)
-
 @testset "Pair observations - SimpleBPFactor" begin
     @test Z_exact ≈ Z_bp
     @test p_ex ≈ p_bp
     @test r_bp ≈ r_exact
-    @test c_bp ≈ c_exact
 end
 
 ###################
@@ -106,12 +102,8 @@ Z_bp = exp(-f_bethe)
 r_bp = autocorrelations(bp; svd_trunc)
 r_exact = exact_autocorrelations(bp)
 
-c_bp = autocovariances(bp; svd_trunc)
-c_exact = exact_autocovariances(bp)
-
 @testset "Pair observations - generic BP" begin
     @test Z_exact ≈ Z_bp
     @test p_ex ≈ p_bp
     @test r_bp ≈ r_exact
-    @test c_bp ≈ c_exact
 end
