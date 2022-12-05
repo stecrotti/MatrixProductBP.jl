@@ -53,7 +53,7 @@ end
 # compute message m(i→j, l) from m(i→j, l-1) 
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
 function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F}, 
-        wᵢ::Vector{U}, l::Integer) where {q,T,F,U<:SISFactor}
+        wᵢ::Vector{U}, ψᵢₗ, l::Integer) where {q,T,F,U<:SISFactor}
     @assert q == 2
     AA = Vector{Array{F,4}}(undef, T+1)
 
@@ -68,7 +68,7 @@ function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F},
                 for yₗ₁ᵗ in 1:q
                     for xₗᵗ in 1:q
                         p = prob_partial_msg_sis(yₗᵗ, yₗ₁ᵗ, xₗᵗ, λ)
-                        AAᵗ[:,:,yₗᵗ,xᵢᵗ] .+= p * Aᵗ[:,:,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] 
+                        AAᵗ[:,:,yₗᵗ,xᵢᵗ] .+= p * Aᵗ[:,:,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[t][xᵢᵗ,xₗᵗ]
                     end
                 end
             end

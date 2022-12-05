@@ -86,7 +86,7 @@ end
 # compute message m(i→j, l) from m(i→j, l-1) 
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
 function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q1,T,F}, 
-        wᵢ::Vector{U}, l::Integer) where {q,q1,T,F,U<:HomogeneousGlauberFactor}
+        wᵢ::Vector{U}, ψᵢₗ, l::Integer) where {q,q1,T,F,U<:HomogeneousGlauberFactor}
     @assert q == 2
     AA = Vector{Array{F,4}}(undef, T+1)
 
@@ -101,7 +101,7 @@ function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q1,T,F},
                     yₗ₁ᵗ = _idx_map(l-1, zₗ₁ᵗ) 
                     for xₗᵗ in 1:q
                         p = prob_partial_msg_glauber(yₗᵗ, yₗ₁ᵗ, xₗᵗ)
-                        AAᵗ[:,:,zₗᵗ,xᵢᵗ] .+= p * Aᵗ[:,:,xᵢᵗ,xₗᵗ,zₗ₁ᵗ] 
+                        AAᵗ[:,:,zₗᵗ,xᵢᵗ] .+= p * Aᵗ[:,:,xᵢᵗ,xₗᵗ,zₗ₁ᵗ] * ψᵢₗ[t][xᵢᵗ,xₗᵗ]
                     end
                 end
             end
