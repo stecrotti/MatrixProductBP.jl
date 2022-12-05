@@ -161,7 +161,7 @@ function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
             ji = k          # idx of message i→j
             ij = vals[k]    # idx of message j→i
             μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
-            bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ)
+            bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ, bp.ψ[ij])
             logz[j] += (1/dⱼ- 1/2) * log(zᵢⱼ)
             b[ij] .= bᵢⱼ
         end

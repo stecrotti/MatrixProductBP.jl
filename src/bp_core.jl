@@ -48,8 +48,8 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFact
                 xₙᵢ₋ⱼ⁰ = xₙᵢ⁰[Not(j_index)]
                 for a¹ in axes(A⁰, 2)
                     B⁰[xᵢ⁰, xⱼ⁰, 1, a¹, xᵢ¹] += wᵢ[1](xᵢ¹, xₙᵢ⁰, xᵢ⁰) *
-                                                A⁰[1, a¹, xᵢ⁰, xₙᵢ₋ⱼ⁰...] *
-                                                prod(sqrt, ψₙᵢ[k][begin][xᵢ⁰, xₖ⁰] for (k, xₖ⁰) in enumerate(xₙᵢ⁰))
+                        A⁰[1, a¹, xᵢ⁰, xₙᵢ₋ⱼ⁰...] *
+                        prod(ψₙᵢ[k][begin][xᵢ⁰, xₖ⁰] for (k, xₖ⁰) in enumerate(xₙᵢ⁰) if k != j_index; init=1.0)
                 end
             end
         end
@@ -72,8 +72,8 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFact
                     xⱼᵗ = xₙᵢᵗ[j_index]
                     xₙᵢ₋ⱼᵗ = xₙᵢᵗ[Not(j_index)]
                     Bᵗ[xᵢᵗ, xⱼᵗ, :, :, xᵢᵗ⁺¹] .+= wᵢ[t+1](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) *
-                                                  Aᵗ[:, :, xᵢᵗ, xₙᵢ₋ⱼᵗ...] *
-                                                  prod(sqrt, ψₙᵢ[k][t+1][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ))
+                        Aᵗ[:, :, xᵢᵗ, xₙᵢ₋ⱼᵗ...] *
+                        prod(ψₙᵢ[k][t+1][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ) if k != j_index; init=1.0)
                 end
             end
             Bᵗ[xᵢᵗ, :, :, :, :] *= ϕᵢ[t+1][xᵢᵗ]
@@ -96,7 +96,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFact
                 xₙᵢ₋ⱼᵀ = xₙᵢᵀ[Not(j_index)]
                 Bᵀ[xᵢᵀ, xⱼᵀ, :, :, xᵢᵀ⁺¹] .+=
                     Aᵀ[:, :, xᵢᵀ, xₙᵢ₋ⱼᵀ...] *
-                    prod(sqrt, ψₙᵢ[k][end][xᵢᵀ, xₖᵀ] for (k, xₖᵀ) in enumerate(xₙᵢᵀ))
+                    prod(ψₙᵢ[k][end][xᵢᵀ, xₖᵀ] for (k, xₖᵀ) in enumerate(xₙᵢᵀ) if k != j_index; init=1.0)
             end
         end
         Bᵀ[xᵢᵀ, :, :, :, :] *= ϕᵢ[end][xᵢᵀ]
@@ -279,7 +279,7 @@ end
 
 # compute bᵢⱼᵗ(xᵢᵗ,xⱼᵗ) from μᵢⱼ and μⱼᵢ
 # also return normalization zᵢⱼ
-function pair_belief(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
+function pair_belief(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) where {q,T,F}
 
     L = accumulate_L(Aᵢⱼ, Aⱼᵢ)
     R = accumulate_R(Aᵢⱼ, Aⱼᵢ)
