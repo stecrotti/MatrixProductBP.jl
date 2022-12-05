@@ -48,8 +48,8 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFact
                 xₙᵢ₋ⱼ⁰ = xₙᵢ⁰[Not(j_index)]
                 for a¹ in axes(A⁰, 2)
                     B⁰[xᵢ⁰, xⱼ⁰, 1, a¹, xᵢ¹] += wᵢ[1](xᵢ¹, xₙᵢ⁰, xᵢ⁰) *
-                                                A⁰[1, a¹, xᵢ⁰, xₙᵢ₋ⱼ⁰...] *
-                                                prod(sqrt, ψₙᵢ[k][begin][xᵢ⁰, xₖ⁰] for (k, xₖ⁰) in enumerate(xₙᵢ⁰))
+                        A⁰[1, a¹, xᵢ⁰, xₙᵢ₋ⱼ⁰...] *
+                        prod(ψₙᵢ[k][begin][xᵢ⁰, xₖ⁰] for (k, xₖ⁰) in enumerate(xₙᵢ⁰) if k != j_index; init=1.0)
                 end
             end
         end
@@ -72,8 +72,8 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFact
                     xⱼᵗ = xₙᵢᵗ[j_index]
                     xₙᵢ₋ⱼᵗ = xₙᵢᵗ[Not(j_index)]
                     Bᵗ[xᵢᵗ, xⱼᵗ, :, :, xᵢᵗ⁺¹] .+= wᵢ[t+1](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) *
-                                                  Aᵗ[:, :, xᵢᵗ, xₙᵢ₋ⱼᵗ...] *
-                                                  prod(sqrt, ψₙᵢ[k][t+1][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ))
+                        Aᵗ[:, :, xᵢᵗ, xₙᵢ₋ⱼᵗ...] *
+                        prod(ψₙᵢ[k][t+1][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ) if k != j_index; init=1.0)
                 end
             end
             Bᵗ[xᵢᵗ, :, :, :, :] *= ϕᵢ[t+1][xᵢᵗ]
@@ -96,7 +96,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFact
                 xₙᵢ₋ⱼᵀ = xₙᵢᵀ[Not(j_index)]
                 Bᵀ[xᵢᵀ, xⱼᵀ, :, :, xᵢᵀ⁺¹] .+=
                     Aᵀ[:, :, xᵢᵀ, xₙᵢ₋ⱼᵀ...] *
-                    prod(sqrt, ψₙᵢ[k][end][xᵢᵀ, xₖᵀ] for (k, xₖᵀ) in enumerate(xₙᵢᵀ))
+                    prod(ψₙᵢ[k][end][xᵢᵀ, xₖᵀ] for (k, xₖᵀ) in enumerate(xₙᵢᵀ) if k != j_index; init=1.0)
             end
         end
         Bᵀ[xᵢᵀ, :, :, :, :] *= ϕᵢ[end][xᵢᵀ]
@@ -129,7 +129,7 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F},
                 for a¹ in axes(A⁰, 2)
                     B⁰[xᵢ⁰, :, 1, a¹, xᵢ¹] .+= wᵢ[1](xᵢ¹, xₙᵢ⁰, xᵢ⁰) .*
                                                A⁰[1, a¹, xᵢ⁰, xₙᵢ⁰...] .*
-                                               prod(sqrt, ψₙᵢ[k][begin][xᵢ⁰, xₖ⁰] for (k, xₖ⁰) in enumerate(xₙᵢ⁰))
+                                               prod(ψₙᵢ[k][begin][xᵢ⁰, xₖ⁰] for (k, xₖ⁰) in enumerate(xₙᵢ⁰))
                 end
             end
         end
@@ -152,7 +152,7 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F},
                     for xₙᵢᵗ in xₙᵢ
                         Bᵗ[xᵢᵗ, xⱼᵗ, :, :, xᵢᵗ⁺¹] .+= wᵢ[t+1](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) .*
                                                       Aᵗ[:, :, xᵢᵗ, xₙᵢᵗ...] .*
-                                                      prod(sqrt, ψₙᵢ[k][t+1][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ))
+                                                      prod(ψₙᵢ[k][t+1][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ))
                     end
                 end
             end
@@ -175,7 +175,7 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F},
                 for xₙᵢᵀ in xₙᵢ
                     Bᵀ[xᵢᵀ, xⱼᵀ, :, :, xᵢᵀ⁺¹] .+=
                         Aᵀ[:, :, xᵢᵀ, xₙᵢᵀ...] *
-                        prod(sqrt, ψₙᵢ[k][end][xᵢᵀ, xₖᵀ] for (k, xₖᵀ) in enumerate(xₙᵢᵀ))
+                        prod(ψₙᵢ[k][end][xᵢᵀ, xₖᵀ] for (k, xₖᵀ) in enumerate(xₙᵢᵀ))
                 end
             end
         end
@@ -187,41 +187,39 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F},
     return MPEM3(B), 0.0
 end
 
-function accumulate_L(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
+function accumulate_L(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) where {q,T,F}
     L = [zeros(0, 0) for t in 0:T]
-    Aᵢⱼ⁰ = Aᵢⱼ[begin]
-    Aⱼᵢ⁰ = Aⱼᵢ[begin]
-    @tullio L⁰[a¹, b¹] := Aᵢⱼ⁰[1, a¹, xᵢ⁰, xⱼ⁰] * Aⱼᵢ⁰[1, b¹, xⱼ⁰, xᵢ⁰]
+    Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]; ψᵢⱼ⁰ = ψᵢⱼ[begin] 
+    @tullio L⁰[a¹, b¹] := Aᵢⱼ⁰[1, a¹, xᵢ⁰, xⱼ⁰] * ψᵢⱼ⁰[xᵢ⁰, xⱼ⁰] * Aⱼᵢ⁰[1, b¹, xⱼ⁰, xᵢ⁰]
     L[1] = L⁰
 
     Lᵗ = L⁰
     for t in 1:T
-        Aᵢⱼᵗ = Aᵢⱼ[t+1]
-        Aⱼᵢᵗ = Aⱼᵢ[t+1]
-        @reduce Lᵗ[aᵗ⁺¹, bᵗ⁺¹] |= sum(xᵢᵗ, xⱼᵗ, aᵗ, bᵗ) Lᵗ[aᵗ, bᵗ] * Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ]
+        Aᵢⱼᵗ = Aᵢⱼ[t+1]; Aⱼᵢᵗ = Aⱼᵢ[t+1]; ψᵢⱼᵗ = ψᵢⱼ[t+1]
+        @reduce Lᵗ[aᵗ⁺¹, bᵗ⁺¹] |= sum(xᵢᵗ, xⱼᵗ, aᵗ, bᵗ) Lᵗ[aᵗ, bᵗ] * 
+            Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ]
         L[t+1] = Lᵗ
     end
     return L
 end
 
-function accumulate_R(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
+function accumulate_R(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) where {q,T,F}
     R = [zeros(0, 0) for t in 0:T]
-    Aᵢⱼᵀ = Aᵢⱼ[end]
-    Aⱼᵢᵀ = Aⱼᵢ[end]
-    @tullio Rᵀ[aᵀ, bᵀ] := Aᵢⱼᵀ[aᵀ, 1, xᵢᵀ, xⱼᵀ] * Aⱼᵢᵀ[bᵀ, 1, xⱼᵀ, xᵢᵀ]
+    Aᵢⱼᵀ = Aᵢⱼ[end]; Aⱼᵢᵀ = Aⱼᵢ[end]; ψᵢⱼᵀ = ψᵢⱼ[end]
+    @tullio Rᵀ[aᵀ, bᵀ] := Aᵢⱼᵀ[aᵀ, 1, xᵢᵀ, xⱼᵀ] * ψᵢⱼᵀ[xᵢᵀ, xⱼᵀ] * Aⱼᵢᵀ[bᵀ, 1, xⱼᵀ, xᵢᵀ]
     R[end] = Rᵀ
 
     Rᵗ = Rᵀ
     for t in T:-1:1
-        Aᵢⱼᵗ = Aᵢⱼ[t]
-        Aⱼᵢᵗ = Aⱼᵢ[t]
-        @reduce Rᵗ[aᵗ, bᵗ] |= sum(xᵢᵗ, xⱼᵗ, aᵗ⁺¹, bᵗ⁺¹) Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ] * Rᵗ[aᵗ⁺¹, bᵗ⁺¹]
+        Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; ψᵢⱼᵗ = ψᵢⱼ[t]
+        @reduce Rᵗ[aᵗ, bᵗ] |= sum(xᵢᵗ, xⱼᵗ, aᵗ⁺¹, bᵗ⁺¹) Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * 
+            Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] * Rᵗ[aᵗ⁺¹, bᵗ⁺¹]
         R[t] = Rᵗ
     end
     return R
 end
 
-function accumulate_M(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
+function accumulate_M(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) where {q,T,F}
     M = [zeros(0, 0, 0, 0) for _ in 0:T, _ in 0:T]
 
     # initial condition
@@ -235,9 +233,9 @@ function accumulate_M(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F
     for t in 1:T
         Mᵗᵘ⁻¹ = M[t, t+1]
         for u in t+2:T+1
-            Aᵢⱼᵘ⁻¹ = Aᵢⱼ[u-1]
-            Aⱼᵢᵘ⁻¹ = Aⱼᵢ[u-1]
-            @reduce Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ, bᵗ⁺¹, bᵘ] |= sum(aᵘ⁻¹, bᵘ⁻¹, xᵢᵘ⁻¹, xⱼᵘ⁻¹) Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ⁻¹, bᵗ⁺¹, bᵘ⁻¹] * Aᵢⱼᵘ⁻¹[aᵘ⁻¹, aᵘ, xᵢᵘ⁻¹, xⱼᵘ⁻¹] * Aⱼᵢᵘ⁻¹[bᵘ⁻¹, bᵘ, xⱼᵘ⁻¹, xᵢᵘ⁻¹]
+            Aᵢⱼᵘ⁻¹ = Aᵢⱼ[u-1]; Aⱼᵢᵘ⁻¹ = Aⱼᵢ[u-1]; ψᵢⱼᵘ⁻¹ = ψᵢⱼ[u-1]
+            @reduce Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ, bᵗ⁺¹, bᵘ] |= sum(aᵘ⁻¹, bᵘ⁻¹, xᵢᵘ⁻¹, xⱼᵘ⁻¹) Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ⁻¹, bᵗ⁺¹, bᵘ⁻¹] * 
+                Aᵢⱼᵘ⁻¹[aᵘ⁻¹, aᵘ, xᵢᵘ⁻¹, xⱼᵘ⁻¹] * ψᵢⱼᵘ⁻¹[xᵢᵘ⁻¹, xⱼᵘ⁻¹] * Aⱼᵢᵘ⁻¹[bᵘ⁻¹, bᵘ, xⱼᵘ⁻¹, xᵢᵘ⁻¹]
             M[t, u] = Mᵗᵘ⁻¹
         end
     end
@@ -246,29 +244,27 @@ function accumulate_M(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F
 end
 
 
-function pair_belief_tu(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F};
+function pair_belief_tu(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ;
     showprogress::Bool=false) where {q,T,F}
 
-    L = accumulate_L(Aᵢⱼ, Aⱼᵢ)
-    R = accumulate_R(Aᵢⱼ, Aⱼᵢ)
-    M = accumulate_M(Aᵢⱼ, Aⱼᵢ)
+    L = accumulate_L(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
+    R = accumulate_R(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
+    M = accumulate_M(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
     b = [zeros(q, q, q, q) for _ in 0:T, _ in 0:T]
 
     dt = showprogress ? 0.1 : Inf
     prog = Progress(Int(T * (T + 1) / 2); dt, desc="Computing beliefs at pairs of times (t,u)")
     for t in 1:T
         Lᵗ⁻¹ = t == 1 ? [1.0;;] : L[t-1]
-        Aᵢⱼᵗ = Aᵢⱼ[t]
-        Aⱼᵢᵗ = Aⱼᵢ[t]
+        Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; ψᵢⱼᵗ = ψᵢⱼ[t]
         for u in t+1:T+1
             Rᵘ⁺¹ = u == T + 1 ? [1.0;;] : R[u+1]
-            Aᵢⱼᵘ = Aᵢⱼ[u]
-            Aⱼᵢᵘ = Aⱼᵢ[u]
+            Aᵢⱼᵘ = Aᵢⱼ[u]; Aⱼᵢᵘ = Aⱼᵢ[u]; ψᵢⱼᵘ = ψᵢⱼ[u]
             Mᵗᵘ = M[t, u]
             @tullio bᵗᵘ[xᵢᵗ, xⱼᵗ, xᵢᵘ, xⱼᵘ] :=
-                Lᵗ⁻¹[aᵗ, bᵗ] * Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] *
+                Lᵗ⁻¹[aᵗ, bᵗ] * Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] *
                 Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ] * Mᵗᵘ[aᵗ⁺¹, aᵘ, bᵗ⁺¹, bᵘ] * Aᵢⱼᵘ[aᵘ, aᵘ⁺¹, xᵢᵘ, xⱼᵘ] *
-                Aⱼᵢᵘ[bᵘ, bᵘ⁺¹, xⱼᵘ, xᵢᵘ] * Rᵘ⁺¹[aᵘ⁺¹, bᵘ⁺¹]
+                ψᵢⱼᵘ[xᵢᵘ, xⱼᵘ] * Aⱼᵢᵘ[bᵘ, bᵘ⁺¹, xⱼᵘ, xᵢᵘ] * Rᵘ⁺¹[aᵘ⁺¹, bᵘ⁺¹]
             b[t, u] .= bᵗᵘ ./ sum(bᵗᵘ)
             next!(prog, showvalues=[(:t, t), (:u, u)])
         end
@@ -279,33 +275,33 @@ end
 
 # compute bᵢⱼᵗ(xᵢᵗ,xⱼᵗ) from μᵢⱼ and μⱼᵢ
 # also return normalization zᵢⱼ
-function pair_belief(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}) where {q,T,F}
+function pair_belief(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) where {q,T,F}
 
-    L = accumulate_L(Aᵢⱼ, Aⱼᵢ)
-    R = accumulate_R(Aᵢⱼ, Aⱼᵢ)
+    L = accumulate_L(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
+    R = accumulate_R(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
     z = only(L[end])
     @assert only(R[begin]) ≈ z
     z ≥ 0 || @warn "z=$z"
 
-    Aᵢⱼ⁰ = Aᵢⱼ[begin]
-    Aⱼᵢ⁰ = Aⱼᵢ[begin]
+    Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]; ψᵢⱼ⁰ = ψᵢⱼ[begin]
     R¹ = R[2]
-    @reduce b⁰[xᵢ⁰, xⱼ⁰] := sum(a¹, b¹) Aᵢⱼ⁰[1, a¹, xᵢ⁰, xⱼ⁰] * Aⱼᵢ⁰[1, b¹, xⱼ⁰, xᵢ⁰] * R¹[a¹, b¹]
+    @reduce b⁰[xᵢ⁰, xⱼ⁰] := sum(a¹, b¹) Aᵢⱼ⁰[1, a¹, xᵢ⁰, xⱼ⁰] * ψᵢⱼ⁰[xᵢ⁰, xⱼ⁰] *
+        Aⱼᵢ⁰[1, b¹, xⱼ⁰, xᵢ⁰] * R¹[a¹, b¹]
     b⁰ ./= sum(b⁰)
 
-    Aᵢⱼᵀ = Aᵢⱼ[end]
-    Aⱼᵢᵀ = Aⱼᵢ[end]
+    Aᵢⱼᵀ = Aᵢⱼ[end]; Aⱼᵢᵀ = Aⱼᵢ[end]; ψᵢⱼᵀ = ψᵢⱼ[end]
     Lᵀ⁻¹ = L[end-1]
-    @reduce bᵀ[xᵢᵀ, xⱼᵀ] := sum(aᵀ, bᵀ) Lᵀ⁻¹[aᵀ, bᵀ] * Aᵢⱼᵀ[aᵀ, 1, xᵢᵀ, xⱼᵀ] * Aⱼᵢᵀ[bᵀ, 1, xⱼᵀ, xᵢᵀ]
+    @reduce bᵀ[xᵢᵀ, xⱼᵀ] := sum(aᵀ, bᵀ) Lᵀ⁻¹[aᵀ, bᵀ] * Aᵢⱼᵀ[aᵀ, 1, xᵢᵀ, xⱼᵀ] *
+        ψᵢⱼᵀ[xᵢᵀ, xⱼᵀ] * Aⱼᵢᵀ[bᵀ, 1, xⱼᵀ, xᵢᵀ]
     bᵀ ./= sum(bᵀ)
 
     b = map(2:T) do t
         Lᵗ⁻¹ = L[t-1]
-        Aᵢⱼᵗ = Aᵢⱼ[t]
-        Aⱼᵢᵗ = Aⱼᵢ[t]
+        Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; ψᵢⱼᵗ = ψᵢⱼ[t]
         Rᵗ⁺¹ = R[t+1]
         @reduce bᵗ[xᵢᵗ, xⱼᵗ] := sum(aᵗ, aᵗ⁺¹, bᵗ, bᵗ⁺¹) Lᵗ⁻¹[aᵗ, bᵗ] *
-                                                        Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ] * Rᵗ⁺¹[aᵗ⁺¹, bᵗ⁺¹]
+                                Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ] * 
+                                ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] * Rᵗ⁺¹[aᵗ⁺¹, bᵗ⁺¹]
         bᵗ ./= sum(bᵗ)
     end
 
