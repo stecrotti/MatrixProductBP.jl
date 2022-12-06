@@ -62,7 +62,11 @@ function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F},
         Aᵗ = kron2(mₗᵢ[t], mᵢⱼₗ₁[t])
         nrows = size(Aᵗ, 1); ncols = size(Aᵗ, 2)
         AAᵗ = zeros(nrows, ncols, q, q)
-        @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg_sis(yₗᵗ,yₗ₁ᵗ,xₗᵗ,wᵢ[1].λ) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
+        if t ≤ T
+            @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg_sis(yₗᵗ,yₗ₁ᵗ,xₗᵗ,wᵢ[$t].λ) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
+        else
+            @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = 1/q * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
+        end
         AA[t] = AAᵗ
     end
 
