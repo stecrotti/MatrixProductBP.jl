@@ -7,7 +7,7 @@ end
 
 function exact_prob(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     # @assert q==2 "Can compute exact prob only for binary variables (for now)"
-    @unpack g, w, p⁰, ϕ, ψ = bp
+    @unpack g, w, ϕ, ψ = bp
     N = nv(g)
     T*N > 15 && @warn "T*N=$(T*N). This will take some time!"
     
@@ -17,7 +17,6 @@ function exact_prob(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     for x in 1:q^(N*(T+1))
         X .= _int_to_matrix(x-1, q, (T+1,N))
         for i in 1:N
-            logp[x] += log( p⁰[i][X[1,i]] )
             logp[x] += log( ϕ[i][1][X[1,i]] )
             ∂i = neighbors(g, i)
             for t in 1:T

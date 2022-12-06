@@ -41,13 +41,14 @@ c_exact = exact_autocovariances(bp)
     @test c_bp ≈ c_exact
 end
 
-# observe everything and check that the free energy corresponds to the prior of the sample `X`
+# observe everything and check that the free energy corresponds to the posterior of sample `X`
+sis = SIS(g, λ, ρ, T; γ)
 draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
 reset_messages!(bp)
 iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
 f_bethe = bethe_free_energy(bp)
 logl_bp = - f_bethe
-logp, logl = logprior_loglikelihood(bp, X)
+logp = logprob(bp, X)
 
 @testset "SIS small tree - observe everything" begin
     @test logl_bp ≈ logp

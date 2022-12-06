@@ -39,7 +39,7 @@ function mpbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
     sis_ = deepcopy(sis)
     g = IndexedBiDiGraph(sis_.g.A)
     w = sis_factors(sis_)
-    return mpbp(g, w, T, p⁰=sis_.p⁰, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
+    return mpbp(g, w, T, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
 end
 
 idx_to_value(x::Integer, ::Type{<:SISFactor}) = x - 1
@@ -71,11 +71,11 @@ end
 
 
 # compute m(i→j) from m(i→j,d)
-function f_bp_partial_ij(A::MPEM2{q,T,F}, pᵢ⁰, wᵢ::Vector{U}, ϕᵢ, 
+function f_bp_partial_ij(A::MPEM2{q,T,F}, wᵢ::Vector{U}, ϕᵢ, 
     d::Integer; prob = prob_ijy(U)) where {q,T,F,U<:SISFactor}
     B = [zeros(q, q, size(a,1), size(a,2), q) for a in A]
     A⁰, B⁰ = A[begin], B[begin]
-    @tullio B⁰[xᵢ⁰,xⱼ⁰,1,n,xᵢ¹] = prob(xᵢ¹,xᵢ⁰,xⱼ⁰,y⁰,wᵢ[1].λ,wᵢ[1].ρ)*A⁰[1,n,y⁰,xᵢ⁰]*ϕᵢ[1][xᵢ⁰]*pᵢ⁰[xᵢ⁰]
+    @tullio B⁰[xᵢ⁰,xⱼ⁰,1,n,xᵢ¹] = prob(xᵢ¹,xᵢ⁰,xⱼ⁰,y⁰,wᵢ[1].λ,wᵢ[1].ρ)*A⁰[1,n,y⁰,xᵢ⁰]*ϕᵢ[1][xᵢ⁰]
     for t in 2:T
         Aᵗ,Bᵗ = A[t], B[t]
         @tullio Bᵗ[xᵢᵗ,xⱼᵗ,m,n,xᵢᵗ⁺¹] = prob(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,wᵢ[$t].λ,wᵢ[$t].ρ)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
@@ -109,10 +109,10 @@ function prob_ijy_dummy(U::Type{<:SISFactor})
     end
 end
 
-function sis_infinite_graph(T::Integer, k::Integer, pᵢ⁰, λ::Real, ρ::Real;
+function sis_infinite_graph(T::Integer, k::Integer, ϕᵢ, λ::Real, ρ::Real;
         svd_trunc::SVDTrunc=TruncThresh(1e-6), maxiter=5, tol=1e-5,
         showprogress=true)
     wᵢ = fill(SISFactor(λ, ρ), T)
-    A, maxiter, Δs = iterate_bp_infinite_graph(T, k, pᵢ⁰, wᵢ; 
+    A, iters, Δs = iterate_bp_infinite_graph(T, k, wᵢ, ϕᵢ;
         svd_trunc, maxiter, tol, showprogress)
 end

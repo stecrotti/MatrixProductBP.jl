@@ -13,11 +13,6 @@ h = randn(N)
 β = 1.0
 ising = Ising(J, h, β)
 
-p⁰ = map(1:N) do i
-    r = 0.15
-    [r, 1-r]
-end
-
 O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
       (3, 4, 2, [0.4 0.6; 0.5 0.9]),
       (3, 5, 2, rand(2,2)) ,
@@ -25,7 +20,13 @@ O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
 
 ψ = pair_observations_nondirected(O, ising.g, T, 2)
 
-gl = Glauber(ising, T; p⁰, ψ)
+gl = Glauber(ising, T; ψ)
+
+for i in 1:N
+    r = 0.15
+    gl.ϕ[i][1] .* [r, 1-r]
+end
+
 bp = mpbp(gl)
 
 draw_node_observations!(bp, N)
@@ -68,11 +69,6 @@ h = randn(N)
 β = 1.0
 ising = Ising(J, h, β)
 
-p⁰ = map(1:N) do i
-    r = 0.15
-    [r, 1-r]
-end
-
 O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
       (3, 4, 2, [0.4 0.6; 0.5 0.9]),
       (3, 5, 2, rand(2,2)) ,
@@ -80,7 +76,13 @@ O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
 
 ψ = pair_observations_nondirected(O, ising.g, T, 2)
 
-gl = Glauber(ising, T; p⁰, ψ)
+gl = Glauber(ising, T; ψ)
+
+for i in 1:N
+    r = 0.15
+    gl.ϕ[i][1] .* [r, 1-r]
+end
+
 bp = mpbp(gl)
 
 draw_node_observations!(bp, N)

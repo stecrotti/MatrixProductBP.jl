@@ -3,12 +3,10 @@ struct MPBP{q,T,F<:Real,U<:BPFactor}
     w  :: Vector{Vector{U}}              # factors, one per variable
     ϕ  :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
     ψ  :: Vector{Vector{Matrix{F}}}      # edge-dependent factors
-    p⁰ :: Vector{Vector{F}}              # prior at time zero
     μ  :: Vector{MPEM2{q,T,F}}           # messages, two per edge
     
     function MPBP(g::IndexedBiDiGraph{Int}, w::Vector{Vector{U}}, 
             ϕ::Vector{Vector{Vector{F}}}, ψ::Vector{Vector{Matrix{F}}},
-            p⁰::Vector{Vector{F}}, 
             μ::Vector{MPEM2{q,T,F}}) where {q,T,F<:Real,U<:BPFactor}
     
         @assert length(w) == length(ϕ) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
@@ -17,12 +15,14 @@ struct MPBP{q,T,F<:Real,U<:BPFactor}
         @assert all( length(ϕ[i][t]) == q for i in eachindex(ϕ) for t in eachindex(ϕ[i]) )
         @assert all( size(ψ[ij][t]) == (q,q) for ij in eachindex(ψ) for t in eachindex(ψ[ij]) )
         @assert check_ψs(ψ, g)
-        @assert all( length(pᵢ⁰) == q for pᵢ⁰ in p⁰ )
         @assert all( length(ϕᵢ) == T+1 for ϕᵢ in ϕ )
         @assert all( length(ψᵢ) == T+1 for ψᵢ in ψ )
         @assert length(μ) == ne(g)
         normalize!.(μ)
-        return new{q,T,F,U}(g, w, ϕ, ψ, p⁰, μ)
+        for i in vertices(g)
+            ϕ[i][begin] ./= sum(ϕ[i][begin])
+        end
+        return new{q,T,F,U}(g, w, ϕ, ψ, μ)
     end
 end
 
@@ -55,9 +55,8 @@ function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{U}},
         T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(getq(U)) for t in 0:T] for _ in vertices(g)],
         ψ = [[ones(getq(U),getq(U)) for t in 0:T] for _ in edges(g)],
-        p⁰ = [ones(getq(U)) for i in 1:nv(g)],
         μ = [mpem2(getq(U), T; d, bondsizes) for e in edges(g)]) where {U<:BPFactor}
-    return MPBP(g, w, ϕ, ψ, p⁰, μ)
+    return MPBP(g, w, ϕ, ψ, μ)
 end
 
 function reset_messages!(bp::MPBP)
@@ -73,14 +72,14 @@ end
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U<:BPFactor}
-    @unpack g, w, ϕ, ψ, p⁰, μ = bp
+    @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
     @assert all(normalization(a) ≈ 1 for a in A)
     logzᵢ = 0.0
     for (j_ind, e_out) in enumerate(eout)
-        B, logzᵢ₂ⱼ = f_bp(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
+        B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
         C = mpem2(B)
         μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
         logzᵢ₂ⱼ += normalize!(μ[idx(e_out)])
@@ -93,11 +92,11 @@ end
 # compute outgoing message from node `i` to dummy neighbor
 function onebpiter_dummy_neighbor(bp::MPBP{q,T,F,U}, i::Integer; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
-    @unpack g, w, ϕ, ψ, p⁰, μ = bp
+    @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
-    B, _ = f_bp_dummy_neighbor(A, p⁰[i], w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc)
+    B, _ = f_bp_dummy_neighbor(A, w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc)
     C = mpem2(B)
     A = sweep_RtoL!(C; svd_trunc)
 end
@@ -286,29 +285,28 @@ function bethe_free_energy(bp::MPBP; svd_trunc=TruncThresh(1e-4))
     sum(fa)
 end
 
-# compute log of prior probability and log of likelihood for a trajectory `x`
-function logprior_loglikelihood(bp::MPBP{q,T,F,U}, x::Matrix{<:Integer}) where {q,T,F,U}
-    @unpack g, w, ϕ, ψ, p⁰, μ = bp
+# compute log of posterior probability for a trajectory `x`
+function logprob(bp::MPBP{q,T,F,U}, x::Matrix{<:Integer}) where {q,T,F,U}
+    @unpack g, w, ϕ, ψ, μ = bp
     N = nv(bp.g)
     @assert size(x) == (N , T+1)
-    logp = 0.0; logl = 0.0
+    logp = 0.0
 
     for i in 1:N
-        logp += log(p⁰[i][x[i,1]])
-        logl += log(ϕ[i][1][x[i,1]])
+        logp += log(ϕ[i][1][x[i,1]])
     end
 
     for t in 1:T
         for i in 1:N
             ∂i = neighbors(bp.g, i)
             @views logp += log( w[i][t](x[i, t+1], x[∂i, t], x[i, t]) )
-            logl += log( ϕ[i][t+1][x[i, t+1]] )
+            logp += log( ϕ[i][t+1][x[i, t+1]] )
         end
     end
     for t in 1:T+1
         for (i, j, ij) in edges(bp.g)
-            logl += 1/2 * log( ψ[ij][t][x[i,t], x[j,t]] )
+            logp += 1/2 * log( ψ[ij][t][x[i,t], x[j,t]] )
         end
     end
-    return logp, logl
+    return logp
 end

@@ -48,8 +48,7 @@ function mpbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
     w = glauber_factors(gl.ising, T)
     ϕ = gl.ϕ
     ψ = pair_obs_undirected_to_directed(gl.ψ, gl.ising.g)
-    p⁰ = gl.p⁰
-    return mpbp(g, w, T; ϕ, ψ, p⁰, kw...)
+    return mpbp(g, w, T; ϕ, ψ, kw...)
 end
 
 
@@ -113,7 +112,7 @@ function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q1,T,F},
 end
 
 # compute m(i→j) from m(i→j,d)
-function f_bp_partial_ij(A::MPEM2{Q,T,F}, pᵢ⁰, wᵢ::Vector{U}, ϕᵢ, 
+function f_bp_partial_ij(A::MPEM2{Q,T,F}, wᵢ::Vector{U}, ϕᵢ, 
         d::Integer; prob = prob_ijy(U)) where {Q,T,F,U<:HomogeneousGlauberFactor}
     q = getq(U)
     B = Vector{Array{F,5}}(undef, T+1)
@@ -132,7 +131,7 @@ function f_bp_partial_ij(A::MPEM2{Q,T,F}, pᵢ⁰, wᵢ::Vector{U}, ϕᵢ,
                 end
             end
         end
-        B⁰[xᵢ⁰,:,:,:,:] .*= pᵢ⁰[xᵢ⁰]  * ϕᵢ[begin][xᵢ⁰]
+        B⁰[xᵢ⁰,:,:,:,:] .*= ϕᵢ[begin][xᵢ⁰]
     end
     B[begin] = B⁰
 
@@ -265,13 +264,4 @@ function pair_obs_undirected_to_directed(ψ_undirected::Vector{<:F},
     end
 
     ψ_directed
-end
-
-function glauber_infinite_graph(T::Integer, k::Integer, pᵢ⁰;
-        β::Real=1.0, J::Real=1.0, h::Real=0.0,
-        svd_trunc::SVDTrunc=TruncThresh(1e-6), maxiter=5, tol=1e-5,
-        showprogress=true)
-    wᵢ = fill(HomogeneousGlauberFactor(J, h, β), T)
-    A, maxiter, Δs = iterate_bp_infinite_graph(T, k, pᵢ⁰, wᵢ; 
-        svd_trunc, maxiter, tol, showprogress)
 end
