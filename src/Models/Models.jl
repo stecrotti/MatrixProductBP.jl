@@ -13,6 +13,7 @@ import TensorCast: @reduce, @cast, TensorCast
 import ProgressMeter: Progress, next!
 import LogExpFunctions: xlogx, xlogy
 import Statistics: mean
+import Tullio: @tullio
 
 export 
     SimpleBPFactor, beliefs, beliefs_tu,
