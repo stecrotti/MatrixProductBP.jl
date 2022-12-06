@@ -25,12 +25,12 @@ idx_to_value(x::Integer, ::Type{<:BPFactor}) = x
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)
 # ψᵢⱼ are the ones living on the outedges of node i
-function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFactor}, 
+function f_bp(A::Vector{MPEM2{q,T,F}}, wᵢ::Vector{<:BPFactor}, 
         ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}}, j_index::Integer;
         showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
-    @assert length(pᵢ⁰) == q
     @assert length(wᵢ) == T
     @assert length(ϕᵢ) == T + 1
+    @assert all(length(ϕᵢᵗ) == q for ϕᵢᵗ in ϕᵢ)
     @assert j_index in eachindex(A)
     z = length(A)      # z = |∂i|
     x_neigs = Iterators.product(fill(1:q, z)...) .|> collect
@@ -53,7 +53,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFact
                 end
             end
         end
-        B⁰[xᵢ⁰, :, :, :, :] .*= pᵢ⁰[xᵢ⁰] * ϕᵢ[begin][xᵢ⁰]
+        B⁰[xᵢ⁰, :, :, :, :] .*= ϕᵢ[begin][xᵢ⁰]
     end
     B[begin] = B⁰
 
@@ -108,7 +108,7 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, wᵢ::Vector{<:BPFact
 end
 
 # compute outgoing message to dummy neighbor to get the belief
-function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, 
+function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, 
         wᵢ::Vector{<:BPFactor}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
         showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
     @assert length(pᵢ⁰) == q
@@ -133,7 +133,7 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F},
                 end
             end
         end
-        B⁰[xᵢ⁰, :, :, :, :] .*= pᵢ⁰[xᵢ⁰] * ϕᵢ[begin][xᵢ⁰]
+        B⁰[xᵢ⁰, :, :, :, :] .*= ϕᵢ[begin][xᵢ⁰]
     end
     B[begin] = B⁰
 

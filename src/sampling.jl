@@ -26,13 +26,14 @@ end
 # a sample with its weight
 function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U};
         rng = GLOBAL_RNG) where {q,T,F,U}
-    @unpack g, w, ϕ, ψ, p⁰, μ = bp
+    @unpack g, w, ϕ, ψ, μ = bp
     N = nv(bp.g)
     @assert size(x) == (N , T+1)
     logl = 0.0
 
     for i in 1:N
-        xᵢ⁰ = sample_noalloc(rng, p⁰[i])
+        @assert sum(ϕ[i][1]) == 1
+        xᵢ⁰ = sample_noalloc(rng, ϕ[i][1])
         x[i, 1] = xᵢ⁰
         logl += log( ϕ[i][1][xᵢ⁰] )
     end
@@ -152,7 +153,10 @@ function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}},
     end
     softone = logistic(log(softinf)); softzero = logistic(-log(softinf))
     for (t, i) in it
-        ϕ[i][t] .= [x==X[i,t] ? softone : softzero for x in eachindex(ϕ[i][t])]
+        ϕ[i][t] .*= [x==X[i,t] ? softone : softzero for x in eachindex(ϕ[i][t])]
+        if t == 1
+            ϕ[i][t] ./= sum(ϕ[i][t])
+        end
     end
     ϕ
 end

@@ -2,30 +2,28 @@ struct SIS{T, N, F<:Real}
     g  :: IndexedGraph
     λ  :: F
     ρ  :: F
-    p⁰ :: Vector{Vector{F}}          # initial state
     ϕ  :: Vector{Vector{Vector{F}}}  # site observations
     ψ  :: Vector{Vector{Matrix{F}}}  # edge observations
-    function SIS(g::IndexedGraph, λ::F, ρ::F, p⁰::Vector{Vector{F}},
+    function SIS(g::IndexedGraph, λ::F, ρ::F,
             ϕ::Vector{Vector{Vector{F}}},
             ψ::Vector{Vector{Matrix{F}}}) where {F<:Real}
         @assert 0 ≤ λ ≤ 1
         @assert 0 ≤ ρ ≤ 1
-        N = length(p⁰)
-        @assert length(ϕ) == nv(g) == N
+        N = nv(g)
+        @assert length(ϕ) == N
         T = length(ϕ[1]) - 1
         @assert all(length(ϕᵢ) == T + 1 for ϕᵢ in ϕ)
         @assert length(ψ) == 2*ne(g)
         @assert all(length(ψᵢⱼ) == T + 1 for ψᵢⱼ in ψ)
-        new{T,N,F}(g, λ, ρ, p⁰, ϕ, ψ)
+        new{T,N,F}(g, λ, ρ, ϕ, ψ)
     end
 end
 
 function SIS(g::IndexedGraph{Int}, λ::F, ρ::F, T::Int;
-        ϕ = [[ones(2) for t in 0:T] for _ in vertices(g)],
         ψ = [[ones(2,2) for t in 0:T] for _ in 1:2*ne(g)],
         γ = 0.5,
-        p⁰ = [[1-γ,γ] for i in 1:nv(g)]) where {F<:Real}
-    return SIS(g, λ, ρ, p⁰, ϕ, ψ)
+        ϕ = [[t == 0 ? [1-γ, γ] : ones(2) for t in 0:T] for _ in vertices(g)]) where {F<:Real}
+    return SIS(g, λ, ρ, ϕ, ψ)
 end
 
 function sis_factors(sis::SIS{T,N,F}) where {T,N,F}

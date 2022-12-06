@@ -9,7 +9,7 @@ function prob_ijy_dummy(::Type{<:SimpleBPFactor})
     error("Not implemented")
 end
 
-function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, 
+function f_bp(A::Vector{MPEM2{q,T,F}},
         wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}},
         j::Integer;
         svd_trunc=TruncThresh(1e-6)) where {q,T,F,U<:SimpleBPFactor}
@@ -35,13 +35,13 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F},
     end
 
     # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij(mᵢⱼₗ₁, pᵢ⁰, wᵢ, ϕᵢ, d; prob = prob_ijy(U))
+    B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy(U))
 
     return B, logz
 end
 
 
-function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F}, 
+function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, 
         wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
         svd_trunc=TruncThresh(1e-6)) where {q,T,F,U<:SimpleBPFactor}
     
@@ -63,7 +63,7 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, pᵢ⁰::Vector{F},
     end
 
     # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij(mᵢⱼₗ₁, pᵢ⁰, wᵢ, ϕᵢ, d; prob = prob_ijy_dummy(U))
+    B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy_dummy(U))
 
     return B, logz
 end
@@ -90,31 +90,32 @@ end
 
 ### INFINITE REGULAR GRAPHS
 
-function onebpiter_infinite_graph(A::MPEM2, k::Integer, pᵢ⁰, wᵢ::Vector{U}, 
+function onebpiter_infinite_graph(A::MPEM2, k::Integer, wᵢ::Vector{U}, 
         ϕᵢ, ψₙᵢ;
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:SimpleBPFactor}
 
-    B = f_bp(fill(A, k), pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ, 1)
+    B, _ = f_bp(fill(A, k), wᵢ, ϕᵢ, ψₙᵢ, 1)
     C = mpem2(B)
     A_new = sweep_RtoL!(C; svd_trunc)
     normalize_eachmatrix!(A_new)
     A_new
 end
 
-function iterate_bp_infinite_graph(T::Integer, k::Integer, pᵢ⁰, wᵢ::Vector{U};
-        ϕᵢ = fill(ones(getq(U)), T),
-        ψₙᵢ = fill(fill(ones(getq(U), getq(U)), T), k),
+function iterate_bp_infinite_graph(T::Integer, k::Integer, wᵢ::Vector{U},
+        ϕᵢ = fill(ones(getq(U)), T+1);
+        ψₙᵢ = fill(fill(ones(getq(U), getq(U)), T+1), k),
         svd_trunc::SVDTrunc=TruncThresh(1e-6), maxiter=5, tol=1e-5,
         showprogress=true) where {U<:SimpleBPFactor}
-
+    @assert length(ϕᵢ) == T + 1
+    @assert length(wᵢ) == T
+    
     A = mpem2(getq(U), T)
     Δs = fill(NaN, maxiter)
     m = firstvar_marginal(A)
     dt = showprogress ? 0.1 : Inf
     prog = Progress(maxiter; dt, desc="Iterating BP on infinite graph")
     for it in 1:maxiter
-        A = onebpiter_infinite_graph(A, k, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ; 
-            svd_trunc)
+        A = onebpiter_infinite_graph(A, k, wᵢ, ϕᵢ, ψₙᵢ; svd_trunc)
         m_new = firstvar_marginal(A)
         Δ = maximum(abs, bb_new[1] - bb[1] for (bb_new, bb) in zip(m_new, m))
         Δs[it] = Δ
@@ -126,11 +127,11 @@ function iterate_bp_infinite_graph(T::Integer, k::Integer, pᵢ⁰, wᵢ::Vector
     A, maxiter, Δs
 end
 
-function onebpiter_dummy_infinite_graph(A::MPEM2, k::Integer, pᵢ⁰, 
+function onebpiter_dummy_infinite_graph(A::MPEM2, k::Integer,
         wᵢ::Vector{U}, ϕᵢ, ψₙᵢ; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:SimpleBPFactor}
 
-    B = f_bp_dummy_neighbor(fill(A, k), pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ)
+    B, _ = f_bp_dummy_neighbor(fill(A, k), wᵢ, ϕᵢ, ψₙᵢ)
     C = mpem2(B)
     A_new = sweep_RtoL!(C; svd_trunc)
     normalize_eachmatrix!(A_new)
@@ -140,13 +141,12 @@ end
 # A is the message already converged
 # return marginals, expectations of marginals and covariances
 function observables_infinite_graph(A::MPEM2, k::Integer, 
-        pᵢ⁰, wᵢ::Vector{<:U}; ϕᵢ = fill(ones(q_glauber), length(A)),
-        ψₙᵢ = fill(fill(ones(q_glauber,q_glauber), length(A)), k),
+        wᵢ::Vector{<:U}, ϕᵢ;
+        ψₙᵢ = fill(fill(ones(getq(U),getq(U)), length(A)), k),
         svd_trunc::SVDTrunc=TruncThresh(1e-6), 
         showprogress=true) where {U<:SimpleBPFactor}
 
-    Anew = onebpiter_dummy_infinite_graph(A, k, pᵢ⁰, wᵢ, ϕᵢ, ψₙᵢ; 
-        svd_trunc)
+    Anew = onebpiter_dummy_infinite_graph(A, k, wᵢ, ϕᵢ, ψₙᵢ; svd_trunc)
     b = firstvar_marginal(Anew)
     b_tu = firstvar_marginal_tu(Anew; showprogress)
     r = marginal_to_expectation.(b_tu, (U,))

@@ -24,6 +24,10 @@ p⁰ = map(1:N) do i
     [r, 1-r]
 end
 ϕ = [[ones(2) for t in 1:T+1] for i in 1:N]
+for i in 1:N
+    r = rand()
+    ϕ[i][1] .= [r, 1-r]
+end
 
 O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
       (3, 4, 2, [0.4 0.6; 0.5 0.9]),
@@ -33,7 +37,7 @@ O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
 ψ = pair_observations_nondirected(O, g, T, q)
 
 ising = Ising(J, h, β)
-gl = Glauber(ising, p⁰, ϕ, ψ)
+gl = Glauber(ising, ϕ, ψ)
 
 bp = mpbp(gl)
 iterate!(bp)

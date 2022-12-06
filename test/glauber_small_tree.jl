@@ -12,16 +12,18 @@ h = randn(N)
 β = 1.0
 ising = Ising(J, h, β)
 
-p⁰ = map(1:N) do i
+gl = Glauber(ising, T)
+
+for i in 1:N
     r = 0.75
-    [r, 1-r]
+    gl.ϕ[i][1] .*= [r, 1-r]
 end
 
-gl = Glauber(ising, T; p⁰)
 bp = mpbp(gl)
 
 rng = MersenneTwister(111)
 X = draw_node_observations!(bp, N; rng)
+
 
 svd_trunc = TruncThresh(0.0)
 cb = CB_BP(bp; showprogress=false)
@@ -50,13 +52,22 @@ c_exact = exact_autocovariances(bp; r = r_exact)
     @test c_bp ≈ c_exact
 end
 
-# observe everything and check that the free energy corresponds to the prior of the sample `X`
+# observe everything and check that the free energy corresponds to the posterior of sample `X`
+gl = Glauber(ising, T)
+
+for i in 1:N
+    r = 0.75
+    gl.ϕ[i][1] .*= [r, 1-r]
+end
+
+bp = mpbp(gl)
+
 draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
 reset_messages!(bp)
 iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
 f_bethe = bethe_free_energy(bp)
 logl_bp = - f_bethe
-logp, logl = logprior_loglikelihood(bp, X)
+logp = logprob(bp, X)
 
 @testset "Glauber small tree - observe everything" begin
     @test logl_bp ≈ logp

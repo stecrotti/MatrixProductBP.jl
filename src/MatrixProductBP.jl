@@ -20,7 +20,7 @@ export
     BPFactor, MPBP, mpbp, reset_messages!, onebpiter!, CB_BP, iterate!, 
     pair_beliefs, pair_beliefs_tu, beliefs_tu, autocorrelations,
     autocovariances, beliefs, bethe_free_energy, 
-    logprior_loglikelihood, marginal_to_expectation,
+    logprob, marginal_to_expectation,
     exact_prob, exact_marginals, site_marginals, exact_autocorrelations,
     exact_autocovariances, exact_marginal_expectations, 
     SoftMarginSampler, onesample!, onesample, sample!, sample, marginals, 
