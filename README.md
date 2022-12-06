@@ -1,5 +1,7 @@
 # Matrix Product Belief Propagation
 
+[![CI](https://github.com/stecrotti/MatrixProductBP/actions/workflows/ci.yml/badge.svg)](https://github.com/stecrotti/MatrixProductBP/actions/workflows/ci.yml)
+
 When possible, variable names match the notation used in the [notes](https://www.overleaf.com/read/cjtftmgvyxkt).
 
 This folder is organized as follows:
@@ -42,13 +44,3 @@ It contains model definitions and specialized versions of the BP equations that 
 - A `test` folder with small examples 
 
 - A `notebooks` folder showing the applications of the method. These notebooks should, ideally, allow anyone to reproduce the results in the future article.
- 
-## TO DO:
-- reasoning on matrix size for SI
-- ~~autocorrelation computed from single belief instead of pair belief~~
-- Check error bars from soft margin
-- ~~Pass seed to sampler~~
-- Make smart BP compatible with pair observations
-- Efficient cavity computations
-- ~~Correct free energy after normalizations~~
-- ~~Convergence based on messages instead of beliefs~~
