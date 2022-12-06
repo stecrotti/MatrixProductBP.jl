@@ -19,12 +19,9 @@ export
     SimpleBPFactor, beliefs, beliefs_tu,
     iterate_bp_infinite_graph, observables_infinite_graph,
     Ising, Glauber, 
-    q_glauber, HomogeneousGlauberFactor, GenericGlauberFactor, 
-    glauber_infinite_graph,
-    pair_observations_directed, 
-    pair_observations_nondirected, mpbp, 
-    SIS, SISFactor, q_sis, SUSCEPTIBLE, INFECTED, sis_infinite_graph,
-    kl_marginals, l1_marginals, find_infected_bp, auc
+    HomogeneousGlauberFactor, GenericGlauberFactor, mpbp, 
+    SIS, SISFactor, SUSCEPTIBLE, INFECTED,
+    kl_marginals, l1_marginals, auc
 
 include("simple_bp_factor.jl")
 
