@@ -19,18 +19,20 @@ function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:I
 
     @unpack λ, ρ = fᵢ
 
-    ( xᵢᵗ == INFECTED && xᵢᵗ⁺¹ == SUSCEPTIBLE ) && return ρ
-    ( xᵢᵗ == INFECTED && xᵢᵗ⁺¹ == INFECTED ) && return 1 - ρ 
-    if xᵢᵗ == SUSCEPTIBLE
-        p = (1-λ)^sum( xⱼᵗ == INFECTED for xⱼᵗ in xₙᵢᵗ; init=0.0)
+    if xᵢᵗ == INFECTED
+        if xᵢᵗ⁺¹ == SUSCEPTIBLE
+            return ρ
+        else
+            return 1 - ρ 
+        end
+    else
+        p = (1-λ)^sum(xⱼᵗ == INFECTED for xⱼᵗ in xₙᵢᵗ; init=0.0)
         if xᵢᵗ⁺¹ == SUSCEPTIBLE
             return p
         elseif xᵢᵗ⁺¹ == INFECTED
             return 1 - p
         end
     end
-    error("Shouldn't end up here")
-    -Inf
 end
 
 function mpbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
@@ -56,21 +58,15 @@ end
 function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F}, 
         wᵢ::Vector{U}, ψᵢₗ, l::Integer) where {q,T,F,U<:SISFactor}
     @assert q == 2
-    AA = Vector{Array{F,4}}(undef, T+1)
-
-    for t in eachindex(AA)
+    map(1:T+1) do t
         Aᵗ = kron2(mₗᵢ[t], mᵢⱼₗ₁[t])
-        nrows = size(Aᵗ, 1); ncols = size(Aᵗ, 2)
-        AAᵗ = zeros(nrows, ncols, q, q)
+        AAᵗ = zeros(size(Aᵗ, 1), size(Aᵗ, 2), q, q)
         if t ≤ T
             @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg_sis(yₗᵗ,yₗ₁ᵗ,xₗᵗ,wᵢ[$t].λ) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
         else
             @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = 1/q * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
         end
-        AA[t] = AAᵗ
-    end
-
-    return MPEM2(AA)
+    end |> MPEM2
 end
 
 
