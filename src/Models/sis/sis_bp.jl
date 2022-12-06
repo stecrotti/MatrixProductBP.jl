@@ -50,6 +50,7 @@ function prob_partial_msg_sis(yₖ, yₖ₁, xₖ, λ)
     end
 end
 
+
 # compute message m(i→j, l) from m(i→j, l-1) 
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
 function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F}, 
@@ -77,7 +78,7 @@ function f_bp_partial_ij(A::MPEM2{q,T,F}, pᵢ⁰, wᵢ::Vector{U}, ϕᵢ,
     @tullio B⁰[xᵢ⁰,xⱼ⁰,1,n,xᵢ¹] = prob(xᵢ¹,xᵢ⁰,xⱼ⁰,y⁰,wᵢ[1].λ,wᵢ[1].ρ)*A⁰[1,n,y⁰,xᵢ⁰]*ϕᵢ[1][xᵢ⁰]*pᵢ⁰[xᵢ⁰]
     for t in 2:T
         Aᵗ,Bᵗ = A[t], B[t]
-        @tullio Bᵗ[xᵢᵗ,xⱼᵗ,m,n,xᵢᵗ⁺¹] = prob(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,wᵢ[t].λ,wᵢ[t].ρ)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[t+0][xᵢᵗ]
+        @tullio Bᵗ[xᵢᵗ,xⱼᵗ,m,n,xᵢᵗ⁺¹] = prob(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,wᵢ[$t].λ,wᵢ[$t].ρ)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
     end
     Aᵀ,Bᵀ = A[end], B[end]
     @tullio Bᵀ[xᵢᵀ,xⱼᵀ,m,n,xᵢᵀ⁺¹] = Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
