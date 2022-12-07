@@ -74,9 +74,7 @@ end
 function f_bp_partial_ij(A::MPEM2{q,T,F}, wᵢ::Vector{U}, ϕᵢ, 
     d::Integer; prob = prob_ijy(U)) where {q,T,F,U<:SISFactor}
     B = [zeros(q, q, size(a,1), size(a,2), q) for a in A]
-    A⁰, B⁰ = A[begin], B[begin]
-    @tullio B⁰[xᵢ⁰,xⱼ⁰,1,n,xᵢ¹] = prob(xᵢ¹,xᵢ⁰,xⱼ⁰,y⁰,wᵢ[1].λ,wᵢ[1].ρ)*A⁰[1,n,y⁰,xᵢ⁰]*ϕᵢ[1][xᵢ⁰]
-    for t in 2:T
+    for t in 1:T
         Aᵗ,Bᵗ = A[t], B[t]
         @tullio Bᵗ[xᵢᵗ,xⱼᵗ,m,n,xᵢᵗ⁺¹] = prob(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,wᵢ[$t].λ,wᵢ[$t].ρ)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
     end
