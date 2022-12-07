@@ -1,12 +1,36 @@
 # for a `SimpleBPFactor`, outgoing messages can be computed recursively
 abstract type SimpleBPFactor <: BPFactor; end
 
-function prob_ijy(::Type{<:SimpleBPFactor})
-    error("Not implemented")
+# compute message m(i→j, l) from m(i→j, l-1) 
+# returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
+function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F}, 
+        wᵢ::Vector{U}, ψᵢₗ, l::Integer) where {q,T,F,U<:SimpleBPFactor}
+    @assert q == 2
+    map(1:T+1) do t
+        Aᵗ = kron2(mₗᵢ[t], mᵢⱼₗ₁[t])
+        qy = nstates(U, l)
+        AAᵗ = zeros(size(Aᵗ, 1), size(Aᵗ, 2), qy, qy)
+        if t ≤ T
+            @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg(wᵢ[$t],yₗᵗ,yₗ₁ᵗ,xₗᵗ,l) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
+        else
+            @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = 1/q * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
+        end
+    end |> MPEM2
 end
 
-function prob_ijy_dummy(::Type{<:SimpleBPFactor})
-    error("Not implemented")
+
+# compute m(i→j) from m(i→j,d)
+function f_bp_partial_ij(A::MPEM2{q,T,F}, wᵢ::Vector{U}, ϕᵢ, 
+    d::Integer; prob = prob_ijy) where {q,T,F,U<:SimpleBPFactor}
+    B = [zeros(q, q, size(a,1), size(a,2), q) for a in A]
+    for t in 1:T
+        Aᵗ,Bᵗ = A[t], B[t]
+        @tullio Bᵗ[xᵢᵗ,xⱼᵗ,m,n,xᵢᵗ⁺¹] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
+    end
+    Aᵀ,Bᵀ = A[end], B[end]
+    @tullio Bᵀ[xᵢᵀ,xⱼᵀ,m,n,xᵢᵀ⁺¹] = Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
+    any(any(isnan, b) for b in B) && println("NaN in tensor train")
+    return MPEM3(B)
 end
 
 function f_bp(A::Vector{MPEM2{q,T,F}},
@@ -35,11 +59,10 @@ function f_bp(A::Vector{MPEM2{q,T,F}},
     end
 
     # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy(U))
+    B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy)
 
     return B, logz
 end
-
 
 function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, 
         wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
@@ -63,10 +86,11 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}},
     end
 
     # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy_dummy(U))
+    B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy_dummy)
 
     return B, logz
 end
+
 
 function beliefs(bp::MPBP{q,T,F,<:SimpleBPFactor};
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
