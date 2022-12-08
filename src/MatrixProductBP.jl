@@ -17,7 +17,7 @@ import StatsBase: weights, proportions
 import LogExpFunctions: logistic, logsumexp
 
 export
-    BPFactor, MPBP, mpbp, reset_messages!, onebpiter!, CB_BP, iterate!, 
+    BPFactor, nstates, MPBP, mpbp, reset_messages!, onebpiter!, CB_BP, iterate!, 
     pair_beliefs, pair_beliefs_tu, beliefs_tu, autocorrelations,
     autocovariances, beliefs, bethe_free_energy, 
     logprob, marginal_to_expectation, pair_observations_directed, 
@@ -32,7 +32,7 @@ include("utils.jl")
 include("MPEMs/MPEMs.jl")
 using .MPEMs, Reexport
 @reexport import .MPEMs: SVDTrunc, TruncBond, TruncThresh,
-    MPEM, normalize_eachmatrix!, -, isapprox, evaluate, getq, getT, bond_dims,
+    MPEM, normalize_eachmatrix!, -, isapprox, evaluate, getT, bond_dims,
     MPEM2, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!,
     accumulate_L, accumulate_R, accumulate_M, pair_marginal, firstvar_marginal,
     pair_marginal_tu, firstvar_marginal_tu,

@@ -1,14 +1,16 @@
-struct MPBP{q,T,F<:Real,U<:BPFactor}
+struct MPBP{F<:Real,U<:BPFactor}
     g  :: IndexedBiDiGraph{Int}          # graph
     w  :: Vector{Vector{U}}              # factors, one per variable
     ϕ  :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
     ψ  :: Vector{Vector{Matrix{F}}}      # edge-dependent factors
-    μ  :: Vector{MPEM2{q,T,F}}           # messages, two per edge
+    μ  :: Vector{MPEM2{F}}           # messages, two per edge
     
     function MPBP(g::IndexedBiDiGraph{Int}, w::Vector{Vector{U}}, 
             ϕ::Vector{Vector{Vector{F}}}, ψ::Vector{Vector{Matrix{F}}},
-            μ::Vector{MPEM2{q,T,F}}) where {q,T,F<:Real,U<:BPFactor}
+            μ::Vector{MPEM2{F}}) where {F<:Real,U<:BPFactor}
     
+        q = nstates(U)
+        T = length(w[1])
         @assert length(w) == length(ϕ) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
         @assert length(ψ) == ne(g)
         @assert all( length(wᵢ) == T for wᵢ in w )
@@ -17,17 +19,19 @@ struct MPBP{q,T,F<:Real,U<:BPFactor}
         @assert check_ψs(ψ, g)
         @assert all( length(ϕᵢ) == T+1 for ϕᵢ in ϕ )
         @assert all( length(ψᵢ) == T+1 for ψᵢ in ψ )
+        @assert all( getT(μᵢⱼ) == T for μᵢⱼ in μ)
         @assert length(μ) == ne(g)
         normalize!.(μ)
+        # normalize observations at time zero because they play the role of the prior
         for i in vertices(g)
             ϕ[i][begin] ./= sum(ϕ[i][begin])
         end
-        return new{q,T,F,U}(g, w, ϕ, ψ, μ)
+        return new{F,U}(g, w, ϕ, ψ, μ)
     end
 end
 
-getT(::MPBP{q,T,F,U}) where {q,T,F,U} = T
-getq(::MPBP{q,T,F,U}) where {q,T,F,U} = q
+getT(bp::MPBP) = getT(bp.μ[1])
+nstates(::MPBP{F,U}) where {F,U} = nstates(U)
 getN(bp::MPBP) = nv(bp.g)
 
 # check that observation on edge i→j is the same as the one on j→i
@@ -53,9 +57,9 @@ end
 
 function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{U}}, 
         T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
-        ϕ = [[ones(getq(U)) for t in 0:T] for _ in vertices(g)],
-        ψ = [[ones(getq(U),getq(U)) for t in 0:T] for _ in edges(g)],
-        μ = [mpem2(getq(U), T; d, bondsizes) for e in edges(g)]) where {U<:BPFactor}
+        ϕ = [[ones(nstates(U)) for t in 0:T] for _ in vertices(g)],
+        ψ = [[ones(nstates(U),nstates(U)) for t in 0:T] for _ in edges(g)],
+        μ = [mpem2(nstates(U), T; d, bondsizes) for e in edges(g)]) where {U<:BPFactor}
     return MPBP(g, w, ϕ, ψ, μ)
 end
 
@@ -70,8 +74,8 @@ function reset_messages!(bp::MPBP)
 end
 
 # compute outgoing messages from node `i`
-function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U<:BPFactor}
+function onebpiter!(bp::MPBP, i::Integer; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6))
     @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
@@ -90,8 +94,8 @@ function onebpiter!(bp::MPBP{q,T,F,U}, i::Integer;
 end
 
 # compute outgoing message from node `i` to dummy neighbor
-function onebpiter_dummy_neighbor(bp::MPBP{q,T,F,U}, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U}
+function onebpiter_dummy_neighbor(bp::MPBP, i::Integer; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6))
     @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
@@ -107,8 +111,7 @@ struct CB_BP{TP<:ProgressUnknown}
     m    :: Vector{Vector{Vector{Float64}}} 
     Δs   :: Vector{Float64}
 
-    function CB_BP(bp::MPBP{q,T,F,U}; showprogress::Bool=true) where {q,T,F,U}
-        @assert q == 2
+    function CB_BP(bp::MPBP{F,U}; showprogress::Bool=true) where {F,U}
         dt = showprogress ? 0.1 : Inf
         prog = ProgressUnknown(desc="Running MPBP: iter", dt=dt)
         TP = typeof(prog)
@@ -118,7 +121,7 @@ struct CB_BP{TP<:ProgressUnknown}
     end
 end
 
-function (cb::CB_BP)(bp::MPBP{q,T,F,U}, it::Integer) where {q,T,F,U}
+function (cb::CB_BP)(bp::MPBP{F,U}, it::Integer) where {F,U}
     marg_new = [marginal_to_expectation.(firstvar_marginal(msg), U) for msg in bp.μ]
     marg_old = cb.m[end]
     Δ = mean(mean(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
@@ -146,8 +149,8 @@ end
 
 # compute joint beliefs for all pairs of neighbors
 # return also logzᵢⱼ contributions to logzᵢ
-function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
-    b = [[zeros(q,q) for _ in 0:T] for _ in 1:(ne(bp.g))]
+function pair_beliefs(bp::MPBP{F,U}) where {F,U}
+    b = [[zeros(nstates(U),nstates(U)) for _ in 0:getT(bp)] for _ in 1:(ne(bp.g))]
     logz = zeros(nv(bp.g))
     X = bp.g.X
     N = nv(bp.g)
@@ -168,8 +171,7 @@ function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
     b, logz
 end
 
-function beliefs(bp::MPBP{q,T,F,<:BPFactor}; 
-        bij = pair_beliefs(bp)[1], kw...) where {q,T,F}
+function beliefs(bp::MPBP{F,U}; bij = pair_beliefs(bp)[1], kw...) where {F,U<:BPFactor}
     b = map(vertices(bp.g)) do i 
         ij = idx(first(outedges(bp.g, i)))
         bb = bij[ij]
@@ -198,7 +200,8 @@ end
 
 # compute joint beliefs for all pairs of neighbors for all pairs of times t,u
 # p(xᵢᵗ,xⱼᵗ,xᵢᵘ,xⱼᵘ)
-function pair_beliefs_tu(bp::MPBP{q,T,F,U}; showprogress::Bool=true) where {q,T,F,U}
+function pair_beliefs_tu(bp::MPBP{F,U}; showprogress::Bool=true) where {F,U<:BPFactor}
+    q = nstates(U); T = getT(bp)
     b = [[zeros(q,q,q,q) for _ in 0:T, _ in 0:T] for _ in 1:(ne(bp.g))]
     X = bp.g.X
     N = nv(bp.g)
@@ -220,9 +223,7 @@ function pair_beliefs_tu(bp::MPBP{q,T,F,U}; showprogress::Bool=true) where {q,T,
     b
 end
 
-function beliefs_tu(bp::MPBP{q,T,F,U}; 
-        bij_tu::Vector{Matrix{Array{F, 4}}} = pair_beliefs_tu(bp), 
-        kw...) where {q,T,F,U}
+function beliefs_tu(bp::MPBP{F,U}; bij_tu = pair_beliefs_tu(bp), kw...) where {F,U<:BPFactor}
     b = map(vertices(bp.g)) do i 
         ij = idx(first(outedges(bp.g, i)))::Int
         bb = bij_tu[ij]
@@ -242,9 +243,9 @@ function autocorrelation(b_tu::Matrix{Matrix{F}},
     r
 end
 
-function autocorrelations(bp::MPBP{q,T,F,U}; 
+function autocorrelations(bp::MPBP{F,U}; 
         svd_trunc::SVDTrunc = TruncThresh(1e-6),
-        b_tu = beliefs_tu(bp; svd_trunc)) where {q,T,F,U}
+        b_tu = beliefs_tu(bp; svd_trunc)) where {F,U}
     autocorrelations(b_tu, U)
 end
 
@@ -268,8 +269,8 @@ function _autocovariances(r::Vector{Matrix{F}}, μ::Vector{Vector{F}}) where {F<
     end
 end
 
-function autocovariances(bp::MPBP{q,T,F,U}; svd_trunc::SVDTrunc = TruncThresh(1e-6),
-        r = autocorrelations(bp; svd_trunc), m = beliefs(bp)) where {q,T,F,U}
+function autocovariances(bp::MPBP{F,U}; svd_trunc::SVDTrunc = TruncThresh(1e-6),
+        r = autocorrelations(bp; svd_trunc), m = beliefs(bp)) where {F,U}
     μ = [marginal_to_expectation.(mᵢ, U) for mᵢ in m] 
     _autocovariances(r, μ)
 end
@@ -286,9 +287,9 @@ function bethe_free_energy(bp::MPBP; svd_trunc=TruncThresh(1e-4))
 end
 
 # compute log of posterior probability for a trajectory `x`
-function logprob(bp::MPBP{q,T,F,U}, x::Matrix{<:Integer}) where {q,T,F,U}
+function logprob(bp::MPBP, x::Matrix{<:Integer})
     @unpack g, w, ϕ, ψ, μ = bp
-    N = nv(bp.g)
+    N = nv(bp.g); T = getT(bp)
     @assert size(x) == (N , T+1)
     logp = 0.0
 

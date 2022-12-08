@@ -1,19 +1,13 @@
 # Matrix [Aᵗᵢⱼ(xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 4-array A[m,n,xᵢᵗ,xⱼᵗ]
-# T is the final time
-# q is the number of states
-struct MPEM2{q,T,F<:Real} <: MPEM
+struct MPEM2{F<:Real} <: MPEM
     tensors :: Vector{Array{F,4}}     # Vector of length T+1
 
     function MPEM2(tensors::Vector{Array{F,4}}) where {F<:Real}
-        T = length(tensors)-1
-        q = size(tensors[1],3)
-        all(size(t,3) .== size(t,4) .== q for t in tensors) || 
-            throw(ArgumentError("Number of states for each variable must be the same")) 
         size(tensors[1],1) == size(tensors[end],2) == 1 ||
             throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
         check_bond_dims2(tensors) ||
             throw(ArgumentError("Matrix indices for matrix product non compatible"))
-        new{q,T,F}(tensors)
+        new{F}(tensors)
     end
 end
 
@@ -45,20 +39,19 @@ function check_bond_dims2(tensors::Vector{<:Array})
     return true
 end
 
-function bond_dims(A::MPEM2{q,T,F}) where {q,T,F}
+function bond_dims(A::MPEM2)
     return [size(A[t], 2) for t in 1:lastindex(A)-1]
 end
 
 @forward MPEM2.tensors getindex, iterate, firstindex, lastindex, setindex!, 
     length, check_bond_dims2
 
-getq(::MPEM2{q,T,F}) where {q,T,F} = q
-getT(::MPEM2{q,T,F}) where {q,T,F} = T
-eltype(::MPEM2{q,T,F}) where {q,T,F} = F
+getT(A::MPEM2) = length(A.tensors) - 1
+eltype(::MPEM2{F}) where F = F
 
-function evaluate(A::MPEM2{q,T,F}, x) where {q,T,F}
-    length(x) == T + 1 || throw(ArgumentError("`x` must be of length $(T+1), got $(length(x))"))
-    all(xx[1] ∈ 1:q && xx[2] ∈ 1:q for xx in x) || throw(ArgumentError("All `x`'s must be in domain 1:$q")) 
+function evaluate(A::MPEM2, x)
+    length(x) == getT(A) + 1 || throw(ArgumentError("`x` must be of length $(getT(A)+1), got $(length(x))"))
+    # all(xx[1] ∈ 1:q && xx[2] ∈ 1:q for xx in x) || throw(ArgumentError("All `x`'s must be in domain 1:$q")) 
     M = [1.0;;]
     for (t,Aᵗ) in enumerate(A)
         M = M * Aᵗ[:, :, x[t][1], x[t][2]]
@@ -68,20 +61,22 @@ end
 
 
 # when truncating it assumes that matrices are already left-orthogonal
-function sweep_RtoL!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
+function sweep_RtoL!(C::MPEM2; svd_trunc::SVDTrunc=TruncThresh(1e-6))
     Cᵀ = C[end]
+    qᵢ = size(Cᵀ, 3); qⱼ = size(Cᵀ, 4)
     @cast M[m, (n, xᵢ, xⱼ)] := Cᵀ[m, n, xᵢ, xⱼ]
     Cᵗ⁻¹_trunc = rand(1,1,1,1)  # initialize
 
-    for t in T+1:-1:2
+    for t in getT(C)+1:-1:2
         U, λ, V = svd(M)
         mprime = svd_trunc(λ)
         @assert mprime !== nothing "λ=$λ, M=$M"
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
-        @cast Aᵗ[m, n, xᵢ, xⱼ] := V_trunc'[m, (n, xᵢ, xⱼ)] m in 1:mprime, xᵢ in 1:q, xⱼ in 1:q
+        @cast Aᵗ[m, n, xᵢ, xⱼ] := V_trunc'[m, (n, xᵢ, xⱼ)] m in 1:mprime, xᵢ in 1:qᵢ, xⱼ in 1:qⱼ
         C[t] = Aᵗ
         
         Cᵗ⁻¹ = C[t-1]
+        qᵢ = size(Cᵗ⁻¹, 3); qⱼ = size(Cᵗ⁻¹, 4)
         @tullio Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ] := Cᵗ⁻¹[m, k, xᵢ, xⱼ] * 
             U_trunc[k, n] * λ_trunc[n]
         @cast M[m, (n, xᵢ, xⱼ)] := Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ]
@@ -92,21 +87,23 @@ function sweep_RtoL!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) whe
 end
 
 # when truncating it assumes that matrices are already right-orthogonal
-function sweep_LtoR!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
+function sweep_LtoR!(C::MPEM2; svd_trunc::SVDTrunc=TruncThresh(1e-6))
     C⁰ = C[begin]
+    qᵢ = size(C⁰, 3); qⱼ = size(C⁰, 4)
     @cast M[(m, xᵢ, xⱼ), n] |= C⁰[m, n, xᵢ, xⱼ]
     Cᵗ⁺¹_trunc = rand(1,1,1,1)  # initialize
 
-    for t in 1:T
+    for t in 1:getT(C)
         U, λ, V = svd(M)
         mprime = svd_trunc(λ)
         @assert mprime !== nothing "λ=$λ, M=$M"
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
 
-        @cast Aᵗ[m, n, xᵢ, xⱼ] := U_trunc[(m, xᵢ, xⱼ), n] n in 1:mprime, xᵢ in 1:q, xⱼ in 1:q
+        @cast Aᵗ[m, n, xᵢ, xⱼ] := U_trunc[(m, xᵢ, xⱼ), n] n in 1:mprime, xᵢ in 1:qᵢ, xⱼ in 1:qⱼ
         C[t] = Aᵗ
 
         Cᵗ⁺¹ = C[t+1]
+        qᵢ = size(Cᵗ⁺¹, 3); qⱼ = size(Cᵗ⁺¹, 4)
         @tullio Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ] := λ_trunc[m] * V_trunc'[m, l] * 
             Cᵗ⁺¹[l, n, xᵢ, xⱼ]
         @cast M[(m, xᵢ, xⱼ), n] |= Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ]
@@ -116,8 +113,9 @@ function sweep_LtoR!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) whe
     return C
 end
 
-function accumulate_L(A::MPEM2{q,T,F}) where {q,T,F}
-    L = [zeros(0) for t in 0:T]
+function accumulate_L(A::MPEM2)
+    T = getT(A)
+    L = [zeros(0) for _ in 0:T]
     A⁰ = A[begin]
     @reduce L⁰[a¹] := sum(xᵢ⁰,xⱼ⁰) A⁰[1,a¹,xᵢ⁰,xⱼ⁰]
     L[1] = L⁰
@@ -131,8 +129,9 @@ function accumulate_L(A::MPEM2{q,T,F}) where {q,T,F}
     return L
 end
 
-function accumulate_R(A::MPEM2{q,T,F}) where {q,T,F}
-    R = [zeros(0) for t in 0:T]
+function accumulate_R(A::MPEM2)
+    T = getT(A)
+    R = [zeros(0) for _ in 0:T]
     Aᵀ = A[end]
     @reduce Rᵀ[aᵀ] := sum(xᵢᵀ,xⱼᵀ) Aᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ]
     R[end] = Rᵀ
@@ -146,8 +145,9 @@ function accumulate_R(A::MPEM2{q,T,F}) where {q,T,F}
     return R
 end
 
-function accumulate_M(A::MPEM2{q,T,F}) where {q,T,F}
-    M = [zeros(q, q) for _ in 0:T, _ in 0:T]
+function accumulate_M(A::MPEM2)
+    T = getT(A)
+    M = [zeros(0, 0) for _ in 0:T, _ in 0:T]
     
     # initial condition
     for t in 1:T
@@ -156,7 +156,7 @@ function accumulate_M(A::MPEM2{q,T,F}) where {q,T,F}
         M[t, t+1] = Mᵗᵗ⁺¹
     end
 
-    for t in 1:T
+    for t in 1:getT(A)
         Mᵗᵘ⁻¹ = M[t, t+1]
         for u in t+2:T+1
             Aᵘ⁻¹ = A[u-1]
@@ -169,7 +169,7 @@ function accumulate_M(A::MPEM2{q,T,F}) where {q,T,F}
 end
 
 # at each time t, return p(xᵢᵗ, xⱼᵗ)
-function pair_marginal(A::MPEM2{q,T,F}) where {q,T,F}
+function pair_marginal(A::MPEM2)
     L = accumulate_L(A)
     R = accumulate_R(A)
 
@@ -181,7 +181,7 @@ function pair_marginal(A::MPEM2{q,T,F}) where {q,T,F}
     @reduce pᵀ[xᵢᵀ,xⱼᵀ] := sum(aᵀ) Lᵀ⁻¹[aᵀ] * Aᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ]
     pᵀ ./= sum(pᵀ)
 
-    p = map(2:T) do t 
+    p = map(2:getT(A)) do t 
         Lᵗ⁻¹ = L[t-1]
         Aᵗ = A[t]
         Rᵗ⁺¹ = R[t+1]
@@ -192,15 +192,17 @@ function pair_marginal(A::MPEM2{q,T,F}) where {q,T,F}
     return [p⁰, p..., pᵀ]
 end
 
-function firstvar_marginal(A::MPEM2{q,T,F}; p = pair_marginal(A)) where {q,T,F}
+function firstvar_marginal(A::MPEM2; p = pair_marginal(A))
     map(p) do pₜ
         pᵢᵗ =  sum(pₜ, dims=2) |> vec
         pᵢᵗ ./= sum(pᵢᵗ)
     end
 end
 
-function pair_marginal_tu(A::MPEM2{q,T,F}; showprogress::Bool=true) where {q,T,F}
+function pair_marginal_tu(A::MPEM2; showprogress::Bool=true)
     l = accumulate_L(A); r = accumulate_R(A); m = accumulate_M(A)
+    q = size(A[1], 3)
+    T = getT(A)
     b = [zeros(q, q, q, q) for _ in 0:T, _ in 0:T]
     for t in 1:T
         lᵗ⁻¹ = t == 1 ? [1.0;] : l[t-1]
@@ -218,9 +220,8 @@ function pair_marginal_tu(A::MPEM2{q,T,F}; showprogress::Bool=true) where {q,T,F
     b
 end
 
-function firstvar_marginal_tu(A::MPEM2{q,T,F};
-        showprogress::Bool=true, 
-        p_tu = pair_marginal_tu(A; showprogress)) where {q,T,F}
+function firstvar_marginal_tu(A::MPEM2; showprogress::Bool=true, 
+        p_tu = pair_marginal_tu(A; showprogress))
     map(p_tu) do pᵗᵘ
         pᵢᵗᵘ =  sum(sum(pᵗᵘ, dims=2), dims=4)[:,1,:,1]
     end
