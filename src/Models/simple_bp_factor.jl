@@ -54,12 +54,9 @@ function f_bp(A::Vector{MPEM2{F}},
     mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
 
     logz = 0.0
-    l = 1
-    for k in eachindex(A)
-        k == j && continue
+    for (l,k) in enumerate(k for k in eachindex(A) if k != j)
         mᵢⱼₗ₁ = f_bp_partial(A[k], mᵢⱼₗ₁, wᵢ, ψₙᵢ[k], l)
         logz +=  normalize!(mᵢⱼₗ₁)
-        l += 1
         # SVD L to R with no truncation
         sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
         # SVD R to L with truncations
@@ -83,13 +80,13 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
     # initialize recursion
     qxᵢ = nstates(U); qy = nstates(U, 0)
     M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
-    mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
+    mᵢⱼₗ₁ = MPEM2(fill(M, T+1))
 
     logz = 0.0
     # compute partial messages from all neighbors
     for l in eachindex(A)
         mᵢⱼₗ₁ = f_bp_partial(A[l], mᵢⱼₗ₁, wᵢ, ψₙᵢ[l], l)
-        logz +=  normalize!(mᵢⱼₗ₁)
+        logz += normalize!(mᵢⱼₗ₁)
         # SVD L to R with no truncation
         sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
         # SVD R to L with truncations
