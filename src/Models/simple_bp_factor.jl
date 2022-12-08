@@ -38,13 +38,15 @@ function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
     return MPEM3(B)
 end
 
-function f_bp(A::Vector{MPEM2{q,T,F}},
+function f_bp(A::Vector{MPEM2{F}},
         wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}},
         j::Integer;
-        svd_trunc=TruncThresh(1e-6)) where {q,T,F,U<:SimpleBPFactor}
+        svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
 
     d = length(A) - 1   # number of neighbors other than j
     @assert j ∈ eachindex(A)
+    T = getT(A[1])
+    @assert all(getT(a) == T for a in A)
 
     # initialize recursion
     qxᵢ = nstates(U); qy = nstates(U, 0)
@@ -70,14 +72,17 @@ function f_bp(A::Vector{MPEM2{q,T,F}},
     return B, logz
 end
 
-function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, 
+function f_bp_dummy_neighbor(A::Vector{MPEM2{F}}, 
         wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
-        svd_trunc=TruncThresh(1e-6)) where {q,T,F,U<:SimpleBPFactor}
+        svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
     
     d = length(A)
+    T = getT(A[1]); q = nstates(U)
+    @assert all(getT(a) == T for a in A)
 
     # initialize recursion
-    M = reshape(vcat(ones(1,q), zeros(q-1,q)), (1,1,q,q))
+    qxᵢ = nstates(U); qy = nstates(U, 0)
+    M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
     mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
 
     logz = 0.0
@@ -98,8 +103,8 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}},
 end
 
 
-function beliefs(bp::MPBP{q,T,F,U};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U<:SimpleBPFactor}
+function beliefs(bp::MPBP{F,U};
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
     b = [[zeros(nstates(U)) for _ in 0:getT(bp)] for _ in vertices(bp.g)]
     for i in eachindex(b)
         A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
@@ -108,8 +113,9 @@ function beliefs(bp::MPBP{q,T,F,U};
     b
 end
 
-function beliefs_tu(bp::MPBP{q,T,F,<:SimpleBPFactor};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
+function beliefs_tu(bp::MPBP{F,U};
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
+    q = nstates(U); T = getT(bp)
     b = [[zeros(q, q) for _ in 0:T, _ in 0:T] for _ in vertices(bp.g)]
     for i in eachindex(b)
         A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
@@ -132,14 +138,14 @@ function onebpiter_infinite_graph(A::MPEM2, k::Integer, wᵢ::Vector{U},
 end
 
 function iterate_bp_infinite_graph(T::Integer, k::Integer, wᵢ::Vector{U},
-        ϕᵢ = fill(ones(getq(U)), T+1);
-        ψₙᵢ = fill(fill(ones(getq(U), getq(U)), T+1), k),
+        ϕᵢ = fill(ones(nstates(U)), T+1);
+        ψₙᵢ = fill(fill(ones(nstates(U), nstates(U)), T+1), k),
         svd_trunc::SVDTrunc=TruncThresh(1e-6), maxiter=5, tol=1e-5,
         showprogress=true) where {U<:SimpleBPFactor}
     @assert length(ϕᵢ) == T + 1
     @assert length(wᵢ) == T
     
-    A = mpem2(getq(U), T)
+    A = mpem2(nstates(U), T)
     Δs = fill(NaN, maxiter)
     m = firstvar_marginal(A)
     dt = showprogress ? 0.1 : Inf
@@ -172,7 +178,7 @@ end
 # return marginals, expectations of marginals and covariances
 function observables_infinite_graph(A::MPEM2, k::Integer, 
         wᵢ::Vector{<:U}, ϕᵢ;
-        ψₙᵢ = fill(fill(ones(getq(U),getq(U)), length(A)), k),
+        ψₙᵢ = fill(fill(ones(nstates(U),nstates(U)), length(A)), k),
         svd_trunc::SVDTrunc=TruncThresh(1e-6), 
         showprogress=true) where {U<:SimpleBPFactor}
 

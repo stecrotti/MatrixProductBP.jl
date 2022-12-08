@@ -5,15 +5,15 @@ struct SoftMarginSampler{B<:MPBP, F<:AbstractFloat}
     X  :: Vector{Matrix{Int}}
     w  :: Vector{F}
 
-    function SoftMarginSampler(bp::MPBP{q,T,F,U}, 
-            X::Vector{Matrix{Int}}, w::Vector{F}) where{q,T,F,U}
+    function SoftMarginSampler(bp::TBP, 
+            X::Vector{Matrix{Int}}, w::Vector{F}) where{TBP<:MPBP, F}
 
-        N = nv(bp.g)
+        N = nv(bp.g); T = getT(bp)
         @assert length(X) == length(w)
         @assert all(≥(0), w)
         @assert all(x -> size(x) == (N, T+1), X)
 
-        new{MPBP{q,T,F,U}, F}(bp, X, w)
+        new{TBP, F}(bp, X, w)
     end
 end
 
@@ -24,10 +24,10 @@ function SoftMarginSampler(bp::MPBP)
 end
 
 # a sample with its weight
-function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U};
-        rng = GLOBAL_RNG) where {q,T,F,U}
+function onesample!(x::Matrix{Int}, bp::MPBP{F,U};
+        rng = GLOBAL_RNG) where {F,U}
     @unpack g, w, ϕ, ψ, μ = bp
-    N = nv(bp.g)
+    N = nv(bp.g); T = getT(bp); q = nstates(U)
     @assert size(x) == (N , T+1)
     logl = 0.0
 
@@ -54,8 +54,8 @@ function onesample!(x::Matrix{Int}, bp::MPBP{q,T,F,U};
     end
     return x, exp(logl)
 end
-function onesample(bp::MPBP{q,T,F,U}; kw...) where {q,T,F,U}  
-    N = nv(bp.g)
+function onesample(bp::MPBP; kw...)
+    N = nv(bp.g); T = getT(bp)
     x = zeros(Int, N, T+1)
     onesample!(x, bp; kw...)
 end
@@ -86,7 +86,7 @@ end
 # return a (T+1) by N matrix, with uncertainty estimates
 function marginals(sms::SoftMarginSampler) 
     @unpack bp, X, w = sms
-    N = nv(bp.g); T = getT(bp); q = getq(bp)
+    N = nv(bp.g); T = getT(bp); q = nstates(bp)
     marg = [[zeros(Measurement, q) for t in 0:T] for i in 1:N]
     @assert all(>=(0), w)
     wv = weights(w)

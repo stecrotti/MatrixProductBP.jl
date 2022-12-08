@@ -3,7 +3,7 @@ Factor for the factor graph of a model solvable with MPBP.
 
 Any `BPFactor` subtype must implement:
 - A functor that computes the Boltzmann contribution to the joint probability
-- `getq(::Type{<:BPFactor})` returning the number of allowed states for a variable
+- `nstates()::Type{<:BPFactor})` returning the number of allowed states for a variable
 
 That's it!
 
@@ -25,11 +25,14 @@ idx_to_value(x::Integer, ::Type{<:BPFactor}) = x
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)
 # ψᵢⱼ are the ones living on the outedges of node i
-function f_bp(A::Vector{MPEM2{q,T,F}}, wᵢ::Vector{<:BPFactor}, 
+function f_bp(A::Vector{MPEM2{F}}, wᵢ::Vector{U}, 
         ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}}, j_index::Integer;
-        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
+        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {F,U<:BPFactor}
+    T = getT(A[1])
+    @assert all(getT(a) == T for a in A)
     @assert length(wᵢ) == T
     @assert length(ϕᵢ) == T + 1
+    q = nstates(U)
     @assert all(length(ϕᵢᵗ) == q for ϕᵢᵗ in ϕᵢ)
     @assert j_index in eachindex(A)
     z = length(A)      # z = |∂i|
@@ -108,10 +111,12 @@ function f_bp(A::Vector{MPEM2{q,T,F}}, wᵢ::Vector{<:BPFactor},
 end
 
 # compute outgoing message to dummy neighbor to get the belief
-function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}}, 
-        wᵢ::Vector{<:BPFactor}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
-        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {q,T,F}
-    @assert length(pᵢ⁰) == q
+function f_bp_dummy_neighbor(A::Vector{MPEM2{F}}, 
+        wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
+        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {F,U<:BPFactor}
+    T = getT(A[1])
+    @assert all(getT(a) == T for a in A)
+    q = nstates(U)
     @assert length(wᵢ) == T
     @assert length(ϕᵢ) == T + 1
     z = length(A)      # z = |∂i|
@@ -187,8 +192,10 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}},
     return MPEM3(B), 0.0
 end
 
-function accumulate_L(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) where {q,T,F}
-    L = [zeros(0, 0) for t in 0:T]
+function accumulate_L(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
+    T = getT(Aᵢⱼ)
+    @assert getT(Aⱼᵢ) == T
+    L = [zeros(0, 0) for _ in 0:T]
     Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]; ψᵢⱼ⁰ = ψᵢⱼ[begin] 
     @tullio L⁰[a¹, b¹] := Aᵢⱼ⁰[1, a¹, xᵢ⁰, xⱼ⁰] * ψᵢⱼ⁰[xᵢ⁰, xⱼ⁰] * Aⱼᵢ⁰[1, b¹, xⱼ⁰, xᵢ⁰]
     L[1] = L⁰
@@ -203,8 +210,10 @@ function accumulate_L(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) wh
     return L
 end
 
-function accumulate_R(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) where {q,T,F}
-    R = [zeros(0, 0) for t in 0:T]
+function accumulate_R(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
+    T = getT(Aᵢⱼ)
+    @assert getT(Aⱼᵢ) == T
+    R = [zeros(0, 0) for _ in 0:T]
     Aᵢⱼᵀ = Aᵢⱼ[end]; Aⱼᵢᵀ = Aⱼᵢ[end]; ψᵢⱼᵀ = ψᵢⱼ[end]
     @tullio Rᵀ[aᵀ, bᵀ] := Aᵢⱼᵀ[aᵀ, 1, xᵢᵀ, xⱼᵀ] * ψᵢⱼᵀ[xᵢᵀ, xⱼᵀ] * Aⱼᵢᵀ[bᵀ, 1, xⱼᵀ, xᵢᵀ]
     R[end] = Rᵀ
@@ -219,7 +228,9 @@ function accumulate_R(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) wh
     return R
 end
 
-function accumulate_M(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) where {q,T,F}
+function accumulate_M(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
+    T = getT(Aᵢⱼ)
+    @assert getT(Aⱼᵢ) == T
     M = [zeros(0, 0, 0, 0) for _ in 0:T, _ in 0:T]
 
     # initial condition
@@ -244,12 +255,15 @@ function accumulate_M(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) wh
 end
 
 
-function pair_belief_tu(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ;
-    showprogress::Bool=false) where {q,T,F}
+function pair_belief_tu(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ; showprogress::Bool=false)
 
     L = accumulate_L(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
     R = accumulate_R(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
     M = accumulate_M(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
+
+    T = getT(Aᵢⱼ)
+    @assert getT(Aⱼᵢ) == T
+    q = size(Aᵢⱼ[1], 3)
     b = [zeros(q, q, q, q) for _ in 0:T, _ in 0:T]
 
     dt = showprogress ? 0.1 : Inf
@@ -275,13 +289,16 @@ end
 
 # compute bᵢⱼᵗ(xᵢᵗ,xⱼᵗ) from μᵢⱼ and μⱼᵢ
 # also return normalization zᵢⱼ
-function pair_belief(Aᵢⱼ::MPEM2{q,T,F}, Aⱼᵢ::MPEM2{q,T,F}, ψᵢⱼ) where {q,T,F}
+function pair_belief(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
 
     L = accumulate_L(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
     R = accumulate_R(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
     z = only(L[end])
     @assert only(R[begin]) ≈ z
     z ≥ 0 || @warn "z=$z"
+
+    T = getT(Aᵢⱼ)
+    @assert getT(Aⱼᵢ) == T
 
     Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]; ψᵢⱼ⁰ = ψᵢⱼ[begin]
     R¹ = R[2]

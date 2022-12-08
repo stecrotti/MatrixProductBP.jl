@@ -105,11 +105,3 @@ function prob_ijy_dummy(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d
     xⱼᵗ = SUSCEPTIBLE
     return prob_ijy(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d)
 end
-
-function sis_infinite_graph(T::Integer, k::Integer, ϕᵢ, λ::Real, ρ::Real;
-        svd_trunc::SVDTrunc=TruncThresh(1e-6), maxiter=5, tol=1e-5,
-        showprogress=true)
-    wᵢ = fill(SISFactor(λ, ρ), T)
-    A, iters, Δs = iterate_bp_infinite_graph(T, k, wᵢ, ϕᵢ;
-        svd_trunc, maxiter, tol, showprogress)
-end

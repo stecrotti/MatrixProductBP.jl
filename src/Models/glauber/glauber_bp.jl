@@ -77,13 +77,13 @@ idx_to_value(x::Integer, ::Type{<:HomogeneousGlauberFactor}) = potts2spin(x)
 
 prob_partial_msg(wᵢ::HomogeneousGlauberFactor, zₗᵗ, zₗ₁ᵗ, xₗᵗ, l) = ( zₗᵗ == ( zₗ₁ᵗ + 2 - xₗᵗ ) )
 
-# the sum of l spins can be one of (l+1) values. We sort them increasingly and
-#  index them by z
-function _idx_map(l::Integer, z::Integer) 
-    @assert l ≥ 0
-    @assert z ∈ 1:(l+1)
-    return - l + 2*(z-1)
-end
+# # the sum of l spins can be one of (l+1) values. We sort them increasingly and
+# #  index them by z
+# function _idx_map(l::Integer, z::Integer) 
+#     @assert l ≥ 0
+#     @assert z ∈ 1:(l+1)
+#     return - l + 2*(z-1)
+# end
 
 # # compute message m(i→j, l) from m(i→j, l-1) 
 # # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]

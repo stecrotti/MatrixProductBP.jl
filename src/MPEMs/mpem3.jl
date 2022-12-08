@@ -1,19 +1,15 @@
 # Matrix [Bᵗᵢⱼ(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 5-array B[xᵢᵗ,xⱼᵗ,m,n,xᵢᵗ⁺¹]
-# T is the final time
 # The last matrix should have the same values no matter what xᵢᵀ⁺¹ is
-struct MPEM3{T,F<:Real} <: MPEM
+struct MPEM3{F<:Real} <: MPEM
     tensors :: Vector{Array{F,5}}     # Vector of length T+1
     function MPEM3(tensors::Vector{Array{F,5}}) where {F<:Real}
-        T = length(tensors)-1
-        size(tensors[1],3) == size(tensors[end],4) == 1 ||
-            throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
         check_bond_dims3(tensors) ||
             throw(ArgumentError("Matrix indices for matrix product non compatible"))
         
         # tensor Bᵀ does not actually depend on its last index. For simplicity, we ensure it takes the same value no matter the value of the last index
         t = tensors[end][:,:,:,:,1]
         @assert all(tensors[end][:,:,:,:,x] == t for x in axes(tensors[end],5))
-        new{T,F}(tensors)
+        new{F}(tensors)
     end
 end
 
@@ -29,17 +25,17 @@ function check_bond_dims3(tensors::Vector{<:Array})
     return true
 end
 
-function bond_dims(B::MPEM3{T,F}) where {T,F}
+function bond_dims(B::MPEM3)
     return [size(B[t], 4) for t in 1:lastindex(B)-1]
 end
 
 @forward MPEM3.tensors getindex, iterate, firstindex, lastindex, setindex!, 
     check_bond_dims3, length
 
-getT(B::MPEM3{T,F}) where {T,F} = length(B) - 1
-eltype(::MPEM3{T,F}) where {T,F} = F
+getT(B::MPEM3)= length(B) - 1
+eltype(::MPEM3{F}) where {F} = F
 
-function evaluate(B::MPEM3{T,F}, x) where {T,F}
+function evaluate(B::MPEM3, x)
     length(x) == length(B) || throw(ArgumentError("`x` must be of length $(length(B)), got $(length(x))"))
     M = [1.0;;]
     for t in 1:lastindex(B)-1
@@ -50,7 +46,7 @@ function evaluate(B::MPEM3{T,F}, x) where {T,F}
 end
 
 # convert mpem2 into mpem3 via a Left to Right sweep of SVD's
-function mpem2(B::MPEM3{T,F}) where {T,F}
+function mpem2(B::MPEM3{F}) where {F}
     C = Vector{Array{F,4}}(undef, length(B))
     qᵢᵗ = size(B[1], 1); qⱼᵗ = size(B[1], 2); qᵢᵗ⁺¹ = size(B[1], 5)
 
