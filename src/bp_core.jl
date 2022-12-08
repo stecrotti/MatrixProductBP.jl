@@ -13,7 +13,7 @@ Optionally:
 """
 abstract type BPFactor; end
 
-getq(::Type{<:BPFactor}) = error("Not implemented")
+nstates(::Type{<:BPFactor}) = error("Not implemented")
 
 """
 In this code variables take value in {1,2,...,q} but in models these can correspond to other, more physically significant values (e.g. +1,-1 spins)

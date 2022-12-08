@@ -1,6 +1,6 @@
 module Models
 
-import MatrixProductBP: exact_prob, getT, getq, mpbp, 
+import MatrixProductBP: exact_prob, getT, nstates, mpbp, 
     kron2, idx_to_value, f_bp, f_bp_dummy_neighbor, onebpiter_dummy_neighbor,
     pair_belief_tu, beliefs, beliefs_tu, firstvar_marginal_tu
 using MatrixProductBP

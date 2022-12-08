@@ -26,8 +26,8 @@ struct MPBP{q,T,F<:Real,U<:BPFactor}
     end
 end
 
-getT(::MPBP{q,T,F,U}) where {q,T,F,U} = T
-getq(::MPBP{q,T,F,U}) where {q,T,F,U} = q
+getT(bp::MPBP) = getT(bp.μ[1])
+nstates(::MPBP{q,T,F,U}) where {q,T,F,U} = nstates(U)
 getN(bp::MPBP) = nv(bp.g)
 
 # check that observation on edge i→j is the same as the one on j→i
@@ -53,9 +53,9 @@ end
 
 function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{U}}, 
         T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
-        ϕ = [[ones(getq(U)) for t in 0:T] for _ in vertices(g)],
-        ψ = [[ones(getq(U),getq(U)) for t in 0:T] for _ in edges(g)],
-        μ = [mpem2(getq(U), T; d, bondsizes) for e in edges(g)]) where {U<:BPFactor}
+        ϕ = [[ones(nstates(U)) for t in 0:T] for _ in vertices(g)],
+        ψ = [[ones(nstates(U),nstates(U)) for t in 0:T] for _ in edges(g)],
+        μ = [mpem2(nstates(U), T; d, bondsizes) for e in edges(g)]) where {U<:BPFactor}
     return MPBP(g, w, ϕ, ψ, μ)
 end
 
@@ -147,7 +147,7 @@ end
 # compute joint beliefs for all pairs of neighbors
 # return also logzᵢⱼ contributions to logzᵢ
 function pair_beliefs(bp::MPBP{q,T,F,U}) where {q,T,F,U}
-    b = [[zeros(q,q) for _ in 0:T] for _ in 1:(ne(bp.g))]
+    b = [[zeros(nstates(U),nstates(U)) for _ in 0:T] for _ in 1:(ne(bp.g))]
     logz = zeros(nv(bp.g))
     X = bp.g.X
     N = nv(bp.g)

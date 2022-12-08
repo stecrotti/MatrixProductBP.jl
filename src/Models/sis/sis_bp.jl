@@ -11,7 +11,10 @@ struct SISFactor{T<:AbstractFloat} <: SimpleBPFactor
     end
 end
 
-getq(::Type{<:SISFactor}) = 2
+nstates(::Type{<:SISFactor}) = 2
+
+# the accumulated variable is still binary
+nstates(::Type{<:SISFactor}, l::Integer) = 2
 
 function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:2

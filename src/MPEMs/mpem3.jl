@@ -34,13 +34,13 @@ function bond_dims(B::MPEM3{T,F}) where {T,F}
 end
 
 @forward MPEM3.tensors getindex, iterate, firstindex, lastindex, setindex!, 
-    check_bond_dims3
+    check_bond_dims3, length
 
-getT(::MPEM3{T,F}) where {T,F} = T
+getT(B::MPEM3{T,F}) where {T,F} = length(B) - 1
 eltype(::MPEM3{T,F}) where {T,F} = F
 
 function evaluate(B::MPEM3{T,F}, x) where {T,F}
-    length(x) == T + 1 || throw(ArgumentError("`x` must be of length $(T+1), got $(length(x))"))
+    length(x) == length(B) || throw(ArgumentError("`x` must be of length $(length(B)), got $(length(x))"))
     M = [1.0;;]
     for t in 1:lastindex(B)-1
         M = M * B[t][x[t][1], x[t][2], :, :, x[t+1][1]]
@@ -51,13 +51,13 @@ end
 
 # convert mpem2 into mpem3 via a Left to Right sweep of SVD's
 function mpem2(B::MPEM3{T,F}) where {T,F}
-    C = Vector{Array{F,4}}(undef, T+1)
+    C = Vector{Array{F,4}}(undef, length(B))
     qᵢᵗ = size(B[1], 1); qⱼᵗ = size(B[1], 2); qᵢᵗ⁺¹ = size(B[1], 5)
 
     B⁰ = B[begin]
     @cast M[(xᵢᵗ, xⱼᵗ, m), (n, xᵢᵗ⁺¹)] |= B⁰[xᵢᵗ, xⱼᵗ, m, n, xᵢᵗ⁺¹]
     Bᵗ⁺¹_new = rand(1,1,1,1)  # initialize
-    for t in 1:T
+    for t in 1:getT(B)
         U, λ, V = svd(M)   
         m = length(λ)     
         @cast Cᵗ[m, k, xᵢᵗ, xⱼᵗ] := U[(xᵢᵗ, xⱼᵗ, m), k] k in 1:m, xᵢᵗ in 1:qᵢᵗ, xⱼᵗ in 1:qⱼᵗ

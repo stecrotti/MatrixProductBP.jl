@@ -8,8 +8,11 @@ struct HomogeneousGlauberFactor{T<:Real} <: SimpleBPFactor
     βh :: T
 end
 
-getq(::Type{<:GenericGlauberFactor}) = 2
-getq(::Type{<:HomogeneousGlauberFactor}) = 2
+nstates(::Type{<:GenericGlauberFactor}) = 2
+nstates(::Type{<:HomogeneousGlauberFactor}) = 2
+
+# the sum of `l` spins can assume `l+1` values
+nstates(::Type{<:HomogeneousGlauberFactor}, l::Integer) = l + 1
 
 function HomogeneousGlauberFactor(J::T, h::T, β::T) where {T<:Real}
     HomogeneousGlauberFactor(J*β, h*β)

@@ -1,29 +1,34 @@
 # for a `SimpleBPFactor`, outgoing messages can be computed recursively
 abstract type SimpleBPFactor <: BPFactor; end
 
+# number of states for variable which accumulates the first `l` neighbors
+nstates(::Type{<:SimpleBPFactor}, l::Integer) = error("Not implemented")
+
 # compute message m(i→j, l) from m(i→j, l-1) 
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
-function f_bp_partial(mₗᵢ::MPEM2{q,T,F}, mᵢⱼₗ₁::MPEM2{q,T,F}, 
-        wᵢ::Vector{U}, ψᵢₗ, l::Integer) where {q,T,F,U<:SimpleBPFactor}
-    @assert q == 2
+function f_bp_partial(mₗᵢ::MPEM2, mᵢⱼₗ₁::MPEM2, 
+        wᵢ::Vector{U}, ψᵢₗ, l::Integer) where {U<:SimpleBPFactor}
+    T = getT(mₗᵢ)
+    @assert getT(mᵢⱼₗ₁) == T
     map(1:T+1) do t
         Aᵗ = kron2(mₗᵢ[t], mᵢⱼₗ₁[t])
-        qy = nstates(U, l)
-        AAᵗ = zeros(size(Aᵗ, 1), size(Aᵗ, 2), qy, qy)
+        qxᵢ = nstates(U); qy = nstates(U, l)
+        AAᵗ = zeros(size(Aᵗ, 1), size(Aᵗ, 2), qy, qxᵢ)
         if t ≤ T
             @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg(wᵢ[$t],yₗᵗ,yₗ₁ᵗ,xₗᵗ,l) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
         else
-            @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = 1/q * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
+            @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = 1/qy * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
         end
     end |> MPEM2
 end
 
 
 # compute m(i→j) from m(i→j,d)
-function f_bp_partial_ij(A::MPEM2{q,T,F}, wᵢ::Vector{U}, ϕᵢ, 
-    d::Integer; prob = prob_ijy) where {q,T,F,U<:SimpleBPFactor}
+function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
+    d::Integer; prob = prob_ijy) where {U<:SimpleBPFactor}
+    q = nstates(U)
     B = [zeros(q, q, size(a,1), size(a,2), q) for a in A]
-    for t in 1:T
+    for t in 1:getT(A)
         Aᵗ,Bᵗ = A[t], B[t]
         @tullio Bᵗ[xᵢᵗ,xⱼᵗ,m,n,xᵢᵗ⁺¹] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
     end
@@ -42,7 +47,8 @@ function f_bp(A::Vector{MPEM2{q,T,F}},
     @assert j ∈ eachindex(A)
 
     # initialize recursion
-    M = reshape(vcat(ones(1,q), zeros(q-1,q)), (1,1,q,q))
+    qxᵢ = nstates(U); qy = nstates(U, 0)
+    M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
     mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
 
     logz = 0.0
@@ -92,9 +98,9 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{q,T,F}},
 end
 
 
-function beliefs(bp::MPBP{q,T,F,<:SimpleBPFactor};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
-    b = [[zeros(q) for _ in 0:T] for _ in vertices(bp.g)]
+function beliefs(bp::MPBP{q,T,F,U};
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F,U<:SimpleBPFactor}
+    b = [[zeros(nstates(U)) for _ in 0:getT(bp)] for _ in vertices(bp.g)]
     for i in eachindex(b)
         A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
         b[i] .= firstvar_marginal(A)

@@ -7,8 +7,8 @@ struct MPEM2{q,T,F<:Real} <: MPEM
     function MPEM2(tensors::Vector{Array{F,4}}) where {F<:Real}
         T = length(tensors)-1
         q = size(tensors[1],3)
-        all(size(t,3) .== size(t,4) .== q for t in tensors) || 
-            throw(ArgumentError("Number of states for each variable must be the same")) 
+        # all(size(t,3) .== size(t,4) .== q for t in tensors) || 
+        #     throw(ArgumentError("Number of states for each variable must be the same")) 
         size(tensors[1],1) == size(tensors[end],2) == 1 ||
             throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
         check_bond_dims2(tensors) ||
@@ -52,13 +52,12 @@ end
 @forward MPEM2.tensors getindex, iterate, firstindex, lastindex, setindex!, 
     length, check_bond_dims2
 
-getq(::MPEM2{q,T,F}) where {q,T,F} = q
-getT(::MPEM2{q,T,F}) where {q,T,F} = T
+getT(A::MPEM2{q,T,F}) where {q,T,F} = length(A.tensors) - 1
 eltype(::MPEM2{q,T,F}) where {q,T,F} = F
 
 function evaluate(A::MPEM2{q,T,F}, x) where {q,T,F}
-    length(x) == T + 1 || throw(ArgumentError("`x` must be of length $(T+1), got $(length(x))"))
-    all(xx[1] ∈ 1:q && xx[2] ∈ 1:q for xx in x) || throw(ArgumentError("All `x`'s must be in domain 1:$q")) 
+    length(x) == getT(A) + 1 || throw(ArgumentError("`x` must be of length $(getT(A)+1), got $(length(x))"))
+    # all(xx[1] ∈ 1:q && xx[2] ∈ 1:q for xx in x) || throw(ArgumentError("All `x`'s must be in domain 1:$q")) 
     M = [1.0;;]
     for (t,Aᵗ) in enumerate(A)
         M = M * Aᵗ[:, :, x[t][1], x[t][2]]
@@ -70,6 +69,7 @@ end
 # when truncating it assumes that matrices are already left-orthogonal
 function sweep_RtoL!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
     Cᵀ = C[end]
+    qᵢ = size(Cᵀ, 3); qⱼ = size(Cᵀ, 4)
     @cast M[m, (n, xᵢ, xⱼ)] := Cᵀ[m, n, xᵢ, xⱼ]
     Cᵗ⁻¹_trunc = rand(1,1,1,1)  # initialize
 
@@ -78,10 +78,11 @@ function sweep_RtoL!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) whe
         mprime = svd_trunc(λ)
         @assert mprime !== nothing "λ=$λ, M=$M"
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
-        @cast Aᵗ[m, n, xᵢ, xⱼ] := V_trunc'[m, (n, xᵢ, xⱼ)] m in 1:mprime, xᵢ in 1:q, xⱼ in 1:q
+        @cast Aᵗ[m, n, xᵢ, xⱼ] := V_trunc'[m, (n, xᵢ, xⱼ)] m in 1:mprime, xᵢ in 1:qᵢ, xⱼ in 1:qⱼ
         C[t] = Aᵗ
         
         Cᵗ⁻¹ = C[t-1]
+        qᵢ = size(Cᵗ⁻¹, 3); qⱼ = size(Cᵗ⁻¹, 4)
         @tullio Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ] := Cᵗ⁻¹[m, k, xᵢ, xⱼ] * 
             U_trunc[k, n] * λ_trunc[n]
         @cast M[m, (n, xᵢ, xⱼ)] := Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ]
@@ -94,6 +95,7 @@ end
 # when truncating it assumes that matrices are already right-orthogonal
 function sweep_LtoR!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {q,T,F}
     C⁰ = C[begin]
+    qᵢ = size(C⁰, 3); qⱼ = size(C⁰, 4)
     @cast M[(m, xᵢ, xⱼ), n] |= C⁰[m, n, xᵢ, xⱼ]
     Cᵗ⁺¹_trunc = rand(1,1,1,1)  # initialize
 
@@ -103,10 +105,11 @@ function sweep_LtoR!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) whe
         @assert mprime !== nothing "λ=$λ, M=$M"
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
 
-        @cast Aᵗ[m, n, xᵢ, xⱼ] := U_trunc[(m, xᵢ, xⱼ), n] n in 1:mprime, xᵢ in 1:q, xⱼ in 1:q
+        @cast Aᵗ[m, n, xᵢ, xⱼ] := U_trunc[(m, xᵢ, xⱼ), n] n in 1:mprime, xᵢ in 1:qᵢ, xⱼ in 1:qⱼ
         C[t] = Aᵗ
 
         Cᵗ⁺¹ = C[t+1]
+        qᵢ = size(Cᵗ⁺¹, 3); qⱼ = size(Cᵗ⁺¹, 4)
         @tullio Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ] := λ_trunc[m] * V_trunc'[m, l] * 
             Cᵗ⁺¹[l, n, xᵢ, xⱼ]
         @cast M[(m, xᵢ, xⱼ), n] |= Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ]
@@ -117,7 +120,7 @@ function sweep_LtoR!(C::MPEM2{q,T,F}; svd_trunc::SVDTrunc=TruncThresh(1e-6)) whe
 end
 
 function accumulate_L(A::MPEM2{q,T,F}) where {q,T,F}
-    L = [zeros(0) for t in 0:T]
+    L = [zeros(0) for _ in 0:getT(A)]
     A⁰ = A[begin]
     @reduce L⁰[a¹] := sum(xᵢ⁰,xⱼ⁰) A⁰[1,a¹,xᵢ⁰,xⱼ⁰]
     L[1] = L⁰
@@ -132,7 +135,7 @@ function accumulate_L(A::MPEM2{q,T,F}) where {q,T,F}
 end
 
 function accumulate_R(A::MPEM2{q,T,F}) where {q,T,F}
-    R = [zeros(0) for t in 0:T]
+    R = [zeros(0) for _ in 0:getT(A)]
     Aᵀ = A[end]
     @reduce Rᵀ[aᵀ] := sum(xᵢᵀ,xⱼᵀ) Aᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ]
     R[end] = Rᵀ
@@ -147,16 +150,16 @@ function accumulate_R(A::MPEM2{q,T,F}) where {q,T,F}
 end
 
 function accumulate_M(A::MPEM2{q,T,F}) where {q,T,F}
-    M = [zeros(q, q) for _ in 0:T, _ in 0:T]
+    M = [zeros(q, q) for _ in 0:getT(A), _ in 0:getT(A)]
     
     # initial condition
-    for t in 1:T
+    for t in 1:getT(A)
         range_aᵗ⁺¹ = axes(A[t+1], 1)
         Mᵗᵗ⁺¹ = [float((a == c)) for a in range_aᵗ⁺¹, c in range_aᵗ⁺¹]
         M[t, t+1] = Mᵗᵗ⁺¹
     end
 
-    for t in 1:T
+    for t in 1:getT(A)
         Mᵗᵘ⁻¹ = M[t, t+1]
         for u in t+2:T+1
             Aᵘ⁻¹ = A[u-1]
@@ -181,7 +184,7 @@ function pair_marginal(A::MPEM2{q,T,F}) where {q,T,F}
     @reduce pᵀ[xᵢᵀ,xⱼᵀ] := sum(aᵀ) Lᵀ⁻¹[aᵀ] * Aᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ]
     pᵀ ./= sum(pᵀ)
 
-    p = map(2:T) do t 
+    p = map(2:getT(A)) do t 
         Lᵗ⁻¹ = L[t-1]
         Aᵗ = A[t]
         Rᵗ⁺¹ = R[t+1]
