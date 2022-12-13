@@ -57,3 +57,5 @@ function cavity!(dest, source, op, init)
     dest[begin] = right
     full
 end
+
+cavity(source, op, init) = cavity!([init for x in source], source, op, init)
