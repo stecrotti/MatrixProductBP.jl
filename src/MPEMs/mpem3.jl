@@ -52,7 +52,7 @@ function mpem2(B::MPEM3{F}) where {F}
 
     B⁰ = B[begin]
     @cast M[(xᵢᵗ, xⱼᵗ, m), (n, xᵢᵗ⁺¹)] |= B⁰[xᵢᵗ, xⱼᵗ, m, n, xᵢᵗ⁺¹]
-    Bᵗ⁺¹_new = rand(1,1,1,1)  # initialize
+    Bᵗ⁺¹_new = fill(1.0,1,1,1,1)  # initialize
     for t in 1:getT(B)
         U, λ, V = svd(M)   
         m = length(λ)     

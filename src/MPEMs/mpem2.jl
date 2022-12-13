@@ -1,8 +1,8 @@
 # Matrix [Aᵗᵢⱼ(xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 4-array A[m,n,xᵢᵗ,xⱼᵗ]
-struct MPEM2{F<:Real} <: MPEM
+struct MPEM2{F} <: MPEM
     tensors :: Vector{Array{F,4}}     # Vector of length T+1
 
-    function MPEM2(tensors::Vector{Array{F,4}}) where {F<:Real}
+    function MPEM2(tensors::Vector{Array{F,4}}) where {F}
         size(tensors[1],1) == size(tensors[end],2) == 1 ||
             throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
         check_bond_dims2(tensors) ||
@@ -59,6 +59,21 @@ function evaluate(A::MPEM2, x)
     return only(M)
 end
 
+
+function MPEM1(C::MPEM2)
+    MPEM1([reshape(c, size(c,1), size(c,2), size(c,3)*size(c,4)) for c in C.tensors])
+end
+
+# function MPEM2(C::MPEM1, D::MPEM2)
+#     MPEM2([reshape(c, size(c,1), size(c,2), size(d,3), size(d,4)) for (c,d) in zip(C.tensors,D.tensors)])
+# end
+
+
+# sweep_RtoL!(C::MPEM2; svd_trunc::SVDTrunc=TruncThresh(1e-6)) = 
+#         MPEM2(sweep_RtoL!(MPEM1(C); svd_trunc), C)
+
+# sweep_LtoR!(C::MPEM2; svd_trunc::SVDTrunc=TruncThresh(1e-6)) = 
+#         MPEM2(sweep_RtoL!(MPEM1(C); svd_trunc), C)
 
 # when truncating it assumes that matrices are already left-orthogonal
 function sweep_RtoL!(C::MPEM2; svd_trunc::SVDTrunc=TruncThresh(1e-6))
