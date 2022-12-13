@@ -58,4 +58,8 @@ function cavity!(dest, source, op, init)
     full
 end
 
-cavity(source, op, init) = cavity!([init for x in source], source, op, init)
+function cavity(source, op, init)
+    dest = [init for x in source]
+    full = cavity!(dest, source, op, init)
+    dest, full
+end
