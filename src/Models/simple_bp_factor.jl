@@ -15,7 +15,7 @@ function f_bp_partial(mₗᵢ::MPEM2, mᵢⱼₗ₁::MPEM2,
         qxᵢ = nstates(U); qy = nstates(U, l)
         AAᵗ = zeros(size(Aᵗ, 1), size(Aᵗ, 2), qy, qxᵢ)
         if t ≤ T
-            @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg(wᵢ[$t],yₗᵗ,yₗ₁ᵗ,xₗᵗ,l) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
+            @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg(wᵢ[min(T, $t)],yₗᵗ,yₗ₁ᵗ,xₗᵗ,l) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
         else
             @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = 1/qy * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
         end
@@ -139,7 +139,12 @@ function onebpiter!(bp::MPBP{F,U}, i::Integer;
         B, logz + lz1 + lz2
     end
 
-    C = cavity(B, op, init)
+    dest, (full,_,logzi)  = cavity(B, op, init)
+    (C,_,logzs) = unzip(dest)
+
+    for k in eachindex(A)
+        for t in eachindex()
+    end
 
     for (j_ind, e_out) in enumerate(eout)
         B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)

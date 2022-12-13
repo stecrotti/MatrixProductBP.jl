@@ -14,6 +14,7 @@ import ProgressMeter: Progress, next!
 import LogExpFunctions: xlogx, xlogy
 import Statistics: mean
 import Tullio: @tullio
+import Unzip: unzip
 
 export 
     SimpleBPFactor, beliefs, beliefs_tu,
