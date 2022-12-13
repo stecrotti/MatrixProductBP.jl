@@ -14,6 +14,7 @@ export
     SVDTrunc, TruncBond, TruncThresh,
     MPEM, normalize_eachmatrix!, -, isapprox, evaluate, getT, bond_dims,
     MPEM2, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!,
+    MPEM1,
     accumulate_L, accumulate_R, accumulate_M, pair_marginal, firstvar_marginal,
     pair_marginal_tu, firstvar_marginal_tu,
     normalization, normalize!,
@@ -23,6 +24,7 @@ export
 abstract type MPEM; end
 
 include("svd_trunc.jl")
+include("mpem1.jl")
 include("mpem2.jl")
 include("mpem3.jl")
 
