@@ -3,15 +3,16 @@ struct MPBP{F<:Real,U<:BPFactor}
     w  :: Vector{Vector{U}}              # factors, one per variable
     ϕ  :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
     ψ  :: Vector{Vector{Matrix{F}}}      # edge-dependent factors
-    μ  :: Vector{MPEM2{F}}           # messages, two per edge
+    μ  :: Vector{MPEM2{F}}               # messages, two per edge
+    b  :: Vector{MPEM1{F}}               # beliefs in matrix product form
     
     function MPBP(g::IndexedBiDiGraph{Int}, w::Vector{Vector{U}}, 
             ϕ::Vector{Vector{Vector{F}}}, ψ::Vector{Vector{Matrix{F}}},
-            μ::Vector{MPEM2{F}}) where {F<:Real,U<:BPFactor}
+            μ::Vector{MPEM2{F}}, b::Vector{MPEM1{F}}) where {F<:Real,U<:BPFactor}
     
         q = nstates(U)
         T = length(w[1])
-        @assert length(w) == length(ϕ) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
+        @assert length(w) == length(ϕ) == length(b) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
         @assert length(ψ) == ne(g)
         @assert all( length(wᵢ) == T for wᵢ in w )
         @assert all( length(ϕ[i][t]) == q for i in eachindex(ϕ) for t in eachindex(ϕ[i]) )
@@ -20,13 +21,14 @@ struct MPBP{F<:Real,U<:BPFactor}
         @assert all( length(ϕᵢ) == T+1 for ϕᵢ in ϕ )
         @assert all( length(ψᵢ) == T+1 for ψᵢ in ψ )
         @assert all( getT(μᵢⱼ) == T for μᵢⱼ in μ)
+        @assert all( getT(bᵢ) == T for bᵢ in b )
         @assert length(μ) == ne(g)
         normalize!.(μ)
         # normalize observations at time zero because they play the role of the prior
         for i in vertices(g)
             ϕ[i][begin] ./= sum(ϕ[i][begin])
         end
-        return new{F,U}(g, w, ϕ, ψ, μ)
+        return new{F,U}(g, w, ϕ, ψ, μ, b)
     end
 end
 
@@ -59,8 +61,9 @@ function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{U}},
         T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(nstates(U)) for t in 0:T] for _ in vertices(g)],
         ψ = [[ones(nstates(U),nstates(U)) for t in 0:T] for _ in edges(g)],
-        μ = [mpem2(nstates(U), T; d, bondsizes) for e in edges(g)]) where {U<:BPFactor}
-    return MPBP(g, w, ϕ, ψ, μ)
+        μ = [mpem2(nstates(U), T; d, bondsizes) for e in edges(g)],
+        b = [mpem1(nstates(U), T; d, bondsizes) for i in vertices(g)]) where {U<:BPFactor}
+    return MPBP(g, w, ϕ, ψ, μ, b)
 end
 
 function reset_messages!(bp::MPBP)
@@ -90,6 +93,7 @@ function onebpiter!(bp::MPBP, i::Integer;
         logzᵢ += logzᵢ₂ⱼ
     end
     dᵢ = length(ein)
+    A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
     return (1 / dᵢ) * logzᵢ
 end
 
