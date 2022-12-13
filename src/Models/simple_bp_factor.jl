@@ -79,7 +79,8 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
 
     # initialize recursion
     qxᵢ = nstates(U); qy = nstates(U, 0)
-    M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
+    M = fill(1.0, 1, 1, 1, qxᵢ)
+    #M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
     mᵢⱼₗ₁ = MPEM2(fill(M, T+1))
 
     logz = 0.0
@@ -99,6 +100,58 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
     return B, logz
 end
 
+# compute outgoing messages from node `i`
+function onebpiter!(bp::MPBP{F,U}, i::Integer; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U}
+    @unpack g, w, ϕ, ψ, μ = bp
+    ein = inedges(g,i)
+    eout = outedges(g, i)
+    A = μ[ein.|>idx]; ψout = ψ[eout.|>idx]
+    @assert all(normalization(a) ≈ 1 for a in A)
+    logzᵢ = 0.0
+    B = map(eachindex(A)) do k
+        Bk = map(1:getT(A[k])) do t
+            Ak = A[k][t]
+            qy = nstates(U, 1)
+            wᵢᵗ = bp.w[i][t]
+            ψᵢₖᵗ = ψout[k][t]
+            Bkt = zeros(size(Ak,1), size(Ak,2), qy, size(Ak,4))
+            @tullio Bkt[m,n,yₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ) * Ak[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xₖ,xᵢ]
+        end |> MPEM2
+        Bk, 1, 0.0
+    end
+
+    M = fill(1.0, 1, 1, 1, qxᵢ)
+    init = (MPEM2(fill(M, T+1)), 0, 0.0)
+
+
+    function op((B1, n1 ,lz1), (B2, n2, lz2))
+        B = map(eachindex(B1.tensors)) do t
+            Bout = zeros(size(B1[t],1), size(B1[t],2), nstates(U,n1+n2), size(B1[t],4))
+            Bᵗ = kron2(B1[t], B2[t])
+            @tullio Bout[m,n,y,xᵢ] = prob_yy(bp.w[$i][$t],y,y1,y2,xᵢ) * Bᵗ[m,n,xᵢ,y1,y2]
+        end |> MPEM2
+        logz = normalize!(B)
+        # SVD L to R with no truncation
+        sweep_LtoR!(B, svd_trunc=TruncThresh(0.0))
+        # SVD R to L with truncations
+        sweep_RtoL!(B; svd_trunc)
+        B, logz + lz1 + lz2
+    end
+
+    C = cavity(B, op, init)
+
+    for (j_ind, e_out) in enumerate(eout)
+        B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
+        C = mpem2(B)
+        μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
+        logzᵢ₂ⱼ += normalize!(μ[idx(e_out)])
+        logzᵢ += logzᵢ₂ⱼ
+    end
+    dᵢ = length(ein)
+    bp.b[i] = onebpiter_dummy_neighbor(bp, i; svd_trunc) |> marginalize
+    return (1 / dᵢ) * logzᵢ
+end
 
 function beliefs(bp::MPBP{F,U};
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}

@@ -10,11 +10,6 @@ function kron2(A₁::Array{F,4}) where F
     @cast _[m₁, n₁, xᵢ, x₁] := A₁[m₁, n₁, x₁, xᵢ]
 end
 function kron2(A₁::Array{F,4}, A₂::Array{F,4}) where F
-    # this is in case A₂ has a wider range for xᵢ.
-    # that only happens when A₂ has the same value no matter xᵢ, so we might
-    #  as well truncate it
-    q = size(A₁)[4]
-    A₂ = A₂[:,:,:,1:q]
     @cast _[(m₁, m₂), (n₁, n₂), xᵢ, x₁, x₂] := A₁[m₁, n₁, x₁, xᵢ] * 
         A₂[m₂, n₂, x₂, xᵢ]
 end
