@@ -93,7 +93,7 @@ function onebpiter!(bp::MPBP, i::Integer;
         logzᵢ += logzᵢ₂ⱼ
     end
     dᵢ = length(ein)
-    A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
+    bp.b[i] = onebpiter_dummy_neighbor(bp, i; svd_trunc) |> marginalize
     return (1 / dᵢ) * logzᵢ
 end
 

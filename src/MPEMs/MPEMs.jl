@@ -14,7 +14,7 @@ export
     SVDTrunc, TruncBond, TruncThresh,
     MPEM, normalize_eachmatrix!, -, isapprox, evaluate, getT, bond_dims,
     MPEM2, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!,
-    MPEM1,
+    MPEM1, mpem1, marginalize, marginals,
     accumulate_L, accumulate_R, accumulate_M, pair_marginal, firstvar_marginal,
     pair_marginal_tu, firstvar_marginal_tu,
     normalization, normalize!,
