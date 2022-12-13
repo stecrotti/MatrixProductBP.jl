@@ -136,7 +136,7 @@ function onebpiter!(bp::MPBP{F,U}, i::Integer;
         sweep_LtoR!(B, svd_trunc=TruncThresh(0.0))
         # SVD R to L with truncations
         sweep_RtoL!(B; svd_trunc)
-        B, logz + lz1 + lz2
+        B, n1 + n2, logz + lz1 + lz2
     end
 
     dest, (full,_,logzi)  = cavity(B, op, init)
