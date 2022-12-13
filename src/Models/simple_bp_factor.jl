@@ -102,12 +102,7 @@ end
 
 function beliefs(bp::MPBP{F,U};
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
-    b = [[zeros(nstates(U)) for _ in 0:getT(bp)] for _ in vertices(bp.g)]
-    for i in eachindex(b)
-        A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
-        b[i] .= firstvar_marginal(A)
-    end
-    b
+    [marginals(bi) for bi in bp.b]
 end
 
 function beliefs_tu(bp::MPBP{F,U};

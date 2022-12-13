@@ -35,7 +35,7 @@ using .MPEMs, Reexport
     MPEM, normalize_eachmatrix!, -, isapprox, evaluate, getT, bond_dims,
     MPEM2, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!,
     accumulate_L, accumulate_R, accumulate_M, pair_marginal, firstvar_marginal,
-    pair_marginal_tu, firstvar_marginal_tu,
+    pair_marginal_tu, firstvar_marginal_tu, marginals, mpem1,
     normalization, normalize!, MPEM3
 
 include("bp_core.jl")

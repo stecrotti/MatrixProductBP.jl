@@ -176,7 +176,7 @@ function marginals(A::MPEM1)
         pᵗ ./= sum(pᵗ)
     end
 
-    return [p⁰, p..., pᵀ]
+    return append!([p⁰], p, [pᵀ])
 end
 
 
