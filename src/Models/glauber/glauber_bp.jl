@@ -97,3 +97,6 @@ function prob_ijy_dummy(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, x
     @assert 0 ≤ p ≤ 1
     p
 end
+
+prob_xy(wᵢ::HomogeneousGlauberFactor, yₖ, xₖ, xᵢ) = ( yₖ == xₖ )
+prob_yy(wᵢ::HomogeneousGlauberFactor, y, y1, y2, xᵢ) = ( y == y1 + y2 )
