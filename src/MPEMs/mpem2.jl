@@ -260,3 +260,7 @@ function normalize!(A::MPEM2)
     end
     c + log(Z)
 end
+
+function marginalize(A::MPEM2)
+    MPEM1([@tullio b[m,n,xi] := a[m,n,xi,xj] for a in A])
+end
