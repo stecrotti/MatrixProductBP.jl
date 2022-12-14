@@ -27,5 +27,5 @@ function SIS(g::IndexedGraph{Int}, λ::F, ρ::F, T::Int;
 end
 
 function sis_factors(sis::SIS{T,N,F}) where {T,N,F}
-    [fill(SISFactor(sis.λ, sis.ρ), T) for i in vertices(sis.g)]
+    [fill(SISFactor(sis.λ, sis.ρ), T + 1) for i in vertices(sis.g)]
 end

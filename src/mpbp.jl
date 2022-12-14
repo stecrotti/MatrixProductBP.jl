@@ -11,15 +11,15 @@ struct MPBP{F<:Real,U<:BPFactor}
             μ::Vector{MPEM2{F}}, b::Vector{MPEM1{F}}) where {F<:Real,U<:BPFactor}
     
         q = nstates(U)
-        T = length(w[1])
+        T = length(w[1]) - 1
         @assert length(w) == length(ϕ) == length(b) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
         @assert length(ψ) == ne(g)
-        @assert all( length(wᵢ) == T for wᵢ in w )
+        @assert all( length(wᵢ) == T + 1 for wᵢ in w )
         @assert all( length(ϕ[i][t]) == q for i in eachindex(ϕ) for t in eachindex(ϕ[i]) )
         @assert all( size(ψ[ij][t]) == (q,q) for ij in eachindex(ψ) for t in eachindex(ψ[ij]) )
         @assert check_ψs(ψ, g)
-        @assert all( length(ϕᵢ) == T+1 for ϕᵢ in ϕ )
-        @assert all( length(ψᵢ) == T+1 for ψᵢ in ψ )
+        @assert all( length(ϕᵢ) == T + 1 for ϕᵢ in ϕ )
+        @assert all( length(ψᵢ) == T + 1 for ψᵢ in ψ )
         @assert all( getT(μᵢⱼ) == T for μᵢⱼ in μ)
         @assert all( getT(bᵢ) == T for bᵢ in b )
         @assert length(μ) == ne(g)
@@ -294,7 +294,7 @@ end
 function logprob(bp::MPBP, x::Matrix{<:Integer})
     @unpack g, w, ϕ, ψ, μ = bp
     N = nv(bp.g); T = getT(bp)
-    @assert size(x) == (N , T+1)
+    @assert size(x) == (N , T + 1)
     logp = 0.0
 
     for i in 1:N

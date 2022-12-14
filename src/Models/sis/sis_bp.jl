@@ -58,8 +58,8 @@ end
 
 function prob_ijy(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d)
     @unpack λ, ρ = wᵢ
-    z = 1 - λ*(xⱼᵗ==INFECTED)
-    w = (yᵗ==SUSCEPTIBLE)
+    z = 1 - λ*(xⱼᵗ == INFECTED)
+    w = (yᵗ == SUSCEPTIBLE)
     if xᵢᵗ⁺¹ == INFECTED
         return (xᵢᵗ==INFECTED) * (1 - ρ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - z * w) 
     elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
@@ -72,3 +72,10 @@ function prob_ijy_dummy(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d
     xⱼᵗ = SUSCEPTIBLE
     return prob_ijy(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d)
 end
+
+function prob_xy(wᵢ::SISFactor, yₖ, xₖ, xᵢ)
+    @unpack λ = wᵢ
+    (yₖ == INFECTED)*λ*(xₖ==INFECTED) + (yₖ == SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
+end
+
+prob_yy(wᵢ::SISFactor, y, y1, y2, xᵢ) = 1.0*((y == INFECTED) == (y1 == INFECTED) || (y2 == INFECTED))

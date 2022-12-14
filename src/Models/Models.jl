@@ -1,8 +1,11 @@
 module Models
 
+
+
 import MatrixProductBP: exact_prob, getT, nstates, mpbp, 
     kron2, idx_to_value, f_bp, f_bp_dummy_neighbor, onebpiter_dummy_neighbor,
-    pair_belief_tu, beliefs, beliefs_tu, firstvar_marginal_tu, marginals
+    pair_belief_tu, beliefs, beliefs_tu, firstvar_marginal_tu, marginals, 
+    marginalize, cavity, onebpiter!
 using MatrixProductBP
 
 import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, ne, nv, outedges, idx,
@@ -23,6 +26,7 @@ export
     HomogeneousGlauberFactor, GenericGlauberFactor, mpbp, 
     SIS, SISFactor, SUSCEPTIBLE, INFECTED,
     kl_marginals, l1_marginals, auc
+
 
 include("simple_bp_factor.jl")
 
