@@ -14,7 +14,7 @@ end
 nstates(::Type{<:SISFactor}) = 2
 
 # the accumulated variable is still binary
-nstates(::Type{<:SISFactor}, l::Integer) = 2
+nstates(::Type{<:SISFactor}, l::Integer) = l == 0 ? 1 : 2
 
 function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:2
@@ -78,4 +78,4 @@ function prob_xy(wᵢ::SISFactor, yₖ, xₖ, xᵢ)
     (yₖ == INFECTED)*λ*(xₖ==INFECTED) + (yₖ == SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
 end
 
-prob_yy(wᵢ::SISFactor, y, y1, y2, xᵢ) = 1.0*((y == INFECTED) == (y1 == INFECTED) || (y2 == INFECTED))
+prob_yy(wᵢ::SISFactor, y, y1, y2, xᵢ) = 1.0*((y == INFECTED) == ((y1 == INFECTED) || (y2 == INFECTED)))

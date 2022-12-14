@@ -70,7 +70,7 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
         svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
     
     d = length(A)
-    T = getT(A[1]); q = nstates(U)
+    T = length(wᵢ)-1; q = nstates(U)
     @assert all(getT(a) == T for a in A)
 
     # initialize recursion
@@ -142,7 +142,7 @@ function onebpiter!(bp::MPBP{F,U}, i::Integer;
     end
     B = f_bp_partial_ij(full, wᵢ, ϕᵢ, dᵢ; prob = prob_ijy_dummy)
     bp.b[i] = B |> mpem2 |> marginalize
-    return logzᵢ / dᵢ
+    return dᵢ == 0 ? 0.0 : logzᵢ / dᵢ
 end
 
 

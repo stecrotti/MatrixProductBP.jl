@@ -32,7 +32,7 @@ struct MPBP{F<:Real,U<:BPFactor}
     end
 end
 
-getT(bp::MPBP) = getT(bp.μ[1])
+getT(bp::MPBP) = getT(bp.b[1])
 nstates(::MPBP{F,U}) where {F,U} = nstates(U)
 getN(bp::MPBP) = nv(bp.g)
 
@@ -128,7 +128,11 @@ end
 function (cb::CB_BP)(bp::MPBP{F,U}, it::Integer) where {F,U}
     marg_new = [marginal_to_expectation.(firstvar_marginal(msg), U) for msg in bp.μ]
     marg_old = cb.m[end]
-    Δ = mean(mean(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
+    if isempty(marg_new)
+        Δ = NaN
+    else
+        Δ = mean(mean(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
+    end
     push!(cb.Δs, Δ)
     push!(cb.m, marg_new)
     next!(cb.prog, showvalues=[(:Δ,Δ)])
