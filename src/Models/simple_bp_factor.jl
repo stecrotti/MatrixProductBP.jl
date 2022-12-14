@@ -13,12 +13,8 @@ function f_bp_partial(mₗᵢ::MPEM2, mᵢⱼₗ₁::MPEM2,
     map(1:T+1) do t
         Aᵗ = kron2(mₗᵢ[t], mᵢⱼₗ₁[t])
         qxᵢ = nstates(U); qy = nstates(U, l)
-        AAᵗ = zeros(size(Aᵗ, 1), size(Aᵗ, 2), qy, qxᵢ)
-        if t ≤ T
-            @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg(wᵢ[min(T, $t)],yₗᵗ,yₗ₁ᵗ,xₗᵗ,l) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
-        else
-            @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = 1/qy * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
-        end
+        AAᵗ = zeros(size(Aᵗ, 1), size(Aᵗ, 2), qy, qxᵢ)        
+        @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg(wᵢ[$t],yₗᵗ,yₗ₁ᵗ,xₗᵗ,l) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
     end |> MPEM2
 end
 
@@ -102,61 +98,53 @@ end
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP{F,U}, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F<:Real,U<:SimpleBPFactor}
     @unpack g, w, ϕ, ψ, μ = bp
-    ein = inedges(g,i)
-    eout = outedges(g, i)
-    A = μ[ein.|>idx]; ψout = ψ[eout.|>idx]
-    @assert all(normalization(a) ≈ 1 for a in A)
-    logzᵢ = 0.0
-    B = map(eachindex(A)) do k
-        Bk = map(1:getT(A[k])) do t
-            Ak = A[k][t]
-            qy = nstates(U, 1)
-            wᵢᵗ = bp.w[i][t]
-            ψᵢₖᵗ = ψout[k][t]
-            Bkt = zeros(size(Ak,1), size(Ak,2), qy, size(Ak,4))
-            @tullio Bkt[m,n,yₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ) * Ak[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xₖ,xᵢ]
-        end |> MPEM2
-        Bk, 1, 0.0
-    end
-
-    M = fill(1.0, 1, 1, 1, qxᵢ)
-    init = (MPEM2(fill(M, T+1)), 0, 0.0)
-
-
-    function op((B1, n1 ,lz1), (B2, n2, lz2))
-        B = map(eachindex(B1.tensors)) do t
-            Bout = zeros(size(B1[t],1), size(B1[t],2), nstates(U,n1+n2), size(B1[t],4))
-            Bᵗ = kron2(B1[t], B2[t])
-            @tullio Bout[m,n,y,xᵢ] = prob_yy(bp.w[$i][$t],y,y1,y2,xᵢ) * Bᵗ[m,n,xᵢ,y1,y2]
-        end |> MPEM2
-        logz = normalize!(B)
-        # SVD L to R with no truncation
-        sweep_LtoR!(B, svd_trunc=TruncThresh(0.0))
-        # SVD R to L with truncations
-        sweep_RtoL!(B; svd_trunc)
-        B, n1 + n2, logz + lz1 + lz2
-    end
-
-    dest, (full,_,logzi)  = cavity(B, op, init)
-    (C,_,logzs) = unzip(dest)
-
-    for k in eachindex(A)
-        for t in eachindex()
-    end
-
-    for (j_ind, e_out) in enumerate(eout)
-        B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
-        C = mpem2(B)
-        μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
-        logzᵢ₂ⱼ += normalize!(μ[idx(e_out)])
-        logzᵢ += logzᵢ₂ⱼ
-    end
+    ein, eout = inedges(g,i), outedges(g, i)
     dᵢ = length(ein)
-    bp.b[i] = onebpiter_dummy_neighbor(bp, i; svd_trunc) |> marginalize
-    return (1 / dᵢ) * logzᵢ
+    wᵢ, ϕᵢ = w[i], ϕ[i]
+    T = getT(bp)
+    A, ψout = μ[ein.|>idx], ψ[eout.|>idx]
+    @assert all(normalization(a) ≈ 1 for a in A)
+ 
+    B = map(1:dᵢ) do k
+        Bk = map(1:getT(A[k]) + 1) do t
+            Akt, wᵢᵗ, ψᵢₖᵗ = A[k][t], wᵢ[t], ψout[k][t]
+            Bkt = zeros(size(Akt,1), size(Akt,2), nstates(U, 1), size(Akt,4))
+            @tullio Bkt[m,n,yₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ) * Akt[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ]
+        end |> MPEM2
+        Bk, 0.0, 1
+    end
+
+    Minit = fill(1.0, 1, 1, 1, nstates(U))
+    init = (MPEM2(fill(Minit, T + 1)), 0.0, 0)
+
+    function op((B1, lz1, n1), (B2, lz2, n2))
+        B = map(eachindex(B1.tensors)) do t
+            Bᵗ = kron2(B1[t], B2[t])
+            Bout = zeros(size(Bᵗ,1), size(Bᵗ,2), nstates(U,n1+n2), size(Bᵗ,3))
+            @tullio Bout[m,n,y,xᵢ] = prob_yy(wᵢ[$t],y,y1,y2,xᵢ) * Bᵗ[m,n,xᵢ,y1,y2]
+        end |> MPEM2
+        lz = normalize!(B)
+        sweep_LtoR!(B, svd_trunc=TruncThresh(0.0))
+        sweep_RtoL!(B; svd_trunc)
+        B, lz + lz1 + lz2, n1 + n2
+    end
+
+    dest, (full, logzᵢ2)  = cavity(B, op, init)
+    (C, logzs) = unzip(dest)
+
+    logzᵢ = sum(logzs)
+    for (j,e) = enumerate(eout)
+        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1; prob = prob_ijy)
+        μ[idx(e)] = sweep_RtoL!(mpem2(B); svd_trunc)
+        logzᵢ += normalize!(μ[idx(e)])
+    end
+    B = f_bp_partial_ij(full, wᵢ, ϕᵢ, dᵢ; prob = prob_ijy_dummy)
+    bp.b[i] = B |> mpem2 |> marginalize
+    return logzᵢ / dᵢ
 end
+
 
 function beliefs(bp::MPBP{F,U};
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}

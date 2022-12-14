@@ -68,7 +68,7 @@ function glauber_factors(ising::Ising, T::Integer)
         else
             GenericGlauberFactor(J, h, ising.β)
         end
-        fill(wᵢᵗ, T)
+        fill(wᵢᵗ, T + 1)
     end
 end
 
@@ -98,5 +98,5 @@ function prob_ijy_dummy(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, x
     p
 end
 
-prob_xy(wᵢ::HomogeneousGlauberFactor, yₖ, xₖ, xᵢ) = ( yₖ == xₖ )
-prob_yy(wᵢ::HomogeneousGlauberFactor, y, y1, y2, xᵢ) = ( y == y1 + y2 )
+prob_xy(wᵢ::HomogeneousGlauberFactor, yₖ, xₖ, xᵢ) = (yₖ != xₖ)
+prob_yy(wᵢ::HomogeneousGlauberFactor, y, y1, y2, xᵢ) = (y == y1 + y2 - 1)
