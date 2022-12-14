@@ -35,65 +35,65 @@ function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
 end
 
 function f_bp(A::Vector{MPEM2{F}},
-        wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}},
-        j::Integer;
-        svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
+    wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}},
+    j::Integer;
+    svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
 
-    d = length(A) - 1   # number of neighbors other than j
-    @assert j ∈ eachindex(A)
-    T = getT(A[1])
-    @assert all(getT(a) == T for a in A)
+d = length(A) - 1   # number of neighbors other than j
+@assert j ∈ eachindex(A)
+T = getT(A[1])
+@assert all(getT(a) == T for a in A)
 
-    # initialize recursion
-    qxᵢ = nstates(U); qy = nstates(U, 0)
-    M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
-    mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
+# initialize recursion
+qxᵢ = nstates(U); qy = nstates(U, 0)
+M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
+mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
 
-    logz = 0.0
-    for (l,k) in enumerate(k for k in eachindex(A) if k != j)
-        mᵢⱼₗ₁ = f_bp_partial(A[k], mᵢⱼₗ₁, wᵢ, ψₙᵢ[k], l)
-        logz +=  normalize!(mᵢⱼₗ₁)
-        # SVD L to R with no truncation
-        sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
-        # SVD R to L with truncations
-        sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
-    end
+logz = 0.0
+for (l,k) in enumerate(k for k in eachindex(A) if k != j)
+    mᵢⱼₗ₁ = f_bp_partial(A[k], mᵢⱼₗ₁, wᵢ, ψₙᵢ[k], l)
+    logz +=  normalize!(mᵢⱼₗ₁)
+    # SVD L to R with no truncation
+    sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
+    # SVD R to L with truncations
+    sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
+end
 
-    # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy)
+# combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
+B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy)
 
-    return B, logz
+return B, logz
 end
 
 function f_bp_dummy_neighbor(A::Vector{MPEM2{F}}, 
-        wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
-        svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
-    
-    d = length(A)
-    T = length(wᵢ)-1; q = nstates(U)
-    @assert all(getT(a) == T for a in A)
+    wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
+    svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
 
-    # initialize recursion
-    qxᵢ = nstates(U); qy = nstates(U, 0)
-    M = fill(1.0, 1, 1, 1, qxᵢ)
-    #M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
-    mᵢⱼₗ₁ = MPEM2(fill(M, T+1))
+d = length(A)
+T = length(wᵢ)-1; q = nstates(U)
+@assert all(getT(a) == T for a in A)
 
-    logz = 0.0
-    # compute partial messages from all neighbors
-    for l in eachindex(A)
-        mᵢⱼₗ₁ = f_bp_partial(A[l], mᵢⱼₗ₁, wᵢ, ψₙᵢ[l], l)
-        logz += normalize!(mᵢⱼₗ₁)
-        # SVD L to R with no truncation
-        sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
-        # SVD R to L with truncations
-        sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
-    end
+# initialize recursion
+qxᵢ = nstates(U); qy = nstates(U, 0)
+M = fill(1.0, 1, 1, 1, qxᵢ)
+#M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
+mᵢⱼₗ₁ = MPEM2(fill(M, T+1))
 
-    # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-    B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy_dummy)
+logz = 0.0
+# compute partial messages from all neighbors
+for l in eachindex(A)
+    mᵢⱼₗ₁ = f_bp_partial(A[l], mᵢⱼₗ₁, wᵢ, ψₙᵢ[l], l)
+    logz += normalize!(mᵢⱼₗ₁)
+    # SVD L to R with no truncation
+    sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
+    # SVD R to L with truncations
+    sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
+end
 
-    return B, logz
+# combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
+B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy_dummy)
+
+return B, logz
 end
 
 # compute outgoing messages from node `i`
@@ -153,13 +153,7 @@ end
 
 function beliefs_tu(bp::MPBP{F,U};
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
-    q = nstates(U); T = getT(bp)
-    b = [[zeros(q, q) for _ in 0:T, _ in 0:T] for _ in vertices(bp.g)]
-    for i in eachindex(b)
-        A = onebpiter_dummy_neighbor(bp, i; svd_trunc)
-        b[i] .= firstvar_marginal_tu(A)
-    end
-    b
+    [marginals_tu(bi) for bi in bp.b]
 end
 
 ### INFINITE REGULAR GRAPHS
