@@ -2,43 +2,6 @@
 
 MPEM2(tensors::Vector{Array{Float64, 4}}) = MatrixProductTrain(tensors)
 
-function mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1])
-    bondsizes[1] == bondsizes[end] == 1 || 
-        throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
-    tensors = [ ones(bondsizes[t], bondsizes[t+1], q, q) for t in 1:T+1]
-    return MPEM2(tensors)
-end
-
-# construct a uniform mpem with given bond dimensions
-function rand_mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1])
-    bondsizes[1] == bondsizes[end] == 1 || 
-        throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
-    tensors = [ rand(bondsizes[t], bondsizes[t+1], q, q) for t in 1:T+1]
-    return MPEM2(tensors)
-end
-
-function check_bond_dims2(tensors::Vector{<:Array})
-    for t in 1:lastindex(tensors)-1
-        dᵗ = size(tensors[t],2)
-        dᵗ⁺¹ = size(tensors[t+1],1)
-        if dᵗ != dᵗ⁺¹
-            println("Bond size for matrix t=$t. dᵗ=$dᵗ, dᵗ⁺¹=$dᵗ⁺¹")
-            return false
-        end
-    end
-    return true
-end
-
-function bond_dims(A::MPEM2)
-    return [size(A[t], 2) for t in 1:lastindex(A)-1]
-end
-
-@forward MPEM2.tensors getindex, iterate, firstindex, lastindex, setindex!, 
-    length, check_bond_dims2
-
-getT(A::MPEM2) = length(A.tensors) - 1
-eltype(::MPEM2{F}) where F = F
-
 function evaluate(A::MPEM2, x)
     length(x) == getT(A) + 1 || throw(ArgumentError("`x` must be of length $(getT(A)+1), got $(length(x))"))
     # all(xx[1] ∈ 1:q && xx[2] ∈ 1:q for xx in x) || throw(ArgumentError("All `x`'s must be in domain 1:$q")) 
@@ -48,6 +11,12 @@ function evaluate(A::MPEM2, x)
     end
     return only(M)
 end
+
+# construct a uniform mpem with given bond dimensions
+mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(T, d, bondsizes, q, q)
+
+# construct a uniform mpem with given bond dimensions
+rand_mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(T, d, bondsizes, q, q)
 
 
 function MPEM1(C::MPEM2)
@@ -87,7 +56,7 @@ function sweep_RtoL!(C::MPEM2; svd_trunc::SVDTrunc=TruncThresh(1e-6))
         @cast M[m, (n, xᵢ, xⱼ)] := Cᵗ⁻¹_trunc[m, n, xᵢ, xⱼ]
     end
     C[begin] = Cᵗ⁻¹_trunc
-    @assert check_bond_dims2(C)
+    @assert check_bond_dims(C)
     return C
 end
 
@@ -114,7 +83,7 @@ function sweep_LtoR!(C::MPEM2; svd_trunc::SVDTrunc=TruncThresh(1e-6))
         @cast M[(m, xᵢ, xⱼ), n] |= Cᵗ⁺¹_trunc[m, n, xᵢ, xⱼ]
     end
     C[end] = Cᵗ⁺¹_trunc
-    @assert check_bond_dims2(C)
+    @assert check_bond_dims(C)
     return C
 end
 

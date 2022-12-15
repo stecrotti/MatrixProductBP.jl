@@ -1,39 +1,7 @@
 # Matrix [Bᵗᵢⱼ(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 5-array B[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹]
 # The last matrix should have the same values no matter what xᵢᵀ⁺¹ is
-struct MPEM3{F<:Real} <: MPEM
-    tensors :: Vector{Array{F,5}}     # Vector of length T+1
-    function MPEM3(tensors::Vector{Array{F,5}}) where {F<:Real}
-        check_bond_dims3(tensors) ||
-            throw(ArgumentError("Matrix indices for matrix product non compatible"))
-        
-        # tensor Bᵀ does not actually depend on its last index. For simplicity, we ensure it takes the same value no matter the value of the last index
-        t = tensors[end][:,:,:,:,1]
-        @assert all(tensors[end][:,:,:,:,x] == t for x in axes(tensors[end],5))
-        new{F}(tensors)
-    end
-end
 
-function check_bond_dims3(tensors::Vector{<:Array})
-    for t in 1:lastindex(tensors)-1
-        dᵗ = size(tensors[t],2)
-        dᵗ⁺¹ = size(tensors[t+1],1)
-        if dᵗ != dᵗ⁺¹
-            println("Bond size for matrix t=$t. dᵗ=$dᵗ, dᵗ⁺¹=$dᵗ⁺¹")
-            return false
-        end
-    end
-    return true
-end
-
-function bond_dims(B::MPEM3)
-    return [size(B[t], 2) for t in 1:lastindex(B)-1]
-end
-
-@forward MPEM3.tensors getindex, iterate, firstindex, lastindex, setindex!, 
-    check_bond_dims3, length
-
-getT(B::MPEM3)= length(B) - 1
-eltype(::MPEM3{F}) where {F} = F
+MPEM3(tensors::Vector{Array{Float64,5}}) = MatrixProductTrain(tensors)
 
 function evaluate(B::MPEM3, x)
     length(x) == length(B) || throw(ArgumentError("`x` must be of length $(length(B)), got $(length(x))"))
@@ -66,6 +34,6 @@ function mpem2(B::MPEM3{F}) where {F}
     end
     @cast Cᵀ[m,n,xᵢ,xⱼ] := Bᵗ⁺¹_new[m,n,xᵢ,xⱼ,1]
     C[end] = Cᵀ
-    @assert check_bond_dims2(C)
+    @assert check_bond_dims(C)
     return MPEM2(C)
 end

@@ -163,7 +163,7 @@ function normalization(A::MPEM1; l = accumulate_L(A), r = accumulate_R(A))
     z
 end
 
-# normalize so that the sum over all pair trajectories is 1.
+# normalize so that the sum over all trajectories is 1.
 # return log of the normalization
 function normalize!(A::MPEM1)
     c = normalize_eachmatrix!(A)
