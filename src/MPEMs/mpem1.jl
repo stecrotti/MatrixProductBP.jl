@@ -1,56 +1,11 @@
-# Matrix [Aᵗᵢⱼ(xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 4-array A[m,n,xᵢᵗ,xⱼᵗ]
-struct MPEM1{F<:Real} <: MPEM
-    tensors :: Vector{Array{F,3}}     # Vector of length T+1
+MPEM1(tensors::Vector{Array{Float64,3}}) = MatrixProductTrain(tensors)
 
-    function MPEM1(tensors::Vector{Array{F,3}}) where {F<:Real}
-        size(tensors[1],1) == size(tensors[end],2) == 1 ||
-            throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
-        check_bond_dims2(tensors) ||
-            throw(ArgumentError("Matrix indices for matrix product non compatible"))
-        new{F}(tensors)
-    end
-end
 
 # construct a uniform mpem with given bond dimensions
-function mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1])
-    bondsizes[1] == bondsizes[end] == 1 || 
-        throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
-    tensors = [ ones(bondsizes[t], bondsizes[t+1], q) for t in 1:T+1]
-    return MPEM1(tensors)
-end
+mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(T, d, bondsizes, q)
 
 # construct a uniform mpem with given bond dimensions
-function rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1])
-    bondsizes[1] == bondsizes[end] == 1 || 
-        throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
-    tensors = [ rand(bondsizes[t], bondsizes[t+1], q) for t in 1:T+1]
-    return MPEM1(tensors)
-end
-
-function check_bond_dims1(tensors::Vector{<:Array})
-    for t in 1:lastindex(tensors)-1
-        dᵗ = size(tensors[t],2)
-        dᵗ⁺¹ = size(tensors[t+1],1)
-        if dᵗ != dᵗ⁺¹
-            println("Bond size for matrix t=$t. dᵗ=$dᵗ, dᵗ⁺¹=$dᵗ⁺¹")
-            return false
-        end
-    end
-    return true
-end
-
-function bond_dims(A::MPEM1)
-    return [size(A[t], 2) for t in 1:lastindex(A)-1]
-end
-
-@forward MPEM1.tensors getindex, iterate, firstindex, lastindex, setindex!, 
-    length, check_bond_dims1
-
-getT(A::MPEM1) = length(A) - 1
-eltype(::MPEM1{F}) where F = F
-
-evaluate(A::MPEM1, x) = only(prod(@view Aᵗ[:, :, xᵗ] for (xᵗ,Aᵗ) in zip(x,A)))
-
+rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(T, d, bondsizes, q)
 
 # when truncating it assumes that matrices are already left-orthogonal
 function sweep_RtoL!(C::MPEM1; svd_trunc::SVDTrunc=TruncThresh(1e-6))

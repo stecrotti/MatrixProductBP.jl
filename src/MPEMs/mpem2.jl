@@ -1,17 +1,7 @@
-# Matrix [Aᵗᵢⱼ(xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 4-array A[m,n,xᵢᵗ,xⱼᵗ]
-struct MPEM2{F} <: MPEM
-    tensors :: Vector{Array{F,4}}     # Vector of length T+1
-
-    function MPEM2(tensors::Vector{Array{F,4}}) where {F}
-        size(tensors[1],1) == size(tensors[end],2) == 1 ||
-            throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
-        check_bond_dims2(tensors) ||
-            throw(ArgumentError("Matrix indices for matrix product non compatible"))
-        new{F}(tensors)
-    end
-end
-
 # construct a uniform mpem with given bond dimensions
+
+MPEM2(tensors::Vector{Array{Float64, 4}}) = MatrixProductTrain(tensors)
+
 function mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1])
     bondsizes[1] == bondsizes[end] == 1 || 
         throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
