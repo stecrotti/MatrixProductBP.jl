@@ -5,7 +5,7 @@ function _int_to_matrix(x::Integer, q::Integer, dims)
     return reshape(y, dims) .+ 1
 end
 
-function exact_prob(bp::MPBP{F,U}) where {F,U}
+function exact_prob(bp::MPBP{G,F,U}) where {G,F,U}
     @unpack g, w, ϕ, ψ = bp
     N = nv(g); T = getT(bp); q = nstates(U)
     T*N > 15 && @warn "T*N=$(T*N). This will take some time!"
@@ -38,7 +38,7 @@ function exact_prob(bp::MPBP{F,U}) where {F,U}
     p, Z
 end
 
-function site_marginals(bp::MPBP{F,U}; p = exact_prob(bp)[1]) where {F,U}
+function site_marginals(bp::MPBP{G,F,U}; p = exact_prob(bp)[1]) where {G,F,U}
     N = nv(bp.g); T = getT(bp); q = nstates(U)
     m = [zeros(fill(2,T+1)...) for i in 1:N]
     prog = Progress(2^(N*(T+1)), desc="Computing exact marginals")
@@ -54,7 +54,7 @@ function site_marginals(bp::MPBP{F,U}; p = exact_prob(bp)[1]) where {F,U}
     m
 end
 
-function exact_marginals(bp::MPBP{F,U}; p_exact = exact_prob(bp)[1]) where {F,U}
+function exact_marginals(bp::MPBP{G,F,U}; p_exact = exact_prob(bp)[1]) where {G,F,U}
     m = site_marginals(bp; p = p_exact)
     N = nv(bp.g); T = getT(bp); q = nstates(U)
     pp = [[zeros(q) for t in 0:T] for i in 1:N]
@@ -70,8 +70,8 @@ function exact_marginals(bp::MPBP{F,U}; p_exact = exact_prob(bp)[1]) where {F,U}
     pp
 end
 
-function exact_marginal_expectations(bp::MPBP{F,U}; 
-        m_exact = exact_marginals(bp)) where {F,U}
+function exact_marginal_expectations(bp::MPBP{G,F,U}; 
+        m_exact = exact_marginals(bp)) where {G,F,U}
     μ = [zeros(getT(bp)+1) for _ in eachindex(m_exact)]
     for i in eachindex(m_exact)
         for t in eachindex(m_exact[i])
@@ -81,8 +81,8 @@ function exact_marginal_expectations(bp::MPBP{F,U};
     μ
 end
 
-function exact_autocorrelations(bp::MPBP{F,U}; 
-        p_exact = exact_prob(bp)[1]) where {F,U}
+function exact_autocorrelations(bp::MPBP{G,F,U}; 
+        p_exact = exact_prob(bp)[1]) where {G,F,U}
     m = site_marginals(bp; p = p_exact)
     N = nv(bp.g); T = getT(bp); q = nstates(U)
     r = [zeros(T+1, T+1) for i in 1:N]
