@@ -1,4 +1,3 @@
-
 struct MatrixProductTrain{F<:Real, N} <: MPEM
     tensors::Vector{Array{F,N}}
     function MatrixProductTrain(tensors::Vector{Array{F,N}}) where {F<:Real, N}
@@ -10,6 +9,11 @@ struct MatrixProductTrain{F<:Real, N} <: MPEM
     end
 end
 
+@forward MatrixProductTrain.tensors getindex, iterate, firstindex, lastindex, setindex!, 
+    check_bond_dims, length
+
+
+check_bond_dims(A::MatrixProductTrain) = check_bond_dims(A.tensors)
 
 function check_bond_dims(tensors::Vector{<:Array})
     for t in 1:lastindex(tensors)-1
@@ -43,6 +47,7 @@ isapprox(A::T, B::T; kw...) where {T<:MatrixProductTrain} = isapprox(A.tensors, 
 
 const MPEM1{F} = MatrixProductTrain{F, 3}
 const MPEM2{F} = MatrixProductTrain{F, 4}
+const MPEM3{F} = MatrixProductTrain{F, 5}
 
 "Construct a uniform mpem with given bond dimensions"
 mpem(T::Int, d::Int, bondsizes, q...) = MatrixProductTrain([ones(bondsizes[t], bondsizes[t+1], q...) for t in 1:T+1])
@@ -51,9 +56,6 @@ mpem(T::Int, d::Int, bondsizes, q...) = MatrixProductTrain([ones(bondsizes[t], b
 rand_mpem(T::Int; d::Int, bondsizes, q...) = MatrixProductTrain([rand(bondsizes[t], bondsizes[t+1], q...) for t in 1:T+1])
 
 bond_dims(A::MPEM) = [size(A[t], 2) for t in 1:lastindex(A)-1]
-
-@forward MatrixProductTrain.tensors getindex, iterate, firstindex, lastindex, setindex!,
-    eachindex, length, check_bond_dims1
 
 getT(A::MatrixProductTrain) = length(A) - 1
 
