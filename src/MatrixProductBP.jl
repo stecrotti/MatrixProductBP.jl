@@ -4,8 +4,8 @@ import InvertedIndices: Not
 import ProgressMeter: Progress, ProgressUnknown, next!
 import TensorCast: @reduce, @cast, TensorCast 
 import Tullio: @tullio
-import IndexedGraphs: nv, ne, edges, vertices, IndexedBiDiGraph, IndexedGraph,
-    inedges, outedges, src, dst, idx, neighbors
+import IndexedGraphs: nv, ne, edges, vertices, AbstractIndexedDiGraph, IndexedGraph,
+    IndexedBiDiGraph, inedges, outedges, src, dst, idx, neighbors
 import UnPack: @unpack
 import Random: shuffle!, AbstractRNG, GLOBAL_RNG
 import SparseArrays: rowvals, nonzeros, nzrange

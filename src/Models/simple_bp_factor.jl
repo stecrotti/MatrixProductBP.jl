@@ -82,7 +82,7 @@ end
 function f_bp(A::Vector{MPEM2{F}},
     wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}},
     j::Integer;
-    svd_trunc=TruncThresh(1e-6)) where {F,U<:RecursiveBPFactor}
+    svd_trunc=TruncThresh(1e-6)) where {G,F,U<:RecursiveBPFactor}
 
     d = length(A) - 1   # number of neighbors other than j
     @assert j ∈ eachindex(A)
@@ -112,7 +112,7 @@ end
 
 function f_bp_dummy_neighbor(A::Vector{MPEM2{F}}, 
     wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
-    svd_trunc=TruncThresh(1e-6)) where {F,U<:RecursiveBPFactor}
+    svd_trunc=TruncThresh(1e-6)) where {G,F,U<:RecursiveBPFactor}
 
     d = length(A)
     T = length(wᵢ)-1; q = nstates(U)
@@ -142,8 +142,8 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
 end
 
 # compute outgoing messages from node `i`
-function onebpiter!(bp::MPBP{F,U}, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F<:Real,U<:RecursiveBPFactor}
+function onebpiter!(bp::MPBP{G,F,U}, i::Integer; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
     @unpack g, w, ϕ, ψ, μ = bp
     ein, eout = inedges(g,i), outedges(g, i)
     dᵢ = length(ein)
@@ -191,13 +191,13 @@ function onebpiter!(bp::MPBP{F,U}, i::Integer;
 end
 
 
-function beliefs(bp::MPBP{F,U};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:RecursiveBPFactor}
+function beliefs(bp::MPBP{G,F,U};
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {G,F,U<:RecursiveBPFactor}
     [marginals(bi) for bi in bp.b]
 end
 
-function beliefs_tu(bp::MPBP{F,U};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:RecursiveBPFactor}
+function beliefs_tu(bp::MPBP{G,F,U};
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {G,F,U<:RecursiveBPFactor}
     [marginals_tu(bi) for bi in bp.b]
 end
 
