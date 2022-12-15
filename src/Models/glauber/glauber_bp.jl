@@ -75,21 +75,8 @@ end
 idx_to_value(x::Integer, ::Type{<:GenericGlauberFactor}) = potts2spin(x)
 idx_to_value(x::Integer, ::Type{<:HomogeneousGlauberFactor}) = potts2spin(x)
 
-prob_partial_msg(wᵢ::HomogeneousGlauberFactor, zₗᵗ, zₗ₁ᵗ, xₗᵗ, l) = ( zₗᵗ == ( zₗ₁ᵗ + 2 - xₗᵗ ) )
-
-
-function prob_ijy(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, zᵗ, d)
-    @unpack βJ, βh = wᵢ
-    yᵗ = 2 * zᵗ - 2 - d
-    h = βJ * (potts2spin(xⱼᵗ) + yᵗ) + βh
-    p = exp(potts2spin(xᵢᵗ⁺¹) * h) / (2*cosh(h))
-    @assert 0 ≤ p ≤ 1
-    p
-end
-
-
 # ignore neighbor because it doesn't exist
-function prob_ijy_dummy(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, zᵗ, d)
+function prob_y(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, zᵗ, d)
     @unpack βJ, βh = wᵢ
     yᵗ = 2 * zᵗ - 2 - d
     h = βJ * yᵗ + βh

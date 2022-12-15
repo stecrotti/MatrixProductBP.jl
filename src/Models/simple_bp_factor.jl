@@ -1,7 +1,7 @@
 """"
 For a `w::U` where `U<:RecursiveBPFactor`, outgoing messages can be computed recursively
-A `<:RecursiveBPFactor` must implement: `nstates`, `prob_ijy_dummy`, `prob_xy` and `prob_yy`
-Optionally, it can also implement `prob_ijy` and `(w::U)(xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)`
+A `<:RecursiveBPFactor` must implement: `nstates`, `prob_y`, `prob_xy` and `prob_yy`
+Optionally, it can also implement `prob_y_partial` and `(w::U)(xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)`
 """
 abstract type RecursiveBPFactor <: BPFactor; end
 
@@ -10,10 +10,15 @@ abstract type RecursiveBPFactor <: BPFactor; end
 "Number of states for aux variable which accumulates the first `l` neighbors"
 nstates(::Type{<:RecursiveBPFactor}, l::Integer) = error("Not implemented")
 
-"P(xᵢᵗ⁺¹|xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ)"
-prob_ijy_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ) where {U<:RecursiveBPFactor} = error("Not implemented")
+"Number of states for variable of type `<:RecursiveBPFactor`"
+nstates(::Type{<:RecursiveBPFactor}) = error("Not implemented")
 
-"P(yₖᵗ, xₖᵗ, xᵢᵗ)"
+"P(xᵢᵗ⁺¹|xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ)
+Might depend on the degree `dᵢ` because of the (possible) change of variable from 
+    y ∈ {1,2,...} to its physical value, e.g. {-dᵢ,...,dᵢ}"
+prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ) where {U<:RecursiveBPFactor} = error("Not implemented")
+
+"P(yₖᵗ| xₖᵗ, xᵢᵗ)"
 prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ) = error("Not implemented")
 
 "P(yₐᵦ|yₐ,yᵦ,xᵢᵗ)"
@@ -35,11 +40,11 @@ function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVe
                    for y1 in 1:nstates(U,1), y2 in 1:nstates(U,k-1)) 
                for y in 1:nstates(U,k)]
     end
-    sum(Pyy[y] * prob_ijy_dummy(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, 1, y, d) for y in eachindex(Pyy))
+    sum(Pyy[y] * prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, 1, y, d) for y in eachindex(Pyy))
 end
 
-function prob_ijy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where {U<:RecursiveBPFactor}
-    sum(prob_ijy_dummy(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, nothing, yᵗ, d + 1) * 
+function prob_y_partial(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where {U<:RecursiveBPFactor}
+    sum(prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, nothing, yᵗ, d + 1) * 
         prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ) * 
         prob_yy(wᵢ, yᵗ, y1, y2, xᵢᵗ) 
         for yᵗ in 1:nstates(U, d + 1), y2 in 1:nstates(U,1))
@@ -48,10 +53,16 @@ end
 
 #####################################################
 
+function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
+    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_partial)
+end
 
-# compute m(i→j) from m(i→j,d)
-function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
-    d::Integer; prob = prob_ijy) where {U<:RecursiveBPFactor}
+function f_bp_partial_i(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
+    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y)
+end
+
+function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
+    d::Integer, prob::Function) where {U<:RecursiveBPFactor}
     q = nstates(U)
     B = [zeros(q, q, size(a,1), size(a,2), q) for a in A]
     for t in 1:getT(A)
@@ -104,11 +115,11 @@ function onebpiter!(bp::MPBP{G,F,U}, i::Integer;
 
     logzᵢ = sum(logzs)
     for (j,e) = enumerate(eout)
-        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1; prob = prob_ijy)
+        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1)
         μ[idx(e)] = sweep_RtoL!(mpem2(B); svd_trunc)
         logzᵢ += normalize!(μ[idx(e)])
     end
-    B = f_bp_partial_ij(full, wᵢ, ϕᵢ, dᵢ; prob = prob_ijy_dummy)
+    B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
     bp.b[i] = B |> mpem2 |> marginalize
     return dᵢ == 0 ? 0.0 : logzᵢ / dᵢ
 end

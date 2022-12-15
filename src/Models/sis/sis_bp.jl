@@ -47,17 +47,10 @@ end
 
 idx_to_value(x::Integer, ::Type{<:SISFactor}) = x - 1
 
-function prob_partial_msg(wᵢ::SISFactor, yₖ, yₖ₁, xₖ, l)
-    @unpack λ = wᵢ
-    if yₖ == INFECTED
-        return 1 - (yₖ₁==SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
-    elseif yₖ == SUSCEPTIBLE
-        return (yₖ₁==SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
-    end
-end
-
-function prob_ijy(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d)
+# neighbor j is susceptible -> does nothing
+function prob_y(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d)
     @unpack λ, ρ = wᵢ
+    xⱼᵗ = SUSCEPTIBLE
     z = 1 - λ*(xⱼᵗ == INFECTED)
     w = (yᵗ == SUSCEPTIBLE)
     if xᵢᵗ⁺¹ == INFECTED
@@ -65,12 +58,6 @@ function prob_ijy(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d)
     elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
         return (xᵢᵗ==INFECTED) * ρ + (xᵢᵗ==SUSCEPTIBLE) * z * w
     end
-end
-
-# neighbor j is susceptible -> does nothing
-function prob_ijy_dummy(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d)
-    xⱼᵗ = SUSCEPTIBLE
-    return prob_ijy(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d)
 end
 
 function prob_xy(wᵢ::SISFactor, yₖ, xₖ, xᵢ)
