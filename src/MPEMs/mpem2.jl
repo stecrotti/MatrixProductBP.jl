@@ -2,16 +2,6 @@
 
 MPEM2(tensors::Vector{Array{Float64, 4}}) = MatrixProductTrain(tensors)
 
-function evaluate(A::MPEM2, x)
-    length(x) == getT(A) + 1 || throw(ArgumentError("`x` must be of length $(getT(A)+1), got $(length(x))"))
-    # all(xx[1] ∈ 1:q && xx[2] ∈ 1:q for xx in x) || throw(ArgumentError("All `x`'s must be in domain 1:$q")) 
-    M = [1.0;;]
-    for (t,Aᵗ) in enumerate(A)
-        M = M * Aᵗ[:, :, x[t][1], x[t][2]]
-    end
-    return only(M)
-end
-
 # construct a uniform mpem with given bond dimensions
 mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(T, d, bondsizes, q, q)
 
