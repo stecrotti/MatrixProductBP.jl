@@ -3,7 +3,7 @@ struct GenericGlauberFactor{T<:Real}  <: BPFactor
     βh :: T
 end
 
-struct HomogeneousGlauberFactor{T<:Real} <: SimpleBPFactor 
+struct HomogeneousGlauberFactor{T<:Real} <: RecursiveBPFactor 
     βJ :: T     
     βh :: T
 end

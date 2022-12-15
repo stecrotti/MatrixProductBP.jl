@@ -20,7 +20,7 @@ import Tullio: @tullio
 import Unzip: unzip
 
 export 
-    SimpleBPFactor, beliefs, beliefs_tu,
+    RecursiveBPFactor, beliefs, beliefs_tu,
     iterate_bp_infinite_graph, observables_infinite_graph,
     Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, mpbp, 
