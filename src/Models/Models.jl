@@ -28,7 +28,7 @@ export
     kl_marginals, l1_marginals, auc
 
 
-include("simple_bp_factor.jl")
+include("recursive_bp_factor.jl")
 include("infinite_graph.jl")
 
 include("glauber/glauber.jl")
