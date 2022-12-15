@@ -1,8 +1,53 @@
-# for a `SimpleBPFactor`, outgoing messages can be computed recursively
+""""
+For a `w::U` where `U<:SimpleBPFactor`, outgoing messages can be computed recursively
+A `<:SimpleBPFactor` must implement: `nstates`, `prob_ijy_dummy`, `prob_xy` and `prob_yy`
+Optionally, it can also implement `prob_ijy` and `(w::U)(xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)`
+"""
 abstract type SimpleBPFactor <: BPFactor; end
 
-# number of states for variable which accumulates the first `l` neighbors
+#### the next four methods are the minimal needed interface for a new <:SimpleBPFactor
+
+"Number of states for aux variable which accumulates the first `l` neighbors"
 nstates(::Type{<:SimpleBPFactor}, l::Integer) = error("Not implemented")
+
+"P(xᵢᵗ⁺¹|xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ)"
+prob_ijy_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ) where {U<:SimpleBPFactor} = error("Not implemented")
+
+"P(yₖᵗ, xₖᵗ, xᵢᵗ)"
+prob_xy(wᵢ::SimpleBPFactor, yₖ, xₖ, xᵢ) = error("Not implemented")
+
+"P(yₐᵦ|yₐ,yᵦ,xᵢᵗ)"
+prob_yy(wᵢ::SimpleBPFactor, y, y1, y2, xᵢ) = error("Not implemented")
+
+
+##############################################
+#### the next two methods are optional
+
+"P(xᵢᵗ⁺¹|xᵢᵗ, xₙᵢᵗ, d)"
+function (wᵢ::SimpleBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
+    xᵢᵗ::Integer)
+    U = typeof(wᵢ)
+    d = length(xₙᵢᵗ)
+    @assert all(x ∈ 1:nstates(U) for x in xₙᵢᵗ)
+    Pyy = fill(1.0, 1)
+    for k in 1:d
+        Pyy = [sum(prob_yy(wᵢ, y, y1, y2, xᵢᵗ)*prob_xy(wᵢ, y1, xₙᵢᵗ[k], xᵢᵗ)*Pyy[y2]
+                   for y1 in 1:nstates(U,1), y2 in 1:nstates(U,k-1)) 
+               for y in 1:nstates(U,k)]
+    end
+    sum(Pyy[y] * prob_ijy_dummy(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, 1, y, d) for y in eachindex(Pyy))
+end
+
+function prob_ijy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where {U<:SimpleBPFactor}
+    sum(prob_ijy_dummy(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, nothing, yᵗ, d + 1) * 
+        prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ) * 
+        prob_yy(wᵢ, yᵗ, y1, y2, xᵢᵗ) 
+        for yᵗ in 1:nstates(U, d + 1), y2 in 1:nstates(U,1))
+end
+
+
+#####################################################
+
 
 # compute message m(i→j, l) from m(i→j, l-1) 
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
@@ -39,61 +84,61 @@ function f_bp(A::Vector{MPEM2{F}},
     j::Integer;
     svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
 
-d = length(A) - 1   # number of neighbors other than j
-@assert j ∈ eachindex(A)
-T = getT(A[1])
-@assert all(getT(a) == T for a in A)
+    d = length(A) - 1   # number of neighbors other than j
+    @assert j ∈ eachindex(A)
+    T = getT(A[1])
+    @assert all(getT(a) == T for a in A)
 
-# initialize recursion
-qxᵢ = nstates(U); qy = nstates(U, 0)
-M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
-mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
+    # initialize recursion
+    qxᵢ = nstates(U); qy = nstates(U, 0)
+    M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
+    mᵢⱼₗ₁ = MPEM2( fill(M, T+1) )
 
-logz = 0.0
-for (l,k) in enumerate(k for k in eachindex(A) if k != j)
-    mᵢⱼₗ₁ = f_bp_partial(A[k], mᵢⱼₗ₁, wᵢ, ψₙᵢ[k], l)
-    logz +=  normalize!(mᵢⱼₗ₁)
-    # SVD L to R with no truncation
-    sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
-    # SVD R to L with truncations
-    sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
-end
+    logz = 0.0
+    for (l,k) in enumerate(k for k in eachindex(A) if k != j)
+        mᵢⱼₗ₁ = f_bp_partial(A[k], mᵢⱼₗ₁, wᵢ, ψₙᵢ[k], l)
+        logz +=  normalize!(mᵢⱼₗ₁)
+        # SVD L to R with no truncation
+        sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
+        # SVD R to L with truncations
+        sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
+    end
 
-# combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy)
+    # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
+    B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy)
 
-return B, logz
+    return B, logz
 end
 
 function f_bp_dummy_neighbor(A::Vector{MPEM2{F}}, 
     wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
     svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
 
-d = length(A)
-T = length(wᵢ)-1; q = nstates(U)
-@assert all(getT(a) == T for a in A)
+    d = length(A)
+    T = length(wᵢ)-1; q = nstates(U)
+    @assert all(getT(a) == T for a in A)
 
-# initialize recursion
-qxᵢ = nstates(U); qy = nstates(U, 0)
-M = fill(1.0, 1, 1, 1, qxᵢ)
-#M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
-mᵢⱼₗ₁ = MPEM2(fill(M, T+1))
+    # initialize recursion
+    qxᵢ = nstates(U); qy = nstates(U, 0)
+    M = fill(1.0, 1, 1, 1, qxᵢ)
+    #M = reshape(vcat(ones(1,qxᵢ), zeros(qy-1,qxᵢ)), (1,1,qy,qxᵢ))
+    mᵢⱼₗ₁ = MPEM2(fill(M, T+1))
 
-logz = 0.0
-# compute partial messages from all neighbors
-for l in eachindex(A)
-    mᵢⱼₗ₁ = f_bp_partial(A[l], mᵢⱼₗ₁, wᵢ, ψₙᵢ[l], l)
-    logz += normalize!(mᵢⱼₗ₁)
-    # SVD L to R with no truncation
-    sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
-    # SVD R to L with truncations
-    sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
-end
+    logz = 0.0
+    # compute partial messages from all neighbors
+    for l in eachindex(A)
+        mᵢⱼₗ₁ = f_bp_partial(A[l], mᵢⱼₗ₁, wᵢ, ψₙᵢ[l], l)
+        logz += normalize!(mᵢⱼₗ₁)
+        # SVD L to R with no truncation
+        sweep_LtoR!(mᵢⱼₗ₁, svd_trunc=TruncThresh(0.0))
+        # SVD R to L with truncations
+        sweep_RtoL!(mᵢⱼₗ₁; svd_trunc)
+    end
 
-# combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
-B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy_dummy)
+    # combine the last partial message with p(xᵢᵗ⁺¹|xᵢᵗ, xⱼᵗ, yᵗ)
+    B = f_bp_partial_ij(mᵢⱼₗ₁, wᵢ, ϕᵢ, d; prob = prob_ijy_dummy)
 
-return B, logz
+    return B, logz
 end
 
 # compute outgoing messages from node `i`
@@ -131,7 +176,7 @@ function onebpiter!(bp::MPBP{F,U}, i::Integer;
         B, lz + lz1 + lz2, n1 + n2
     end
 
-    dest, (full, logzᵢ2)  = cavity(B, op, init)
+    dest, (full, _)  = cavity(B, op, init)
     (C, logzs) = unzip(dest)
 
     logzᵢ = sum(logzs)
@@ -155,6 +200,7 @@ function beliefs_tu(bp::MPBP{F,U};
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
     [marginals_tu(bi) for bi in bp.b]
 end
+
 
 ### INFINITE REGULAR GRAPHS
 
