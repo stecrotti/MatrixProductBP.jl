@@ -19,7 +19,7 @@ svd_trunc = TruncThresh(0.0)
 end
 
 @testset "MPEM3" begin
-    tensors = [ rand(2,2,1,3,2), rand(2,2,3,4,2), rand(2,2,4,1,2) ]
+    tensors = [ rand(1,3,2,2,2), rand(3,4,2,2,2), rand(4,1,2,2,2) ]
     tensors[end][:,:,:,:,2] .= tensors[end][:,:,:,:,1]
     B = MPEM3(tensors)
     T = getT(B)

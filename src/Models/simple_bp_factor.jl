@@ -64,13 +64,13 @@ end
 function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
     d::Integer, prob::Function) where {U<:RecursiveBPFactor}
     q = nstates(U)
-    B = [zeros(q, q, size(a,1), size(a,2), q) for a in A]
+    B = [zeros(size(a,1), size(a,2), q, q, q) for a in A]
     for t in 1:getT(A)
         Aᵗ,Bᵗ = A[t], B[t]
-        @tullio Bᵗ[xᵢᵗ,xⱼᵗ,m,n,xᵢᵗ⁺¹] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
+        @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
     end
     Aᵀ,Bᵀ = A[end], B[end]
-    @tullio Bᵀ[xᵢᵀ,xⱼᵀ,m,n,xᵢᵀ⁺¹] = Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
+    @tullio Bᵀ[m,n,xᵢᵀ,xⱼᵀ,xᵢᵀ⁺¹] = Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
     any(any(isnan, b) for b in B) && println("NaN in tensor train")
     return MPEM3(B)
 end
