@@ -35,7 +35,7 @@ cb = CB_BP(bp; showprogress=false)
 svd_trunc = TruncThresh(0.0)
 iterate!(bp, maxiter=10; svd_trunc, cb, showprogress=false)
 
-b_bp = beliefs(bp; svd_trunc)
+b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
 p_exact, Z_exact = exact_prob(bp)
@@ -45,7 +45,7 @@ p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 f_bethe = bethe_free_energy(bp; svd_trunc)
 Z_bp = exp(-f_bethe)
 
-r_bp = autocorrelations(bp; svd_trunc)
+r_bp = autocorrelations(bp)
 r_exact = exact_autocorrelations(bp)
 
 @testset "Pair observations - SimpleBPFactor" begin
@@ -91,7 +91,7 @@ cb = CB_BP(bp; showprogress=false)
 svd_trunc = TruncThresh(0.0)
 iterate!(bp, maxiter=10; svd_trunc, cb, showprogress=false)
 
-b_bp = beliefs(bp; svd_trunc)
+b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
 p_exact, Z_exact = exact_prob(bp)
@@ -101,7 +101,7 @@ p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 f_bethe = bethe_free_energy(bp; svd_trunc)
 Z_bp = exp(-f_bethe)
 
-r_bp = autocorrelations(bp; svd_trunc)
+r_bp = autocorrelations(bp)
 r_exact = exact_autocorrelations(bp)
 
 @testset "Pair observations - generic BP" begin

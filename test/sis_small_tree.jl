@@ -5,9 +5,9 @@ A = [0 1 1 1; 1 0 0 0; 1 0 0 0; 1 0 0 0]
 g = IndexedGraph(A)
 N = size(A, 1)
 
-λ = 0.2
-ρ = 0.1
-γ = 0.1
+λ = 0.5
+ρ = 0.4
+γ = 0.5
 
 sis = SIS(g, λ, ρ, T; γ)
 bp = mpbp(sis)
@@ -18,7 +18,7 @@ draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 svd_trunc = TruncThresh(0.0)
 iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
 
-b_bp = beliefs(bp; svd_trunc)
+b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
 p_exact, Z_exact = exact_prob(bp)
@@ -28,11 +28,11 @@ p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 f_bethe = bethe_free_energy(bp; svd_trunc)
 Z_bp = exp(-f_bethe)
 
-r_bp = autocorrelations(bp; svd_trunc)
-r_exact = exact_autocorrelations(bp)
+r_bp = autocorrelations(bp)
+r_exact = exact_autocorrelations(bp; p_exact)
 
-c_bp = autocovariances(bp; svd_trunc)
-c_exact = exact_autocovariances(bp)
+c_bp = autocovariances(bp)
+c_exact = exact_autocovariances(bp; r = r_exact)
 
 @testset "SIS small tree" begin
     @test Z_exact ≈ Z_bp
@@ -41,16 +41,15 @@ c_exact = exact_autocovariances(bp)
     @test c_bp ≈ c_exact
 end
 
-# # observe everything and check that the free energy corresponds to the posterior of sample `X`
-# sis = SIS(g, λ, ρ, T; γ)
-# draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
-# reset_messages!(bp)
-# iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
-# f_bethe = bethe_free_energy(bp)
-# logl_bp = - f_bethe
-# logp = logprob(bp, X)
+# observe everything and check that the free energy corresponds to the posterior of sample `X`
+sis = SIS(g, λ, ρ, T; γ)
+draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
+reset_messages!(bp)
+iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
+f_bethe = bethe_free_energy(bp)
+logl_bp = - f_bethe
+logp = logprob(bp, X)
 
-# @testset "SIS small tree - observe everything" begin
-#     @test logl_bp ≈ logp
-# end
-
+@testset "SIS small tree - observe everything" begin
+    @test logl_bp ≈ logp
+end

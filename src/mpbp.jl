@@ -179,7 +179,7 @@ function pair_beliefs(bp::MPBP{G,F,U}) where {G,F,U}
     b, logz
 end
 
-function beliefs(bp::MPBP{G,F,U}; bij = pair_beliefs(bp)[1], kw...) where {G,F,U<:BPFactor}
+function beliefs(bp::MPBP{G,F,U}; bij = pair_beliefs(bp)[1]) where {G,F,U<:BPFactor}
     b = map(vertices(bp.g)) do i 
         ij = idx(first(outedges(bp.g, i)))
         bb = bij[ij]
@@ -231,7 +231,7 @@ function pair_beliefs_tu(bp::MPBP{G,F,U}; showprogress::Bool=true) where {G,F,U<
     b
 end
 
-function beliefs_tu(bp::MPBP{G,F,U}; bij_tu = pair_beliefs_tu(bp), kw...) where {G,F,U<:BPFactor}
+function beliefs_tu(bp::MPBP{G,F,U}; bij_tu = pair_beliefs_tu(bp)) where {G,F,U<:BPFactor}
     b = map(vertices(bp.g)) do i 
         ij = idx(first(outedges(bp.g, i)))::Int
         bb = bij_tu[ij]
@@ -251,9 +251,8 @@ function autocorrelation(b_tu::Matrix{Matrix{F}},
     r
 end
 
-function autocorrelations(bp::MPBP{G,F,U}; 
-        svd_trunc::SVDTrunc = TruncThresh(1e-6),
-        b_tu = beliefs_tu(bp; svd_trunc)) where {G,F,U}
+function autocorrelations(bp::MPBP{G,F,U};
+        b_tu = beliefs_tu(bp)) where {G,F,U}
     autocorrelations(b_tu, U)
 end
 
@@ -277,8 +276,8 @@ function _autocovariances(r::Vector{Matrix{F}}, μ::Vector{Vector{F}}) where {F<
     end
 end
 
-function autocovariances(bp::MPBP{G,F,U}; svd_trunc::SVDTrunc = TruncThresh(1e-6),
-        r = autocorrelations(bp; svd_trunc), m = beliefs(bp)) where {G,F,U}
+function autocovariances(bp::MPBP{G,F,U}; 
+        r = autocorrelations(bp), m = beliefs(bp)) where {G,F,U}
     μ = [marginal_to_expectation.(mᵢ, U) for mᵢ in m] 
     _autocovariances(r, μ)
 end
