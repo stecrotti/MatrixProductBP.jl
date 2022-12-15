@@ -1,30 +1,30 @@
 """"
-For a `w::U` where `U<:SimpleBPFactor`, outgoing messages can be computed recursively
-A `<:SimpleBPFactor` must implement: `nstates`, `prob_ijy_dummy`, `prob_xy` and `prob_yy`
+For a `w::U` where `U<:RecursiveBPFactor`, outgoing messages can be computed recursively
+A `<:RecursiveBPFactor` must implement: `nstates`, `prob_ijy_dummy`, `prob_xy` and `prob_yy`
 Optionally, it can also implement `prob_ijy` and `(w::U)(xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)`
 """
-abstract type SimpleBPFactor <: BPFactor; end
+abstract type RecursiveBPFactor <: BPFactor; end
 
-#### the next four methods are the minimal needed interface for a new <:SimpleBPFactor
+#### the next four methods are the minimal needed interface for a new <:RecursiveBPFactor
 
 "Number of states for aux variable which accumulates the first `l` neighbors"
-nstates(::Type{<:SimpleBPFactor}, l::Integer) = error("Not implemented")
+nstates(::Type{<:RecursiveBPFactor}, l::Integer) = error("Not implemented")
 
 "P(xᵢᵗ⁺¹|xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ)"
-prob_ijy_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ) where {U<:SimpleBPFactor} = error("Not implemented")
+prob_ijy_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ) where {U<:RecursiveBPFactor} = error("Not implemented")
 
 "P(yₖᵗ, xₖᵗ, xᵢᵗ)"
-prob_xy(wᵢ::SimpleBPFactor, yₖ, xₖ, xᵢ) = error("Not implemented")
+prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ) = error("Not implemented")
 
 "P(yₐᵦ|yₐ,yᵦ,xᵢᵗ)"
-prob_yy(wᵢ::SimpleBPFactor, y, y1, y2, xᵢ) = error("Not implemented")
+prob_yy(wᵢ::RecursiveBPFactor, y, y1, y2, xᵢ) = error("Not implemented")
 
 
 ##############################################
 #### the next two methods are optional
 
 "P(xᵢᵗ⁺¹|xᵢᵗ, xₙᵢᵗ, d)"
-function (wᵢ::SimpleBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
+function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
     xᵢᵗ::Integer)
     U = typeof(wᵢ)
     d = length(xₙᵢᵗ)
@@ -38,7 +38,7 @@ function (wᵢ::SimpleBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVecto
     sum(Pyy[y] * prob_ijy_dummy(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, 1, y, d) for y in eachindex(Pyy))
 end
 
-function prob_ijy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where {U<:SimpleBPFactor}
+function prob_ijy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where {U<:RecursiveBPFactor}
     sum(prob_ijy_dummy(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, nothing, yᵗ, d + 1) * 
         prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ) * 
         prob_yy(wᵢ, yᵗ, y1, y2, xᵢᵗ) 
@@ -52,7 +52,7 @@ end
 # compute message m(i→j, l) from m(i→j, l-1) 
 # returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
 function f_bp_partial(mₗᵢ::MPEM2, mᵢⱼₗ₁::MPEM2, 
-        wᵢ::Vector{U}, ψᵢₗ, l::Integer) where {U<:SimpleBPFactor}
+        wᵢ::Vector{U}, ψᵢₗ, l::Integer) where {U<:RecursiveBPFactor}
     T = getT(mₗᵢ)
     @assert getT(mᵢⱼₗ₁) == T
     map(1:T+1) do t
@@ -66,7 +66,7 @@ end
 
 # compute m(i→j) from m(i→j,d)
 function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
-    d::Integer; prob = prob_ijy) where {U<:SimpleBPFactor}
+    d::Integer; prob = prob_ijy) where {U<:RecursiveBPFactor}
     q = nstates(U)
     B = [zeros(q, q, size(a,1), size(a,2), q) for a in A]
     for t in 1:getT(A)
@@ -82,7 +82,7 @@ end
 function f_bp(A::Vector{MPEM2{F}},
     wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}},
     j::Integer;
-    svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
+    svd_trunc=TruncThresh(1e-6)) where {F,U<:RecursiveBPFactor}
 
     d = length(A) - 1   # number of neighbors other than j
     @assert j ∈ eachindex(A)
@@ -112,7 +112,7 @@ end
 
 function f_bp_dummy_neighbor(A::Vector{MPEM2{F}}, 
     wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
-    svd_trunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
+    svd_trunc=TruncThresh(1e-6)) where {F,U<:RecursiveBPFactor}
 
     d = length(A)
     T = length(wᵢ)-1; q = nstates(U)
@@ -143,7 +143,7 @@ end
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP{F,U}, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F<:Real,U<:SimpleBPFactor}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F<:Real,U<:RecursiveBPFactor}
     @unpack g, w, ϕ, ψ, μ = bp
     ein, eout = inedges(g,i), outedges(g, i)
     dᵢ = length(ein)
@@ -192,12 +192,12 @@ end
 
 
 function beliefs(bp::MPBP{F,U};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:RecursiveBPFactor}
     [marginals(bi) for bi in bp.b]
 end
 
 function beliefs_tu(bp::MPBP{F,U};
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:SimpleBPFactor}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {F,U<:RecursiveBPFactor}
     [marginals_tu(bi) for bi in bp.b]
 end
 
@@ -206,7 +206,7 @@ end
 
 function onebpiter_infinite_graph(A::MPEM2, k::Integer, wᵢ::Vector{U}, 
         ϕᵢ, ψₙᵢ;
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:SimpleBPFactor}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:RecursiveBPFactor}
 
     B, _ = f_bp(fill(A, k), wᵢ, ϕᵢ, ψₙᵢ, 1)
     C = mpem2(B)
@@ -219,7 +219,7 @@ function iterate_bp_infinite_graph(T::Integer, k::Integer, wᵢ::Vector{U},
         ϕᵢ = fill(ones(nstates(U)), T+1);
         ψₙᵢ = fill(fill(ones(nstates(U), nstates(U)), T+1), k),
         svd_trunc::SVDTrunc=TruncThresh(1e-6), maxiter=5, tol=1e-5,
-        showprogress=true) where {U<:SimpleBPFactor}
+        showprogress=true) where {U<:RecursiveBPFactor}
     @assert length(ϕᵢ) == T + 1
     @assert length(wᵢ) == T
     
@@ -243,7 +243,7 @@ end
 
 function onebpiter_dummy_infinite_graph(A::MPEM2, k::Integer,
         wᵢ::Vector{U}, ϕᵢ, ψₙᵢ; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:SimpleBPFactor}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:RecursiveBPFactor}
 
     B, _ = f_bp_dummy_neighbor(fill(A, k), wᵢ, ϕᵢ, ψₙᵢ)
     C = mpem2(B)
@@ -258,7 +258,7 @@ function observables_infinite_graph(A::MPEM2, k::Integer,
         wᵢ::Vector{<:U}, ϕᵢ;
         ψₙᵢ = fill(fill(ones(nstates(U),nstates(U)), length(A)), k),
         svd_trunc::SVDTrunc=TruncThresh(1e-6), 
-        showprogress=true) where {U<:SimpleBPFactor}
+        showprogress=true) where {U<:RecursiveBPFactor}
 
     Anew = onebpiter_dummy_infinite_graph(A, k, wᵢ, ϕᵢ, ψₙᵢ; svd_trunc)
     b = firstvar_marginal(Anew)

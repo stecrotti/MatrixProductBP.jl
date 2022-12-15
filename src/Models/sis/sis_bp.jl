@@ -1,7 +1,7 @@
 const SUSCEPTIBLE = 1
 const INFECTED = 2
 
-struct SISFactor{T<:AbstractFloat} <: SimpleBPFactor
+struct SISFactor{T<:AbstractFloat} <: RecursiveBPFactor
     λ :: T  # infection rate
     ρ :: T  # recovery rate
     function SISFactor(λ::T, ρ::T) where {T<:AbstractFloat}
