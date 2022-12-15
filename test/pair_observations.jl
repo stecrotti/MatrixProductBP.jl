@@ -48,7 +48,7 @@ Z_bp = exp(-f_bethe)
 r_bp = autocorrelations(bp)
 r_exact = exact_autocorrelations(bp)
 
-@testset "Pair observations - SimpleBPFactor" begin
+@testset "Pair observations - RecursiveBPFactor" begin
     @test Z_exact ≈ Z_bp
     @test p_ex ≈ p_bp
     @test r_bp ≈ r_exact
