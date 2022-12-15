@@ -40,9 +40,8 @@ function f_bp(A::Vector{MPEM2{F}}, wᵢ::Vector{U},
 
     B = Vector{Array{F,5}}(undef, T + 1)
     A⁰ = kron2([A[k][begin] for k in eachindex(A)[Not(j_index)]]...)
-    nrows = size(A⁰, 1)
-    ncols = size(A⁰, 2)
-    B⁰ = zeros(q, q, nrows, ncols, q)
+    nrows, ncols = size(A⁰, 1), size(A⁰, 2)
+    B⁰ = zeros(nrows, ncols, q, q, q)
 
     for xᵢ⁰ in 1:q
         for xᵢ¹ in 1:q
@@ -50,13 +49,13 @@ function f_bp(A::Vector{MPEM2{F}}, wᵢ::Vector{U},
                 xⱼ⁰ = xₙᵢ⁰[j_index]
                 xₙᵢ₋ⱼ⁰ = xₙᵢ⁰[Not(j_index)]
                 for a¹ in axes(A⁰, 2)
-                    B⁰[xᵢ⁰, xⱼ⁰, 1, a¹, xᵢ¹] += wᵢ[1](xᵢ¹, xₙᵢ⁰, xᵢ⁰) *
+                    B⁰[1, a¹, xᵢ⁰, xⱼ⁰, xᵢ¹] += wᵢ[1](xᵢ¹, xₙᵢ⁰, xᵢ⁰) *
                         A⁰[1, a¹, xᵢ⁰, xₙᵢ₋ⱼ⁰...] *
                         prod(ψₙᵢ[k][begin][xᵢ⁰, xₖ⁰] for (k, xₖ⁰) in enumerate(xₙᵢ⁰) if k != j_index; init=1.0)
                 end
             end
         end
-        B⁰[xᵢ⁰, :, :, :, :] .*= ϕᵢ[begin][xᵢ⁰]
+        B⁰[:, :, xᵢ⁰, :, :] .*= ϕᵢ[begin][xᵢ⁰]
     end
     B[begin] = B⁰
 
@@ -65,21 +64,20 @@ function f_bp(A::Vector{MPEM2{F}}, wᵢ::Vector{U},
     for t in 1:T-1
         # select incoming A's but not the j-th one
         Aᵗ = kron2([A[k][begin+t] for k in eachindex(A)[Not(j_index)]]...)
-        nrows = size(Aᵗ, 1)
-        ncols = size(Aᵗ, 2)
-        Bᵗ = zeros(q, q, nrows, ncols, q)
+        nrows, ncols = size(Aᵗ, 1), size(Aᵗ, 2)
+        Bᵗ = zeros(nrows, ncols, q, q, q)
 
         for xᵢᵗ in 1:q
             for xᵢᵗ⁺¹ in 1:q
                 for xₙᵢᵗ in x_neigs
                     xⱼᵗ = xₙᵢᵗ[j_index]
                     xₙᵢ₋ⱼᵗ = xₙᵢᵗ[Not(j_index)]
-                    Bᵗ[xᵢᵗ, xⱼᵗ, :, :, xᵢᵗ⁺¹] .+= wᵢ[t+1](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) *
+                    Bᵗ[:, :, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹] .+= wᵢ[t+1](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) *
                         Aᵗ[:, :, xᵢᵗ, xₙᵢ₋ⱼᵗ...] *
                         prod(ψₙᵢ[k][t+1][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ) if k != j_index; init=1.0)
                 end
             end
-            Bᵗ[xᵢᵗ, :, :, :, :] *= ϕᵢ[t+1][xᵢᵗ]
+            Bᵗ[:, :, xᵢᵗ, :, :] *= ϕᵢ[t+1][xᵢᵗ]
         end
         B[begin+t] = Bᵗ
         any(isnan, Bᵗ) && println("NaN in tensor at time $t")
@@ -88,21 +86,20 @@ function f_bp(A::Vector{MPEM2{F}}, wᵢ::Vector{U},
 
     # select incoming A's but not the j-th one
     Aᵀ = kron2([A[k][begin+T] for k in eachindex(A)[Not(j_index)]]...)
-    nrows = size(Aᵀ, 1)
-    ncols = size(Aᵀ, 2)
-    Bᵀ = zeros(q, q, nrows, ncols, q)
+    nrows, ncols = size(Aᵀ, 1), size(Aᵀ, 2)
+    Bᵀ = zeros(nrows, ncols, q, q, q)
 
     for xᵢᵀ in 1:q
         for xᵢᵀ⁺¹ in 1:q
             for xₙᵢᵀ in x_neigs
                 xⱼᵀ = xₙᵢᵀ[j_index]
                 xₙᵢ₋ⱼᵀ = xₙᵢᵀ[Not(j_index)]
-                Bᵀ[xᵢᵀ, xⱼᵀ, :, :, xᵢᵀ⁺¹] .+=
+                Bᵀ[:, :, xᵢᵀ, xⱼᵀ, xᵢᵀ⁺¹] .+=
                     Aᵀ[:, :, xᵢᵀ, xₙᵢ₋ⱼᵀ...] *
                     prod(ψₙᵢ[k][end][xᵢᵀ, xₖᵀ] for (k, xₖᵀ) in enumerate(xₙᵢᵀ) if k != j_index; init=1.0)
             end
         end
-        Bᵀ[xᵢᵀ, :, :, :, :] *= ϕᵢ[end][xᵢᵀ]
+        Bᵀ[:, :, xᵢᵀ, :, :] *= ϕᵢ[end][xᵢᵀ]
     end
     B[end] = Bᵀ
     any(isnan, Bᵀ) && println("NaN in tensor at time $T")
@@ -126,19 +123,19 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
     A⁰ = kron2([A[k][begin] for k in eachindex(A)]...)
     nrows = size(A⁰, 1)
     ncols = size(A⁰, 2)
-    B⁰ = zeros(q, q, nrows, ncols, q)
+    B⁰ = zeros(nrows, ncols, q, q, q)
 
     for xᵢ⁰ in 1:q
         for xᵢ¹ in 1:q
             for xₙᵢ⁰ in xₙᵢ
                 for a¹ in axes(A⁰, 2)
-                    B⁰[xᵢ⁰, :, 1, a¹, xᵢ¹] .+= wᵢ[1](xᵢ¹, xₙᵢ⁰, xᵢ⁰) .*
+                    B⁰[1, a¹, xᵢ⁰, :, xᵢ¹] .+= wᵢ[1](xᵢ¹, xₙᵢ⁰, xᵢ⁰) .*
                                                A⁰[1, a¹, xᵢ⁰, xₙᵢ⁰...] .*
                                                prod(ψₙᵢ[k][begin][xᵢ⁰, xₖ⁰] for (k, xₖ⁰) in enumerate(xₙᵢ⁰))
                 end
             end
         end
-        B⁰[xᵢ⁰, :, :, :, :] .*= ϕᵢ[begin][xᵢ⁰]
+        B⁰[:, :, xᵢ⁰, :, :] .*= ϕᵢ[begin][xᵢ⁰]
     end
     B[begin] = B⁰
 
@@ -149,19 +146,19 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
         Aᵗ = kron2([A[k][begin+t] for k in eachindex(A)]...)
         nrows = size(Aᵗ, 1)
         ncols = size(Aᵗ, 2)
-        Bᵗ = zeros(q, q, nrows, ncols, q)
+        Bᵗ = zeros(nrows, ncols, q, q, q)
 
         for xᵢᵗ in 1:q
             for xⱼᵗ in 1:q
                 for xᵢᵗ⁺¹ in 1:q
                     for xₙᵢᵗ in xₙᵢ
-                        Bᵗ[xᵢᵗ, xⱼᵗ, :, :, xᵢᵗ⁺¹] .+= wᵢ[t+1](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) .*
+                        Bᵗ[:, :, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹] .+= wᵢ[t+1](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) .*
                                                       Aᵗ[:, :, xᵢᵗ, xₙᵢᵗ...] .*
                                                       prod(ψₙᵢ[k][t+1][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ))
                     end
                 end
             end
-            Bᵗ[xᵢᵗ, :, :, :, :] *= ϕᵢ[t+1][xᵢᵗ]
+            Bᵗ[:, :, xᵢᵗ, :, :] *= ϕᵢ[t+1][xᵢᵗ]
         end
         B[begin+t] = Bᵗ
         any(isnan, Bᵗ) && println("NaN in tensor at time $t")
@@ -172,19 +169,19 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
     Aᵀ = kron2([A[k][begin+T] for k in eachindex(A)]...)
     nrows = size(Aᵀ, 1)
     ncols = size(Aᵀ, 2)
-    Bᵀ = zeros(q, q, nrows, ncols, q)
+    Bᵀ = zeros(nrows, ncols, q, q, q)
 
     for xᵢᵀ in 1:q
         for xⱼᵀ in 1:q
             for xᵢᵀ⁺¹ in 1:q
                 for xₙᵢᵀ in xₙᵢ
-                    Bᵀ[xᵢᵀ, xⱼᵀ, :, :, xᵢᵀ⁺¹] .+=
+                    Bᵀ[:, :, xᵢᵀ, xⱼᵀ, xᵢᵀ⁺¹] .+=
                         Aᵀ[:, :, xᵢᵀ, xₙᵢᵀ...] *
                         prod(ψₙᵢ[k][end][xᵢᵀ, xₖᵀ] for (k, xₖᵀ) in enumerate(xₙᵢᵀ))
                 end
             end
         end
-        Bᵀ[xᵢᵀ, :, :, :, :] *= ϕᵢ[end][xᵢᵀ]
+        Bᵀ[:, :, xᵢᵀ, :, :] *= ϕᵢ[end][xᵢᵀ]
     end
     B[end] = Bᵀ
     any(isnan, Bᵀ) && println("NaN in tensor at time $T")
