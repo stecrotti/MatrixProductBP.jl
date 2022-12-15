@@ -22,7 +22,6 @@ import Unzip: unzip
 export 
     RecursiveBPFactor, beliefs, beliefs_tu,
     mpbp_infinite_graph,
-    iterate_bp_infinite_graph, observables_infinite_graph,
     Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, mpbp, 
     SIS, SISFactor, SUSCEPTIBLE, INFECTED,
