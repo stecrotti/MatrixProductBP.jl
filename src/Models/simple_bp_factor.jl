@@ -49,21 +49,6 @@ end
 #####################################################
 
 
-# compute message m(i→j, l) from m(i→j, l-1) 
-# returns an `MPEM2` [Aᵗᵢⱼ,ₗ(yₗᵗ,xᵢᵗ)]ₘₙ is stored as a 4-array A[m,n,yₗᵗ,xᵢᵗ]
-function f_bp_partial(mₗᵢ::MPEM2, mᵢⱼₗ₁::MPEM2, 
-        wᵢ::Vector{U}, ψᵢₗ, l::Integer) where {U<:RecursiveBPFactor}
-    T = getT(mₗᵢ)
-    @assert getT(mᵢⱼₗ₁) == T
-    map(1:T+1) do t
-        Aᵗ = kron2(mₗᵢ[t], mᵢⱼₗ₁[t])
-        qxᵢ = nstates(U); qy = nstates(U, l)
-        AAᵗ = zeros(size(Aᵗ, 1), size(Aᵗ, 2), qy, qxᵢ)        
-        @tullio AAᵗ[m,n,yₗᵗ,xᵢᵗ] = prob_partial_msg(wᵢ[$t],yₗᵗ,yₗ₁ᵗ,xₗᵗ,l) * Aᵗ[m,n,xᵢᵗ,xₗᵗ,yₗ₁ᵗ] * ψᵢₗ[$t][xᵢᵗ,xₗᵗ]
-    end |> MPEM2
-end
-
-
 # compute m(i→j) from m(i→j,d)
 function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
     d::Integer; prob = prob_ijy) where {U<:RecursiveBPFactor}
