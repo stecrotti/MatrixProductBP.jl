@@ -16,7 +16,7 @@ nstates(::Type{<:RecursiveBPFactor}) = error("Not implemented")
 "P(xᵢᵗ⁺¹|xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ)
 Might depend on the degree `dᵢ` because of the (possible) change of variable from 
     y ∈ {1,2,...} to its physical value, e.g. {-dᵢ,...,dᵢ}"
-prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ) where {U<:RecursiveBPFactor} = error("Not implemented")
+prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, yₙᵢᵗ, dᵢ) where {U<:RecursiveBPFactor} = error("Not implemented")
 
 "P(yₖᵗ| xₖᵗ, xᵢᵗ)"
 prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ) = error("Not implemented")
@@ -40,16 +40,17 @@ function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVe
                    for y1 in 1:nstates(U,1), y2 in 1:nstates(U,k-1)) 
                for y in 1:nstates(U,k)]
     end
-    sum(Pyy[y] * prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, 1, y, d) for y in eachindex(Pyy))
+    sum(Pyy[y] * prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, y, d) for y in eachindex(Pyy))
 end
 
 function prob_y_partial(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where {U<:RecursiveBPFactor}
-    sum(prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, nothing, yᵗ, d + 1) * 
+    sum(prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d + 1) * 
         prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ) * 
         prob_yy(wᵢ, yᵗ, y1, y2, xᵢᵗ) 
         for yᵗ in 1:nstates(U, d + 1), y2 in 1:nstates(U,1))
 end
 
+prob_y_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where U = prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, y1, d) 
 
 #####################################################
 
@@ -58,7 +59,7 @@ function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<
 end
 
 function f_bp_partial_i(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
-    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y)
+    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_dummy)
 end
 
 function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
