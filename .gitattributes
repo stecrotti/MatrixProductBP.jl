@@ -1,0 +1,2 @@
+# Ignore jupyter notebooks when computing language percentages on github
+*.ipynb linguist-vendor
