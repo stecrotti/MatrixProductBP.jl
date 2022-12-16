@@ -50,9 +50,11 @@ function prob_y_partial(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where {U
         for yᵗ in 1:nstates(U, d + 1), y2 in 1:nstates(U,1))
 end
 
-prob_y_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where U = prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, y1, d) 
 
 #####################################################
+
+prob_y_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where U = prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, y1, d) 
+
 
 function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
     _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_partial)
@@ -76,22 +78,14 @@ function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
     return MPEM3(B)
 end
 
-# compute outgoing messages from node `i`
-function onebpiter!(bp::MPBP{G,F,U}, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
-    @unpack g, w, ϕ, ψ, μ = bp
-    ein, eout = inedges(g,i), outedges(g, i)
-    dᵢ = length(ein)
-    wᵢ, ϕᵢ = w[i], ϕ[i]
-    T = getT(bp)
-    A, ψout = μ[ein.|>idx], ψ[eout.|>idx]
-    @assert all(normalization(a) ≈ 1 for a in A)
- 
+function compute_prob_ys(wᵢ::Vector{U}, μin::Vector{<:MPEM2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor}
+    @assert all(normalization(a) ≈ 1 for a in μin)
+    dᵢ = length(ψout)
     B = map(1:dᵢ) do k
-        Bk = map(1:getT(A[k]) + 1) do t
-            Akt, wᵢᵗ, ψᵢₖᵗ = A[k][t], wᵢ[t], ψout[k][t]
-            Bkt = zeros(size(Akt,1), size(Akt,2), nstates(U, 1), size(Akt,4))
-            @tullio Bkt[m,n,yₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ) * Akt[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ]
+        Bk = map(1:getT(μin[k]) + 1) do t
+            μkt, wᵢᵗ, ψᵢₖᵗ = μin[k][t], wᵢ[t], ψout[k][t]
+            Bkt = zeros(size(μkt,1), size(μkt,2), nstates(U, 1), size(μkt,4))
+            @tullio Bkt[m,n,yₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ) * μkt[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ]
         end |> MPEM2
         Bk, 0.0, 1
     end
@@ -110,11 +104,20 @@ function onebpiter!(bp::MPBP{G,F,U}, i::Integer;
         sweep_RtoL!(B; svd_trunc)
         B, lz + lz1 + lz2, n1 + n2
     end
-
     dest, (full, _)  = cavity(B, op, init)
     (C, logzs) = unzip(dest)
-
     logzᵢ = sum(logzs)
+    C, full, logzᵢ
+end
+
+
+# compute outgoing messages from node `i`
+function onebpiter!(bp::MPBP{G,F,U}, i::Integer; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
+    @unpack g, w, ϕ, ψ, μ = bp
+    ein, eout = inedges(g,i), outedges(g, i)
+    wᵢ, ϕᵢ, dᵢ  = w[i], ϕ[i], length(ein)
+    C, full, logzᵢ = compute_prob_ys(wᵢ, μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1)
         μ[idx(e)] = sweep_RtoL!(mpem2(B); svd_trunc)
@@ -125,11 +128,6 @@ function onebpiter!(bp::MPBP{G,F,U}, i::Integer;
     return dᵢ == 0 ? 0.0 : logzᵢ / dᵢ
 end
 
+beliefs(bp::MPBP{G,F,U}) where {G,F,U<:RecursiveBPFactor} = marginals.(bp.b)
 
-function beliefs(bp::MPBP{G,F,U}) where {G,F,U<:RecursiveBPFactor}
-    [marginals(bi) for bi in bp.b]
-end
-
-function beliefs_tu(bp::MPBP{G,F,U}) where {G,F,U<:RecursiveBPFactor}
-    [marginals_tu(bi) for bi in bp.b]
-end
+beliefs_tu(bp::MPBP{G,F,U}) where {G,F,U<:RecursiveBPFactor} = marginals_tu.(bp.b)
