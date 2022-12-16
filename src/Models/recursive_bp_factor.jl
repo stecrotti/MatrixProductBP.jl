@@ -5,7 +5,7 @@ Optionally, it can also implement `prob_y_partial` and `(w::U)(xᵢᵗ⁺¹, x�
 """
 abstract type RecursiveBPFactor <: BPFactor; end
 
-#### the next four methods are the minimal needed interface for a new <:RecursiveBPFactor
+#### the next five methods are the minimal needed interface for a new <:RecursiveBPFactor
 
 "Number of states for aux variable which accumulates the first `l` neighbors"
 nstates(::Type{<:RecursiveBPFactor}, l::Integer) = error("Not implemented")
