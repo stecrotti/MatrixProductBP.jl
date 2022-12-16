@@ -13,7 +13,7 @@ function evaluate(B::MPEM3, x)
     return only(M)
 end
 
-# convert mpem2 into mpem3 via a Left to Right sweep of SVD's
+# convert mpem3 into mpem2 via a Left to Right sweep of SVD's
 function mpem2(B::MPEM3{F}) where {F}
     C = Vector{Array{F,4}}(undef, length(B))
     qᵢᵗ = size(B[1], 3); qⱼᵗ = size(B[1], 4); qᵢᵗ⁺¹ = size(B[1], 5)
@@ -34,6 +34,5 @@ function mpem2(B::MPEM3{F}) where {F}
     end
     @cast Cᵀ[m,n,xᵢ,xⱼ] := Bᵗ⁺¹_new[m,n,xᵢ,xⱼ,1]
     C[end] = Cᵀ
-    @assert check_bond_dims(C)
     return MPEM2(C)
 end
