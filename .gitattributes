@@ -1,2 +1,2 @@
 # Ignore jupyter notebooks when computing language percentages on github
-notebooks/* linguist-vendor
+notebooks/* linguist-vendored
