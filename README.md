@@ -5,6 +5,12 @@
 
 When possible, variable names match the notation used in the [notes](https://www.overleaf.com/read/cjtftmgvyxkt).
 
+### Installation
+```
+using Pkg; Pkg.add("https://github.com/stecrotti/MatrixProductBP.git")
+```
+
+## Overview
 This folder is organized as follows:
 - A self-contained submodule `MPEMs` (Matrix Product Edge Messages) to operate with matrix products. 
 There are two types of `MPEM's:
