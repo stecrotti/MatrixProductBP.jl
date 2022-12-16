@@ -1,4 +1,4 @@
-const SUSCEPTIBLE = 1
+const SUSCEPTIBLE = 1 
 const INFECTED = 2
 
 struct SISFactor{T<:AbstractFloat} <: SimpleBPFactor
