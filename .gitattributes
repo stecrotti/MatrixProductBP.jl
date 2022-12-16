@@ -1,2 +1,3 @@
 # Ignore jupyter notebooks when computing language percentages on github
-notebooks/* linguist-vendored
+# *.ipynb linguist-language=Julia
+# notebooks/* linguist-detectable
