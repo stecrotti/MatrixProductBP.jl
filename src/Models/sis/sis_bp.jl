@@ -48,7 +48,7 @@ end
 idx_to_value(x::Integer, ::Type{<:SISFactor}) = x - 1
 
 # neighbor j is susceptible -> does nothing
-function prob_y(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, xⱼᵗ, yᵗ, d)
+function prob_y(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
     @unpack λ, ρ = wᵢ
     xⱼᵗ = SUSCEPTIBLE
     z = 1 - λ*(xⱼᵗ == INFECTED)
