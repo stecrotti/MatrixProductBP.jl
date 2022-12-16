@@ -68,25 +68,6 @@ function firstvar_marginal_tu(A::MPEM2; showprogress::Bool=true,
     end
 end
 
-# compute normalization of an MPEM2 efficiently
-function normalization(A::MPEM2; l = accumulate_L(A), r = accumulate_R(A))
-    z = only(l[end])
-    @assert only(r[begin]) ≈ z "z=$z, got $(only(r[begin])), A=$A"  # sanity check
-    z
-end
-
-# normalize so that the sum over all pair trajectories is 1.
-# return log of the normalization
-function normalize!(A::MPEM2)
-    c = normalize_eachmatrix!(A)
-    Z = normalization(A)
-    T = getT(A)
-    for a in A
-        a ./= Z^(1/(T+1))
-    end
-    c + log(Z)
-end
-
 function marginalize(A::MPEM2)
     MPEM1([@tullio b[m,n,xi] := a[m,n,xi,xj] for a in A])
 end
