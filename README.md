@@ -1,6 +1,7 @@
 # Matrix Product Belief Propagation
 
 [![CI](https://github.com/stecrotti/MatrixProductBP/actions/workflows/ci.yml/badge.svg)](https://github.com/stecrotti/MatrixProductBP/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/stecrotti/MatrixProductBP/branch/main/graph/badge.svg?token=X30C323BYT)](https://codecov.io/gh/stecrotti/MatrixProductBP)
 
 When possible, variable names match the notation used in the [notes](https://www.overleaf.com/read/cjtftmgvyxkt).
 
