@@ -1,3 +1,6 @@
+"""
+[Aᵢⱼ] ⨉ 🚂
+"""
 struct MatrixProductTrain{F<:Real, N} <: MPEM
     tensors::Vector{Array{F,N}}
     function MatrixProductTrain(tensors::Vector{Array{F,N}}) where {F<:Real, N}
