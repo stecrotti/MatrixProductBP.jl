@@ -1,22 +1,22 @@
-struct MPBP{G<:AbstractIndexedDiGraph,F<:Real,U<:BPFactor}
+struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
     g  :: G                              # graph
-    w  :: Vector{Vector{U}}              # factors, one per variable
+    w  :: Vector{V}              # factors, one per variable
     ϕ  :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
     ψ  :: Vector{Vector{Matrix{F}}}      # edge-dependent factors
     μ  :: Vector{MPEM2{F}}               # messages, two per edge
     b  :: Vector{MPEM1{F}}               # beliefs in matrix product form
     
-    function MPBP(g::G, w::Vector{Vector{U}}, 
+    function MPBP(g::G, w::Vector{V}, 
             ϕ::Vector{Vector{Vector{F}}}, ψ::Vector{Vector{Matrix{F}}},
-            μ::Vector{MPEM2{F}}, b::Vector{MPEM1{F}}) where {G<:AbstractIndexedDiGraph,F<:Real,U<:BPFactor}
+            μ::Vector{MPEM2{F}}, b::Vector{MPEM1{F}}) where {G<:AbstractIndexedDiGraph,
+                                                             F<:Real, V<:AbstractVector{<:BPFactor}}
     
-        q = nstates(U)
         T = length(w[1]) - 1
         @assert length(w) == length(ϕ) == length(b) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
         @assert length(ψ) == ne(g)
         @assert all( length(wᵢ) == T + 1 for wᵢ in w )
-        @assert all( length(ϕ[i][t]) == q for i in eachindex(ϕ) for t in eachindex(ϕ[i]) )
-        @assert all( size(ψ[ij][t]) == (q,q) for ij in eachindex(ψ) for t in eachindex(ψ[ij]) )
+        @assert all( length(ϕ[i][t]) == nstates(b[i]) for i in eachindex(ϕ) for t in eachindex(ϕ[i]) )
+        @assert all( size(ψ[k][t]) == (nstates(b[i]),nstates(b[j])) for (i,j,k) in edges(g) for t in eachindex(ψ[k]) )
         @assert check_ψs(ψ, g)
         @assert all( length(ϕᵢ) == T + 1 for ϕᵢ in ϕ )
         @assert all( length(ψᵢ) == T + 1 for ψᵢ in ψ )
@@ -28,13 +28,13 @@ struct MPBP{G<:AbstractIndexedDiGraph,F<:Real,U<:BPFactor}
         for i in vertices(g)
             ϕ[i][begin] ./= sum(ϕ[i][begin])
         end
-        return new{G,F,U}(g, w, ϕ, ψ, μ, b)
+        return new{G,F,V}(g, w, ϕ, ψ, μ, b)
     end
 end
 
 getT(bp::MPBP) = getT(bp.b[1])
-nstates(::MPBP{G,F,U}) where {G,F,U} = nstates(U)
 getN(bp::MPBP) = nv(bp.g)
+nstates(bp::MPBP, i) = nstates(bp.b[i])
 
 # check that observation on edge i→j is the same as the one on j→i
 function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
@@ -57,12 +57,12 @@ function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
     return true
 end
 
-function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{U}}, 
+function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}}, q::AbstractVector{Int},
         T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
-        ϕ = [[ones(nstates(U)) for t in 0:T] for _ in vertices(g)],
-        ψ = [[ones(nstates(U),nstates(U)) for t in 0:T] for _ in edges(g)],
-        μ = [mpem2(nstates(U), T; d, bondsizes) for e in edges(g)],
-        b = [mpem1(nstates(U), T; d, bondsizes) for i in vertices(g)]) where {U<:BPFactor}
+        ϕ = [[ones(q[i]) for t in 0:T] for i in vertices(g)],
+        ψ = [[ones(q[i],q[j]) for t in 0:T] for (i,j) in edges(g)],
+        μ = [mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
+        b = [mpem1(q[i], T; d, bondsizes) for i in vertices(g)])
     return MPBP(g, w, ϕ, ψ, μ, b)
 end
 
@@ -77,8 +77,8 @@ function reset_messages!(bp::MPBP)
 end
 
 # compute outgoing messages from node `i`
-function onebpiter!(bp::MPBP, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6))
+function onebpiter!(bp::MPBP, i::Integer, ::Type{U}; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:BPFactor}
     @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
@@ -97,7 +97,11 @@ function onebpiter!(bp::MPBP, i::Integer;
     return (1 / dᵢ) * logzᵢ
 end
 
-# compute outgoing message from node `i` to dummy neighbor
+function onebpiter!(bp::MPBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
+    onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc)
+end
+
+
 function onebpiter_dummy_neighbor(bp::MPBP, i::Integer; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6))
     @unpack g, w, ϕ, ψ, μ = bp
@@ -115,18 +119,20 @@ struct CB_BP{TP<:ProgressUnknown}
     m    :: Vector{Vector{Vector{Float64}}} 
     Δs   :: Vector{Float64}
 
-    function CB_BP(bp::MPBP{G,F,U}; showprogress::Bool=true) where {G,F,U}
+    function CB_BP(bp::MPBP; showprogress::Bool=true)
         dt = showprogress ? 0.1 : Inf
         prog = ProgressUnknown(desc="Running MPBP: iter", dt=dt)
         TP = typeof(prog)
-        m = [[marginal_to_expectation.(firstvar_marginal(msg), U) for msg in bp.μ]]
+
+        ## warning :: FIXME and also below
+        m = [[marginal_to_expectation.(marginals(bp.b[i]), eltype(bp.w[i]))  for i in eachindex(bp.b)]]
         Δs = zeros(0)
         new{TP}(prog, m, Δs)
     end
 end
 
-function (cb::CB_BP)(bp::MPBP{G,F,U}, it::Integer) where {G,F,U}
-    marg_new = [marginal_to_expectation.(firstvar_marginal(msg), U) for msg in bp.μ]
+function (cb::CB_BP)(bp::MPBP, it::Integer)
+    marg_new = [marginal_to_expectation.(marginals(bp.b[i]), eltype(bp.w[i])) for i in eachindex(bp.b)]
     marg_old = cb.m[end]
     if isempty(marg_new)
         Δ = NaN
@@ -146,7 +152,7 @@ function iterate!(bp::MPBP; maxiter::Integer=5,
         nodes = collect(vertices(bp.g)), shuffle::Bool=true)
     for it in 1:maxiter
         for i in nodes
-            onebpiter!(bp, i; svd_trunc)
+            onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc)
         end
         Δ = cb(bp, it)
         Δ < tol && return it, cb
@@ -157,8 +163,8 @@ end
 
 # compute joint beliefs for all pairs of neighbors
 # return also logzᵢⱼ contributions to logzᵢ
-function pair_beliefs(bp::MPBP{G,F,U}) where {G,F,U}
-    b = [[zeros(nstates(U),nstates(U)) for _ in 0:getT(bp)] for _ in 1:(ne(bp.g))]
+function pair_beliefs(bp::MPBP{G,F}) where {G,F}
+    b = [[zeros(nstates(bp,i),nstates(bp,j)) for _ in 0:getT(bp)] for (i,j) in edges(bp.g)]
     logz = zeros(nv(bp.g))
     X = bp.g.X
     N = nv(bp.g)
@@ -179,16 +185,22 @@ function pair_beliefs(bp::MPBP{G,F,U}) where {G,F,U}
     b, logz
 end
 
-function beliefs(bp::MPBP{G,F,U}; bij = pair_beliefs(bp)[1]) where {G,F,U<:BPFactor}
-    b = map(vertices(bp.g)) do i 
-        ij = idx(first(outedges(bp.g, i)))
-        bb = bij[ij]
-        map(bb) do bᵢⱼᵗ
-            bᵢᵗ = vec(sum(bᵢⱼᵗ, dims=2))
-        end
-    end
-    b
-end
+beliefs(bp::MPBP{G,F}) where {G,F} = marginals.(bp.b)
+
+beliefs_tu(bp::MPBP{G,F}) where {G,F} = marginals_tu.(bp.b)
+
+
+# function beliefs(bp::MPBP{G,F}; bij = pair_beliefs(bp)[1]) where {G,F}
+#     b = map(vertices(bp.g)) do i 
+#         ij = idx(first(outedges(bp.g, i)))
+#         bb = bij[ij]
+#         map(bb) do bᵢⱼᵗ
+#             bᵢᵗ = vec(sum(bᵢⱼᵗ, dims=2))
+#         end
+#     end
+#     b
+# end
+
 
 function marginal_to_expectation(p::Matrix{<:Real}, U::Type{<:BPFactor})
     μ = 0.0
@@ -206,41 +218,9 @@ function marginal_to_expectation(p::Vector{<:Real}, U::Type{<:BPFactor})
     μ
 end
 
-# compute joint beliefs for all pairs of neighbors for all pairs of times t,u
-# p(xᵢᵗ,xⱼᵗ,xᵢᵘ,xⱼᵘ)
-function pair_beliefs_tu(bp::MPBP{G,F,U}; showprogress::Bool=true) where {G,F,U<:BPFactor}
-    q = nstates(U); T = getT(bp)
-    b = [[zeros(q,q,q,q) for _ in 0:T, _ in 0:T] for _ in 1:(ne(bp.g))]
-    X = bp.g.X
-    N = nv(bp.g)
-    rows = rowvals(X)
-    vals = nonzeros(X)
-    dt = showprogress ? 0.1 : Inf
-    prog = Progress(N, desc="Computing pair beliefs at pairs of times"; dt)
-    for j in 1:N
-        dⱼ = length(nzrange(X, j))
-        for k in nzrange(X, j)
-            i = rows[k]
-            ji = k          # idx of message i→j
-            ij = vals[k]    # idx of message j→i
-            μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
-            b[ij] = pair_belief_tu(μᵢⱼ, μⱼᵢ, bp.ψ[ij])
-        end
-        next!(prog)
-    end
-    b
-end
 
-function beliefs_tu(bp::MPBP{G,F,U}; bij_tu = pair_beliefs_tu(bp)) where {G,F,U<:BPFactor}
-    b = map(vertices(bp.g)) do i 
-        ij = idx(first(outedges(bp.g, i)))::Int
-        bb = bij_tu[ij]
-        map(bb) do bᵢⱼᵗᵘ
-            sum(sum(bᵢⱼᵗᵘ, dims=2),dims=4)[:,1,:,1]
-        end
-    end
-    b
-end
+# beliefs_tu(bp::MPBP{G,F}) where {G,F} = marginals_tu.(bp.b)
+
 
 function autocorrelation(b_tu::Matrix{Matrix{F}}, 
         U::Type{<:BPFactor}) where {F<:Real}
@@ -251,9 +231,9 @@ function autocorrelation(b_tu::Matrix{Matrix{F}},
     r
 end
 
-function autocorrelations(bp::MPBP{G,F,U};
-        b_tu = beliefs_tu(bp)) where {G,F,U}
-    autocorrelations(b_tu, U)
+function autocorrelations(bp::MPBP{G,F};
+        b_tu = beliefs_tu(bp)) where {G,F}
+    autocorrelations(b_tu, eltype(bp.w[1])) #FIXME
 end
 
 function autocorrelations(b_tu::Vector{Matrix{Matrix{F}}},
@@ -276,9 +256,9 @@ function _autocovariances(r::Vector{Matrix{F}}, μ::Vector{Vector{F}}) where {F<
     end
 end
 
-function autocovariances(bp::MPBP{G,F,U}; 
-        r = autocorrelations(bp), m = beliefs(bp)) where {G,F,U}
-    μ = [marginal_to_expectation.(mᵢ, U) for mᵢ in m] 
+function autocovariances(bp::MPBP{G,F}; 
+        r = autocorrelations(bp), m = beliefs(bp)) where {G,F}
+    μ = [marginal_to_expectation.(mᵢ, eltype(wi)) for (wi,mᵢ) in zip(bp.w,m)] 
     _autocovariances(r, μ)
 end
 
@@ -390,3 +370,6 @@ function pair_obs_undirected_to_directed(ψ_undirected::Vector{<:F},
 
     ψ_directed
 end
+
+
+onebpiter

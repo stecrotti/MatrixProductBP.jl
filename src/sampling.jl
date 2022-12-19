@@ -24,10 +24,10 @@ function SoftMarginSampler(bp::MPBP)
 end
 
 # a sample with its weight
-function onesample!(x::Matrix{Int}, bp::MPBP{G,F,U};
-        rng = GLOBAL_RNG) where {G,F,U}
+function onesample!(x::Matrix{Int}, bp::MPBP{G,F};
+        rng = GLOBAL_RNG) where {G,F}
     @unpack g, w, ϕ, ψ, μ = bp
-    N = nv(bp.g); T = getT(bp); q = nstates(U)
+    N = nv(bp.g); T = getT(bp);
     @assert size(x) == (N , T+1)
     logl = 0.0
 
@@ -41,6 +41,7 @@ function onesample!(x::Matrix{Int}, bp::MPBP{G,F,U};
     for t in 1:T
         for i in 1:N
             ∂i = neighbors(bp.g, i)
+            q = nstates(bp, i)
             @views p = [w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q]
             xᵢᵗ = sample_noalloc(rng, p)
             x[i, t+1] = xᵢᵗ

@@ -36,7 +36,7 @@ using .MPEMs, Reexport
     MPEM2, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!,
     accumulate_L, accumulate_R, accumulate_M, pair_marginal, firstvar_marginal,
     pair_marginal_tu, firstvar_marginal_tu, marginals, marginals_tu, mpem1,
-    normalization, normalize!, MPEM3, MatrixProductTrain
+    normalization, normalize!, MPEM3, MatrixProductTrain, nstates
 
 include("bp_core.jl")
 include("mpbp.jl")

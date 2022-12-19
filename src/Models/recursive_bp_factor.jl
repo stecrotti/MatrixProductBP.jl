@@ -112,11 +112,12 @@ end
 
 
 # compute outgoing messages from node `i`
-function onebpiter!(bp::MPBP{G,F,U}, i::Integer; 
+function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U}; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
     @unpack g, w, ϕ, ψ, μ = bp
     ein, eout = inedges(g,i), outedges(g, i)
     wᵢ, ϕᵢ, dᵢ  = w[i], ϕ[i], length(ein)
+    @assert wᵢ[1] isa U
     C, full, logzᵢ = compute_prob_ys(wᵢ, μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1)
@@ -128,6 +129,3 @@ function onebpiter!(bp::MPBP{G,F,U}, i::Integer;
     return dᵢ == 0 ? 0.0 : logzᵢ / dᵢ
 end
 
-beliefs(bp::MPBP{G,F,U}) where {G,F,U<:RecursiveBPFactor} = marginals.(bp.b)
-
-beliefs_tu(bp::MPBP{G,F,U}) where {G,F,U<:RecursiveBPFactor} = marginals_tu.(bp.b)

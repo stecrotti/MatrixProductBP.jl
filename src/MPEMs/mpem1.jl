@@ -7,6 +7,7 @@ mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(T, d, bonds
 # construct a uniform mpem with given bond dimensions
 rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(T, d, bondsizes, q)
 
+nstates(A::MPEM1) = size(A[1],3)
 
 
 # at each time t, return p(x)
