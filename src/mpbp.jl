@@ -370,6 +370,3 @@ function pair_obs_undirected_to_directed(ψ_undirected::Vector{<:F},
 
     ψ_directed
 end
-
-
-onebpiter
