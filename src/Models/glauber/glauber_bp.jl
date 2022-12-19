@@ -51,7 +51,7 @@ function mpbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
     w = glauber_factors(gl.ising, T)
     ϕ = gl.ϕ
     ψ = pair_obs_undirected_to_directed(gl.ψ, gl.ising.g)
-    return mpbp(g, w, T; ϕ, ψ, kw...)
+    return mpbp(g, w, fill(2, nv(g)), T; ϕ, ψ, kw...)
 end
 
 

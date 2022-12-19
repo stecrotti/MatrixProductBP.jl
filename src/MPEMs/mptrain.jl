@@ -62,7 +62,7 @@ bond_dims(A::MPEM) = [size(A[t], 2) for t in 1:lastindex(A)-1]
 
 getT(A::MatrixProductTrain) = length(A) - 1
 
-eltype(::MatrixProductTrain{N,F}) where {N,F} = F
+eltype(::MatrixProductTrain{F,N}) where {N,F} = F
 
 evaluate(A::MatrixProductTrain, X...) = only(prod(@view a[:, :, x...] for (a,x) in zip(A, X...)))
 

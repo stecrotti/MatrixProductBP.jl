@@ -18,7 +18,7 @@ export
     accumulate_L, accumulate_R, accumulate_M, pair_marginal, firstvar_marginal,
     pair_marginal_tu, firstvar_marginal_tu, marginals_tu,
     normalization, normalize!,
-    MPEM3, MatrixProductTrain
+    MPEM3, MatrixProductTrain, nstates
 
 # Matrix Product Edge Message
 

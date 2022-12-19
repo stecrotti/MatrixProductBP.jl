@@ -3,10 +3,10 @@
 MPEM2(tensors::Vector{Array{Float64, 4}}) = MatrixProductTrain(tensors)
 
 # construct a uniform mpem with given bond dimensions
-mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(T, d, bondsizes, q, q)
+mpem2(q1::Int, q2, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(T, d, bondsizes, q1, q2)
 
 # construct a uniform mpem with given bond dimensions
-rand_mpem2(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(T, d, bondsizes, q, q)
+rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(T, d, bondsizes, q1, q2)
 
 
 # at each time t, return p(xᵢᵗ, xⱼᵗ)
@@ -42,9 +42,9 @@ end
 
 function pair_marginal_tu(A::MPEM2; showprogress::Bool=true)
     l = accumulate_L(A); r = accumulate_R(A); m = accumulate_M(A)
-    q = size(A[1], 3)
+    qi, qj = size(A[1], 3), size(A[i,4])
     T = getT(A)
-    b = [zeros(q, q, q, q) for _ in 0:T, _ in 0:T]
+    b = [zeros(qi, qi, qj, qj) for _ in 0:T, _ in 0:T]
     for t in 1:T
         lᵗ⁻¹ = t == 1 ? [1.0;] : l[t-1]
         Aᵗ = A[t]

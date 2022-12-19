@@ -42,7 +42,7 @@ function mpbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
     sis_ = deepcopy(sis)
     g = IndexedBiDiGraph(sis_.g.A)
     w = sis_factors(sis_)
-    return mpbp(g, w, T, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
+    return mpbp(g, w, fill(2, nv(g)), T, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
 end
 
 idx_to_value(x::Integer, ::Type{<:SISFactor}) = x - 1
