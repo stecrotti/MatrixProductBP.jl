@@ -55,16 +55,16 @@ end
 prob_y_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where U = prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, y1, d) 
 
 
-function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
-    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_partial)
+function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer, qj) where {U<:RecursiveBPFactor}
+    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_partial, qj)
 end
 
 function f_bp_partial_i(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
-    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_dummy)
+    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_dummy, 1)
 end
 
 function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
-    d::Integer, prob::Function) where {U<:RecursiveBPFactor}
+    d::Integer, prob::Function, qj) where {U<:RecursiveBPFactor}
     q = length(ϕᵢ[1])
     B = [zeros(size(a,1), size(a,2), q, q, q) for a in A]
     for t in 1:getT(A)
@@ -119,7 +119,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     @assert wᵢ[1] isa U
     C, full, logzᵢ = compute_prob_ys(wᵢ, μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
-        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1)
+        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, size(ψ[idx(e)],2))
         μ[idx(e)] = sweep_RtoL!(mpem2(B); svd_trunc)
         logzᵢ += normalize!(μ[idx(e)])
     end
