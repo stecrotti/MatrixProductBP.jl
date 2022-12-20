@@ -26,7 +26,7 @@ function f_bp(A::Vector{MPEM2{F}}, wᵢ::Vector{U},
     @assert all(length(ϕᵢᵗ) == q for ϕᵢᵗ in ϕᵢ)
     @assert j_index in eachindex(A)
     z = length(A)      # z = |∂i|
-    x_neigs = Iterators.product(fill(1:q, z)...) .|> collect
+    x_neigs = Iterators.product((1:size(ψₙᵢ[k][1],2) for k=1:z)...) .|> collect
 
     B = Vector{Array{F,5}}(undef, T + 1)
  
@@ -36,7 +36,7 @@ function f_bp(A::Vector{MPEM2{F}}, wᵢ::Vector{U},
         # select incoming A's but not the j-th one
         Aᵗ = kron2([A[k][t] for k in eachindex(A)[Not(j_index)]]...)
         nrows, ncols = size(Aᵗ, 1), size(Aᵗ, 2)
-        Bᵗ = zeros(nrows, ncols, q, q, q)
+        Bᵗ = zeros(nrows, ncols, q, size(ψₙᵢ[j_index][1],1), q)
 
         for xᵢᵗ in 1:q
             for xᵢᵗ⁺¹ in 1:q
