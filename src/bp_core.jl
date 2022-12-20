@@ -187,12 +187,10 @@ function accumulate_L(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
     @tullio L⁰[a¹, b¹] := Aᵢⱼ⁰[1, a¹, xᵢ⁰, xⱼ⁰] * ψᵢⱼ⁰[xᵢ⁰, xⱼ⁰] * Aⱼᵢ⁰[1, b¹, xⱼ⁰, xᵢ⁰]
     L[1] = L⁰
 
-    Lᵗ = L⁰
     for t in 1:T
-        Aᵢⱼᵗ = Aᵢⱼ[t+1]; Aⱼᵢᵗ = Aⱼᵢ[t+1]; ψᵢⱼᵗ = ψᵢⱼ[t+1]
-        @reduce Lᵗ[aᵗ⁺¹, bᵗ⁺¹] |= sum(xᵢᵗ, xⱼᵗ, aᵗ, bᵗ) Lᵗ[aᵗ, bᵗ] * 
-            Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ]
-        L[t+1] = Lᵗ
+        Aᵢⱼᵗ = Aᵢⱼ[t+1]; Aⱼᵢᵗ = Aⱼᵢ[t+1]; ψᵢⱼᵗ = ψᵢⱼ[t+1]; Lᵗ = L[t]
+        @tullio Lᵗ⁺¹[aᵗ⁺¹, bᵗ⁺¹] := Lᵗ[aᵗ, bᵗ] * Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ]
+        L[t+1] = Lᵗ⁺¹
     end
     return L
 end
@@ -205,11 +203,9 @@ function accumulate_R(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
     @tullio Rᵀ[aᵀ, bᵀ] := Aᵢⱼᵀ[aᵀ, 1, xᵢᵀ, xⱼᵀ] * ψᵢⱼᵀ[xᵢᵀ, xⱼᵀ] * Aⱼᵢᵀ[bᵀ, 1, xⱼᵀ, xᵢᵀ]
     R[end] = Rᵀ
 
-    Rᵗ = Rᵀ
     for t in T:-1:1
-        Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; ψᵢⱼᵗ = ψᵢⱼ[t]
-        @reduce Rᵗ[aᵗ, bᵗ] |= sum(xᵢᵗ, xⱼᵗ, aᵗ⁺¹, bᵗ⁺¹) Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * 
-            Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] * Rᵗ[aᵗ⁺¹, bᵗ⁺¹]
+        Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; ψᵢⱼᵗ = ψᵢⱼ[t]; Rᵗ⁺¹ = R[t+1]
+        @tullio Rᵗ[aᵗ, bᵗ] := Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] * Rᵗ⁺¹[aᵗ⁺¹, bᵗ⁺¹]
         R[t] = Rᵗ
     end
     return R
