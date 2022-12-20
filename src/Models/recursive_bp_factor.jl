@@ -33,7 +33,6 @@ function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVe
     xᵢᵗ::Integer)
     U = typeof(wᵢ)
     d = length(xₙᵢᵗ)
-    @assert all(x ∈ 1:nstates(U) for x in xₙᵢᵗ)
     Pyy = fill(1.0, 1)
     for k in 1:d
         Pyy = [sum(prob_yy(wᵢ, y, y1, y2, xᵢᵗ)*prob_xy(wᵢ, y1, xₙᵢᵗ[k], xᵢᵗ)*Pyy[y2]
@@ -66,7 +65,7 @@ end
 
 function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
     d::Integer, prob::Function) where {U<:RecursiveBPFactor}
-    q = nstates(U)
+    q = length(ϕᵢ[1])
     B = [zeros(size(a,1), size(a,2), q, q, q) for a in A]
     for t in 1:getT(A)
         Aᵗ,Bᵗ = A[t], B[t]
@@ -104,7 +103,7 @@ function compute_prob_ys(wᵢ::Vector{U}, μin::Vector{<:MPEM2}, ψout, T, svd_t
         sweep_RtoL!(B; svd_trunc)
         B, lz + lz1 + lz2, n1 + n2
     end
-    dest, (full, _)  = cavity(B, op, init)
+    dest, (full, )  = cavity(B, op, init)
     (C, logzs) = unzip(dest)
     logzᵢ = sum(logzs)
     C, full, logzᵢ
