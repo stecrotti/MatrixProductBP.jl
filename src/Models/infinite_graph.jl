@@ -9,7 +9,7 @@ struct InfiniteRegularGraph <: AbstractIndexedDiGraph{Int}
     k :: Int
 end
 
-edges(g::InfiniteRegularGraph) = (IndexedEdge(1,j,1) for j in 1:g.k)
+edges(g::InfiniteRegularGraph) = (IndexedEdge(1,1,1) for j in 1:g.k)
 vertices(::InfiniteRegularGraph) = 1:1
 ne(g::InfiniteRegularGraph) = 1
 nv(::InfiniteRegularGraph) = 1
@@ -21,14 +21,14 @@ check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::InfiniteRegularGraph) = tru
 function mpbp_infinite_graph(k::Integer, wᵢ::Vector{U},
     ϕᵢ = fill(ones(nstates(U)), length(wᵢ));
     ψₖᵢ = fill(ones(nstates(U), nstates(U)), length(wᵢ)),
-    d::Int=1, bondsizes=[1; fill(d, length(wᵢ)-1); 1]) where {U<:RecursiveBPFactor}
+    d::Int=1, bondsizes=[1; fill(d, length(wᵢ)-1); 1]) where {U<:BPFactor}
 
     T = length(wᵢ) - 1
     @assert length(ϕᵢ) == T + 1
     @assert length(ψₖᵢ) == T + 1
     
     g = InfiniteRegularGraph(k)
-    μ = mpem2(nstates(U), T; d, bondsizes)
+    μ = mpem2(nstates(U), nstates(U), T; d, bondsizes)
     b = mpem1(nstates(U), T; d, bondsizes)
     MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b])
 end

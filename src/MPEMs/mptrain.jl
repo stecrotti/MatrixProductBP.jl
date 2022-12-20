@@ -53,10 +53,10 @@ const MPEM2{F} = MatrixProductTrain{F, 4}
 const MPEM3{F} = MatrixProductTrain{F, 5}
 
 "Construct a uniform mpem with given bond dimensions"
-mpem(T::Int, d::Int, bondsizes, q...) = MatrixProductTrain([ones(bondsizes[t], bondsizes[t+1], q...) for t in 1:T+1])
+mpem(bondsizes, q...) = MatrixProductTrain([ones(bondsizes[t], bondsizes[t+1], q...) for t in 1:length(bondsizes)-1])
 
 "Construct a random mpem with given bond dimensions"
-rand_mpem(T::Int; d::Int, bondsizes, q...) = MatrixProductTrain([rand(bondsizes[t], bondsizes[t+1], q...) for t in 1:T+1])
+rand_mpem(bondsizes, q...) = MatrixProductTrain([rand(bondsizes[t], bondsizes[t+1], q...) for t in 1:length(bondsizes)-1])
 
 bond_dims(A::MPEM) = [size(A[t], 2) for t in 1:lastindex(A)-1]
 
