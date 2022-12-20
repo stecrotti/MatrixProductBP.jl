@@ -75,12 +75,10 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
     dt = showprogress ? 1.0 : Inf
     prog = Progress(T - 1, dt=dt, desc="Computing outgoing message")
     for t in 1:T+1
-        # select incoming A's but not the j-th one
         Aᵗ = kron2([A[k][t] for k in eachindex(A)]...)
         nrows = size(Aᵗ, 1)
         ncols = size(Aᵗ, 2)
         Bᵗ = zeros(nrows, ncols, q, 1, q)
-
         for xᵢᵗ in 1:q
             for xᵢᵗ⁺¹ in 1:q
                 for xₙᵢᵗ in xₙᵢ
