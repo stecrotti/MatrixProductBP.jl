@@ -74,8 +74,9 @@ function exact_marginal_expectations(bp::MPBP{G,F};
         m_exact = exact_marginals(bp)) where {G,F}
     μ = [zeros(getT(bp)+1) for _ in eachindex(m_exact)]
     for i in eachindex(m_exact)
+        f(x) = idx_to_value(x,  eltype(bp.w[i]))
         for t in eachindex(m_exact[i])
-            μ[i][t] = marginal_to_expectation(m_exact[i][t], eltype(bp.w[i]))
+            μ[i][t] = expectation(f, m_exact[i][t])
         end
     end
     μ
@@ -87,6 +88,7 @@ function exact_autocorrelations(bp::MPBP{G,F};
     N = nv(bp.g); T = getT(bp);
     r = [zeros(T+1, T+1) for i in 1:N]
     for i in 1:N
+        f(x) = idx_to_value(x, eltype(bp.w[i]))
         for u in axes(r[i], 2), t in 1:u-1
             qi = nstates(bp,i)
             p = zeros(qi, qi)
@@ -102,7 +104,7 @@ function exact_autocorrelations(bp::MPBP{G,F};
                 end
                 p[xᵢᵗ, xᵢᵘ] = sum(m[i][indices...])
             end 
-            r[i][t, u] = marginal_to_expectation(p, eltype(bp.w[i]))
+            r[i][t, u] = expectation(f, p)
         end
     end
     r
@@ -110,6 +112,6 @@ end
 
 function exact_autocovariances(bp::MPBP;
         r = exact_autocorrelations(bp), μ = exact_marginal_expectations(bp))
-    _autocovariances(r, μ)
+    covariance.(r, μ)
 end
 

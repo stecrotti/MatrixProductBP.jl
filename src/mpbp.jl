@@ -125,14 +125,15 @@ struct CB_BP{TP<:ProgressUnknown}
         TP = typeof(prog)
 
         ## warning :: FIXME and also below
-        m = [[marginal_to_expectation.(marginals(bp.b[i]), eltype(bp.w[i]))  for i in eachindex(bp.b)]]
+        m = [[expectation.(x->idx_to_value(x, eltype(bp.w[i])), marginals(bp.b[i]))  
+                    for i in eachindex(bp.b)]]
         Δs = zeros(0)
         new{TP}(prog, m, Δs)
     end
 end
 
 function (cb::CB_BP)(bp::MPBP, it::Integer)
-    marg_new = [marginal_to_expectation.(marginals(bp.b[i]), eltype(bp.w[i])) for i in eachindex(bp.b)]
+    marg_new = [expectation.(x->idx_to_value(x, eltype(bp.w[i])), marginals(bp.b[i])) for i in eachindex(bp.b)]
     marg_old = cb.m[end]
     if isempty(marg_new)
         Δ = NaN
@@ -189,77 +190,33 @@ beliefs(bp::MPBP{G,F}) where {G,F} = marginals.(bp.b)
 
 beliefs_tu(bp::MPBP{G,F}) where {G,F} = marginals_tu.(bp.b)
 
+expectation(f, p::Matrix{<:Real}) = sum(f(xi) * f(xj) * p[xi, xj] for xi in axes(p,1), xj in axes(p,2))
 
-# function beliefs(bp::MPBP{G,F}; bij = pair_beliefs(bp)[1]) where {G,F}
-#     b = map(vertices(bp.g)) do i 
-#         ij = idx(first(outedges(bp.g, i)))
-#         bb = bij[ij]
-#         map(bb) do bᵢⱼᵗ
-#             bᵢᵗ = vec(sum(bᵢⱼᵗ, dims=2))
-#         end
-#     end
-#     b
-# end
+expectation(f, p::Vector{<:Real}) = sum(f(xi) * p[xi] for xi in eachindex(p))
 
-
-function marginal_to_expectation(p::Matrix{<:Real}, U::Type{<:BPFactor})
-    μ = 0.0
-    for xi in axes(p,1) , xj in axes(p, 2)
-        μ += idx_to_value(xi, U) * idx_to_value(xj, U) * p[xi, xj]
-    end
-    μ
-end
-
-function marginal_to_expectation(p::Vector{<:Real}, U::Type{<:BPFactor})
-    μ = 0.0
-    for xi in eachindex(p)
-        μ += idx_to_value(xi, U) * p[xi]
-    end
-    μ
-end
-
-
-# beliefs_tu(bp::MPBP{G,F}) where {G,F} = marginals_tu.(bp.b)
-
-
-function autocorrelation(b_tu::Matrix{Matrix{F}}, 
-        U::Type{<:BPFactor}) where {F<:Real}
-    r = zeros(size(b_tu)...)
-    for t in axes(b_tu, 1), u in axes(b_tu, 2)
-        r[t,u] = marginal_to_expectation(b_tu[t,u], U)
-    end
-    r
-end
-
-function autocorrelations(bp::MPBP{G,F};
-        b_tu = beliefs_tu(bp)) where {G,F}
-    autocorrelations(b_tu, eltype(bp.w[1])) #FIXME
-end
-
-function autocorrelations(b_tu::Vector{Matrix{Matrix{F}}},
-        U::Type{<:BPFactor}) where {F<:Real}
-    [autocorrelation(bi_tu, U) for bi_tu in b_tu]
-end
-
-function covariance(r::Matrix{F}, μ::Vector{F}) where {F<:Real}
-    c = zero(r)
-    for u in axes(r,2), t in 1:u-1
-        c[t, u] = r[t, u] - μ[t]*μ[u]
-    end
-    c
-end
-
-# r: autocorrelations, μ: expectations of marginals
-function _autocovariances(r::Vector{Matrix{F}}, μ::Vector{Vector{F}}) where {F<:Real}
-    map(eachindex(r)) do i
-        covariance(r[i], μ[i])
+function autocorrelations(bp::MPBP)
+    map(vertices(bp.g)) do i
+        bi_tu = marginals_tu(bp.b[i])
+        f(x) = idx_to_value(x, eltype(bp.w[i]))
+        expectation.(f, bi_tu)
     end
 end
 
-function autocovariances(bp::MPBP{G,F}; 
-        r = autocorrelations(bp), m = beliefs(bp)) where {G,F}
-    μ = [marginal_to_expectation.(mᵢ, eltype(wi)) for (wi,mᵢ) in zip(bp.w,m)] 
-    _autocovariances(r, μ)
+function means(bp::MPBP)
+    map(vertices(bp.g)) do i
+        bi = marginals(bp.b[i])
+        f(x) = idx_to_value(x, eltype(bp.w[i]))
+        expectation.(f, bi)
+    end
+end
+
+
+covariance(r::Matrix{<:Real}, μ::Vector{<:Real}) = r .- μ*μ'
+
+function autocovariances(bp::MPBP)
+    μ = means(bp)
+    r = autocorrelations(bp) 
+    covariance.(r, μ)
 end
 
 function bethe_free_energy(bp::MPBP; svd_trunc=TruncThresh(1e-4))
