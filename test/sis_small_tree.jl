@@ -28,11 +28,13 @@ p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 f_bethe = bethe_free_energy(bp; svd_trunc)
 Z_bp = exp(-f_bethe)
 
-r_bp = autocorrelations(bp)
-r_exact = exact_autocorrelations(bp; p_exact)
+f(x,i) = x-1
 
-c_bp = autocovariances(bp)
-c_exact = exact_autocovariances(bp; r = r_exact)
+r_bp = autocorrelations(f, bp)
+r_exact = exact_autocorrelations(f, bp; p_exact)
+
+c_bp = autocovariances(f, bp)
+c_exact = exact_autocovariances(f, bp; r = r_exact)
 
 @testset "SIS small tree" begin
     @test Z_exact ≈ Z_bp

@@ -7,20 +7,10 @@ Any `BPFactor` subtype must implement:
 
 That's it!
 
-Optionally:
-- `idx_to_value(x::Integer, ::Type{<:BPFactor})` returning the actual values
-
 """
 abstract type BPFactor; end
 
 nstates(::Type{<:BPFactor}) = error("Not implemented")
-
-"""
-In this code variables take value in {1,2,...,q} but in models these can correspond to other, more physically significant values (e.g. +1,-1 spins)
-This function, if implemented for a subtype of `BPFactor`, converts to the correct values. Those can now be used to compute expectations
-By default, nothing happens and the values are just {1,2,...,q}
-"""
-idx_to_value(x::Integer, ::Type{<:BPFactor}) = x
 
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)
