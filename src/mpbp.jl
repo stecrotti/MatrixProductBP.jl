@@ -114,32 +114,28 @@ function onebpiter_dummy_neighbor(bp::MPBP, i::Integer;
 end
 
 # A callback to print info and save stuff during the iterations 
-struct CB_BP{TP<:ProgressUnknown}
+struct CB_BP{TP<:ProgressUnknown, F}
     prog :: TP
     m    :: Vector{Vector{Vector{Float64}}} 
     Δs   :: Vector{Float64}
+    f    :: F
 
-    function CB_BP(bp::MPBP; showprogress::Bool=true)
+    function CB_BP(bp::MPBP; showprogress::Bool=true, f::F=(x,i)->x) where F
         dt = showprogress ? 0.1 : Inf
         prog = ProgressUnknown(desc="Running MPBP: iter", dt=dt)
         TP = typeof(prog)
 
         ## warning :: FIXME and also below
-        m = [[expectation.(x->idx_to_value(x, eltype(bp.w[i])), marginals(bp.b[i]))  
-                    for i in eachindex(bp.b)]]
+        m = [[expectation.(x->f(x,i), marginals(bp.b[i])) for i in eachindex(bp.b)]]
         Δs = zeros(0)
-        new{TP}(prog, m, Δs)
+        new{TP,F}(prog, m, Δs, f)
     end
 end
 
 function (cb::CB_BP)(bp::MPBP, it::Integer)
-    marg_new = [expectation.(x->idx_to_value(x, eltype(bp.w[i])), marginals(bp.b[i])) for i in eachindex(bp.b)]
+    marg_new = [expectation.(x->cb.f(x,i), marginals(bp.b[i])) for i in eachindex(bp.b)]
     marg_old = cb.m[end]
-    if isempty(marg_new)
-        Δ = NaN
-    else
-        Δ = mean(mean(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
-    end
+    Δ = isempty(marg_new) ? NaN : mean(mean(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
     push!(cb.Δs, Δ)
     push!(cb.m, marg_new)
     next!(cb.prog, showvalues=[(:Δ,Δ)])
@@ -194,30 +190,30 @@ expectation(f, p::Matrix{<:Real}) = sum(f(xi) * f(xj) * p[xi, xj] for xi in axes
 
 expectation(f, p::Vector{<:Real}) = sum(f(xi) * p[xi] for xi in eachindex(p))
 
-function autocorrelations(bp::MPBP)
+function autocorrelations(f, bp::MPBP)
     map(vertices(bp.g)) do i
-        bi_tu = marginals_tu(bp.b[i])
-        f(x) = idx_to_value(x, eltype(bp.w[i]))
-        expectation.(f, bi_tu)
+        expectation.(x->f(x, i), marginals_tu(bp.b[i]))
     end
 end
 
-function means(bp::MPBP)
+autocorrelations(bp::MPBP) = autocorrelations((x,i)->x, bp)
+
+function means(f, bp::MPBP)
     map(vertices(bp.g)) do i
-        bi = marginals(bp.b[i])
-        f(x) = idx_to_value(x, eltype(bp.w[i]))
-        expectation.(f, bi)
+        expectation.(x->f(x, i), marginals(bp.b[i]))
     end
 end
 
 
 covariance(r::Matrix{<:Real}, μ::Vector{<:Real}) = r .- μ*μ'
 
-function autocovariances(bp::MPBP)
-    μ = means(bp)
-    r = autocorrelations(bp) 
+function autocovariances(f, bp::MPBP)
+    μ = means(f, bp)
+    r = autocorrelations(f, bp) 
     covariance.(r, μ)
 end
+
+autocovariances(bp::MPBP) = autocovariances((x,i)->x, bp)
 
 function bethe_free_energy(bp::MPBP; svd_trunc=TruncThresh(1e-4))
     fa = zeros(getN(bp))

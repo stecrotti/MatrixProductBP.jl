@@ -72,9 +72,6 @@ function glauber_factors(ising::Ising, T::Integer)
     end
 end
 
-idx_to_value(x::Integer, ::Type{<:GenericGlauberFactor}) = potts2spin(x)
-idx_to_value(x::Integer, ::Type{<:HomogeneousGlauberFactor}) = potts2spin(x)
-
 # ignore neighbor because it doesn't exist
 function prob_y(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
     @unpack βJ, βh = wᵢ
