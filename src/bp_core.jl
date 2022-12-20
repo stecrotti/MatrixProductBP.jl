@@ -78,16 +78,14 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
         Aᵗ = kron2([A[k][t] for k in eachindex(A)]...)
         nrows = size(Aᵗ, 1)
         ncols = size(Aᵗ, 2)
-        Bᵗ = zeros(nrows, ncols, q, q, q)
+        Bᵗ = zeros(nrows, ncols, q, 1, q)
 
         for xᵢᵗ in 1:q
-            for xⱼᵗ in 1:q
-                for xᵢᵗ⁺¹ in 1:q
-                    for xₙᵢᵗ in xₙᵢ
-                        Bᵗ[:, :, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹] .+= (t == T + 1 ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)) .*
-                                                      Aᵗ[:, :, xᵢᵗ, xₙᵢᵗ...] .* ϕᵢ[t][xᵢᵗ] .*
-                                                      prod(ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ))
-                    end
+            for xᵢᵗ⁺¹ in 1:q
+                for xₙᵢᵗ in xₙᵢ
+                    Bᵗ[:, :, xᵢᵗ, 1, xᵢᵗ⁺¹] .+= (t == T + 1 ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)) .*
+                                                    Aᵗ[:, :, xᵢᵗ, xₙᵢᵗ...] .* ϕᵢ[t][xᵢᵗ] .*
+                                                    prod(ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ))
                 end
             end
         end
