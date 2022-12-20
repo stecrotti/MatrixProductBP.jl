@@ -9,7 +9,7 @@ import MatrixProductBP: exact_prob, getT, nstates, mpbp,
 using MatrixProductBP
 
 import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, AbstractIndexedDiGraph, ne, nv, 
-    outedges, idx, inedges, neighbors, edges, vertices, IndexedEdge
+    outedges, idx, src, dst, inedges, neighbors, edges, vertices, IndexedEdge
 import UnPack: @unpack
 import SparseArrays: nonzeros, nzrange, rowvals
 import TensorCast: @reduce, @cast, TensorCast 

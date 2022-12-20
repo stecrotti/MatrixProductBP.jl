@@ -22,7 +22,7 @@ function f_bp(A::Vector{MPEM2{F}}, wᵢ::Vector{U},
     @assert all(getT(a) == T for a in A)
     @assert length(wᵢ) == T + 1
     @assert length(ϕᵢ) == T + 1
-    q = nstates(U)
+    q = length(ϕᵢ[1])
     @assert all(length(ϕᵢᵗ) == q for ϕᵢᵗ in ϕᵢ)
     @assert j_index in eachindex(A)
     z = length(A)      # z = |∂i|
@@ -103,11 +103,11 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
         showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {F,U<:BPFactor}
     T = getT(A[1])
     @assert all(getT(a) == T for a in A)
-    q = nstates(U)
+    q = length(ϕᵢ[1])
     @assert length(wᵢ) == T + 1
     @assert length(ϕᵢ) == T + 1
     z = length(A)      # z = |∂i|
-    xₙᵢ = Iterators.product(fill(1:q, z)...) .|> collect
+    xₙᵢ = Iterators.product((1:size(ψₙᵢ[k][1],2) for k=1:z)...) .|> collect
 
     B = Vector{Array{F,5}}(undef, T + 1)
     A⁰ = kron2([A[k][begin] for k in eachindex(A)]...)
