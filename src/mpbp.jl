@@ -16,7 +16,7 @@ struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
         @assert length(ψ) == ne(g)
         @assert all( length(wᵢ) == T + 1 for wᵢ in w )
         @assert all( length(ϕ[i][t]) == nstates(b[i]) for i in eachindex(ϕ) for t in eachindex(ϕ[i]) )
-        @assert all( size(ψ[k][t]) == (nstates(b[i]),nstates(b[j])) for (i,j,k) in edges(g) for t in eachindex(ψ[k]) )
+        #@assert all( size(ψ[k][t]) == (nstates(b[i]),nstates(b[j])) for (i,j,k) in edges(g), t in 1:T+1 )
         @assert check_ψs(ψ, g)
         @assert all( length(ϕᵢ) == T + 1 for ϕᵢ in ϕ )
         @assert all( length(ψᵢ) == T + 1 for ψᵢ in ψ )

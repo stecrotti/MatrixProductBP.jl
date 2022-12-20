@@ -2,10 +2,10 @@ MPEM1(tensors::Vector{Array{Float64,3}}) = MatrixProductTrain(tensors)
 
 
 # construct a uniform mpem with given bond dimensions
-mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(T, d, bondsizes, q)
+mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(bondsizes, q)
 
 # construct a uniform mpem with given bond dimensions
-rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(T, d, bondsizes, q)
+rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(bondsizes, q)
 
 nstates(A::MPEM1) = size(A[1],3)
 

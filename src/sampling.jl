@@ -87,8 +87,8 @@ end
 # return a (T+1) by N matrix, with uncertainty estimates
 function marginals(sms::SoftMarginSampler) 
     @unpack bp, X, w = sms
-    N = nv(bp.g); T = getT(bp); q = nstates(bp)
-    marg = [[zeros(Measurement, q) for t in 0:T] for i in 1:N]
+    N = nv(bp.g); T = getT(bp);
+    marg = [[zeros(Measurement, nstates(bp,i)) for t in 0:T] for i in 1:N]
     @assert all(>=(0), w)
     wv = weights(w)
     nsamples = length(X)
@@ -96,7 +96,7 @@ function marginals(sms::SoftMarginSampler)
     for i in 1:N
         for t in 1:T+1
             x = [xx[i, t] for xx in X]
-            mit_avg = proportions(x, q, wv)
+            mit_avg = proportions(x, nstates(bp,i), wv)
             # avoid numerical errors yielding probabilities > 1
             mit_avg = map(x -> x≥1 ? 1 : x, mit_avg)
             mit_var = mit_avg .* (1 .- mit_avg) ./ nsamples
