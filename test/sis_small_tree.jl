@@ -67,7 +67,7 @@ nstates(::Type{<:FakeSIS}, l::Int) = nstates(SISFactor, l)
 @testset "FakeSIS - RecursiveBPFactor generic methods" begin
     rng2 = MersenneTwister(111)
     bpfake = MPBP(bp.g, [FakeSIS.(w) for w in bp.w], bp.ϕ, bp.ψ, 
-                    deepcopy(bp.μ), deepcopy(bp.b), deepcopy(bp.f))
+                    deepcopy(collect(bp.μ)), deepcopy(collect(bp.b)), deepcopy(collect(bp.f)))
 
     for i=1:20
         X, _ = onesample(bp; rng)

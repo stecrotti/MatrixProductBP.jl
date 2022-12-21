@@ -151,39 +151,6 @@ function accumulate_M(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
     return M
 end
 
-
-function pair_belief_tu(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ; showprogress::Bool=false)
-
-    L = accumulate_L(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
-    R = accumulate_R(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
-    M = accumulate_M(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
-
-    T = getT(Aᵢⱼ)
-    @assert getT(Aⱼᵢ) == T
-    q = size(Aᵢⱼ[1], 3)
-    b = [zeros(q, q, q, q) for _ in 0:T, _ in 0:T]
-
-    dt = showprogress ? 0.1 : Inf
-    prog = Progress(Int(T * (T + 1) / 2); dt, desc="Computing beliefs at pairs of times (t,u)")
-    for t in 1:T
-        Lᵗ⁻¹ = t == 1 ? [1.0;;] : L[t-1]
-        Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; ψᵢⱼᵗ = ψᵢⱼ[t]
-        for u in t+1:T+1
-            Rᵘ⁺¹ = u == T + 1 ? [1.0;;] : R[u+1]
-            Aᵢⱼᵘ = Aᵢⱼ[u]; Aⱼᵢᵘ = Aⱼᵢ[u]; ψᵢⱼᵘ = ψᵢⱼ[u]
-            Mᵗᵘ = M[t, u]
-            @tullio bᵗᵘ[xᵢᵗ, xⱼᵗ, xᵢᵘ, xⱼᵘ] :=
-                Lᵗ⁻¹[aᵗ, bᵗ] * Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] *
-                Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ] * Mᵗᵘ[aᵗ⁺¹, aᵘ, bᵗ⁺¹, bᵘ] * Aᵢⱼᵘ[aᵘ, aᵘ⁺¹, xᵢᵘ, xⱼᵘ] *
-                ψᵢⱼᵘ[xᵢᵘ, xⱼᵘ] * Aⱼᵢᵘ[bᵘ, bᵘ⁺¹, xⱼᵘ, xᵢᵘ] * Rᵘ⁺¹[aᵘ⁺¹, bᵘ⁺¹]
-            b[t, u] .= bᵗᵘ ./ sum(bᵗᵘ)
-            next!(prog, showvalues=[(:t, t), (:u, u)])
-        end
-    end
-
-    return b
-end
-
 # compute bᵢⱼᵗ(xᵢᵗ,xⱼᵗ) from μᵢⱼ and μⱼᵢ
 # also return normalization zᵢⱼ
 function pair_belief(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
