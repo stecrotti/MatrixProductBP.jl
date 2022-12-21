@@ -1,6 +1,6 @@
 struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
     g  :: G                              # graph
-    w  :: Vector{V}              # factors, one per variable
+    w  :: Vector{V}                      # factors, one per variable
     ϕ  :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
     ψ  :: Vector{Vector{Matrix{F}}}      # edge-dependent factors
     μ  :: Vector{MPEM2{F}}               # messages, two per edge
