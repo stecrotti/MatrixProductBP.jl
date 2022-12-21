@@ -16,6 +16,8 @@ svd_trunc = TruncThresh(0.0)
     sweep_LtoR!(C; svd_trunc)
     e3 = evaluate(C, x)
     @test e3 ≈ e1
+
+    @test [sum(x,dims=2) for x in pair_marginal(C)] ≈ firstvar_marginal(C)
 end
 
 @testset "MPEM3" begin
