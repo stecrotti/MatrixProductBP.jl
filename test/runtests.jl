@@ -7,3 +7,6 @@ include("normalizations.jl")
 include("glauber_small_tree.jl")
 include("pair_observations.jl")
 include("sis_small_tree.jl")
+include("infinite_graph.jl")
+
+nothing

@@ -18,9 +18,9 @@ outedges(g::InfiniteRegularGraph, i::Integer) = inedges(g, i)
 Base.show(io::IO, g::InfiniteRegularGraph) = println(io, "Infinite regular graph of degree ", g.k)
 check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::InfiniteRegularGraph) = true
 
-function mpbp_infinite_graph(k::Integer, wᵢ::Vector{U},
-    ϕᵢ = fill(ones(nstates(U)), length(wᵢ));
-    ψₖᵢ = fill(ones(nstates(U), nstates(U)), length(wᵢ)),
+function mpbp_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
+    ϕᵢ = fill(ones(qi, qi));
+    ψₖᵢ = fill(ones(qi, qi), length(wᵢ)),
     d::Int=1, bondsizes=[1; fill(d, length(wᵢ)-1); 1]) where {U<:BPFactor}
 
     T = length(wᵢ) - 1
@@ -28,7 +28,7 @@ function mpbp_infinite_graph(k::Integer, wᵢ::Vector{U},
     @assert length(ψₖᵢ) == T + 1
     
     g = InfiniteRegularGraph(k)
-    μ = mpem2(nstates(U), nstates(U), T; d, bondsizes)
-    b = mpem1(nstates(U), T; d, bondsizes)
+    μ = mpem2(qi, qi, T; d, bondsizes)
+    b = mpem1(qi, T; d, bondsizes)
     MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b])
 end
