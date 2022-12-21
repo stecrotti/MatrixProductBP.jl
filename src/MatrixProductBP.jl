@@ -15,6 +15,9 @@ import Statistics: mean, std
 import Unzip: unzip
 import StatsBase: weights, proportions
 import LogExpFunctions: logistic, logsumexp
+import .Threads: SpinLock, lock, unlock
+import Lazy: @forward
+
 
 export
     BPFactor, nstates, MPBP, mpbp, reset_messages!, onebpiter!, CB_BP, iterate!, 
@@ -25,10 +28,11 @@ export
     exact_prob, exact_marginals, site_marginals, exact_autocorrelations,
     exact_autocovariances, exact_marginal_expectations, 
     SoftMarginSampler, onesample!, onesample, sample!, sample, marginals, 
-    draw_node_observations!
+    draw_node_observations!, AtomicVector
 
 
 include("utils.jl")
+include("atomic_vector.jl")
 include("MPEMs/MPEMs.jl")
 using .MPEMs, Reexport
 @reexport import .MPEMs: SVDTrunc, TruncBond, TruncThresh,

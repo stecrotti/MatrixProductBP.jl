@@ -4,7 +4,7 @@ module Models
 
 import MatrixProductBP: exact_prob, getT, nstates, mpbp, 
     kron2, f_bp, f_bp_dummy_neighbor, onebpiter_dummy_neighbor,
-    pair_belief_tu, beliefs, beliefs_tu, firstvar_marginal_tu, marginals, 
+    beliefs, beliefs_tu, marginals, 
     marginalize, cavity, onebpiter!, check_ψs
 using MatrixProductBP
 
