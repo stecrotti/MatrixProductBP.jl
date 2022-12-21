@@ -151,7 +151,7 @@ function iterate!(bp::MPBP; maxiter::Integer=5,
         showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
         nodes = collect(vertices(bp.g)), shuffle::Bool=true)
     for it in 1:maxiter
-        for i in nodes
+        Threads.@threads for i in nodes
             onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc)
         end
         Δ = cb(bp, it)
