@@ -57,8 +57,10 @@ function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
     return true
 end
 
-function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}}, q::AbstractVector{Int},
-        T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1],
+function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}},
+        q::AbstractVector{Int}, T::Int; 
+        d::Int=1,
+        bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(q[i]) for t in 0:T] for i in vertices(g)],
         ψ = [[ones(q[i],q[j]) for t in 0:T] for (i,j) in edges(g)],
         μ = [mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
