@@ -10,9 +10,6 @@ abstract type RecursiveBPFactor <: BPFactor; end
 "Number of states for aux variable which accumulates the first `l` neighbors"
 nstates(::Type{<:RecursiveBPFactor}, l::Integer) = error("Not implemented")
 
-"Number of states for variable of type `<:RecursiveBPFactor`"
-nstates(::Type{<:RecursiveBPFactor}) = error("Not implemented")
-
 "P(xᵢᵗ⁺¹|xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ)
 Might depend on the degree `dᵢ` because of the (possible) change of variable from 
     y ∈ {1,2,...} to its physical value, e.g. {-dᵢ,...,dᵢ}"
@@ -77,7 +74,7 @@ function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
     return MPEM3(B)
 end
 
-function compute_prob_ys(wᵢ::Vector{U}, μin::Vector{<:MPEM2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor}
+function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor}
     @assert all(normalization(a) ≈ 1 for a in μin)
     dᵢ = length(ψout)
     B = map(1:dᵢ) do k
@@ -89,7 +86,7 @@ function compute_prob_ys(wᵢ::Vector{U}, μin::Vector{<:MPEM2}, ψout, T, svd_t
         Bk, 0.0, 1
     end
 
-    Minit = fill(1.0, 1, 1, 1, nstates(U))
+    Minit = fill(1.0, 1, 1, 1, qi)
     init = (MPEM2(fill(Minit, T + 1)), 0.0, 0)
 
     function op((B1, lz1, n1), (B2, lz2, n2))
@@ -117,7 +114,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     ein, eout = inedges(g,i), outedges(g, i)
     wᵢ, ϕᵢ, dᵢ  = w[i], ϕ[i], length(ein)
     @assert wᵢ[1] isa U
-    C, full, logzᵢ = compute_prob_ys(wᵢ, μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
+    C, full, logzᵢ = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, size(ψ[idx(e)],2))
         μ[idx(e)] = sweep_RtoL!(mpem2(B); svd_trunc)

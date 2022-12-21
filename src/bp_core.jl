@@ -3,14 +3,11 @@ Factor for the factor graph of a model solvable with MPBP.
 
 Any `BPFactor` subtype must implement:
 - A functor that computes the Boltzmann contribution to the joint probability
-- `nstates()::Type{<:BPFactor})` returning the number of allowed states for a variable
 
 That's it!
 
 """
 abstract type BPFactor; end
-
-nstates(::Type{<:BPFactor}) = error("Not implemented")
 
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)

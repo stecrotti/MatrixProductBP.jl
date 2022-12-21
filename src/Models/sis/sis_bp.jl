@@ -11,8 +11,6 @@ struct SISFactor{T<:AbstractFloat} <: RecursiveBPFactor
     end
 end
 
-nstates(::Type{<:SISFactor}) = 2
-
 # the accumulated variable is still binary
 nstates(::Type{<:SISFactor}, l::Integer) = l == 0 ? 1 : 2
 
