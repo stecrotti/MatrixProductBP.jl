@@ -35,7 +35,7 @@ p_exact, Z_exact = exact_prob(bp)
 b_exact = exact_marginals(bp; p_exact)
 p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
-f_bethe = bethe_free_energy(bp; svd_trunc)
+f_bethe = bethe_free_energy(bp)
 Z_bp = exp(-f_bethe)
 
 f(x,i) = x-1
@@ -66,7 +66,8 @@ nstates(::Type{<:FakeSIS}, l::Int) = nstates(SISFactor, l)
 
 @testset "FakeSIS - RecursiveBPFactor generic methods" begin
     rng2 = MersenneTwister(111)
-    bpfake = MPBP(bp.g, [FakeSIS.(w) for w in bp.w], bp.ϕ, bp.ψ, deepcopy(bp.μ), deepcopy(bp.b))
+    bpfake = MPBP(bp.g, [FakeSIS.(w) for w in bp.w], bp.ϕ, bp.ψ, 
+                    deepcopy(bp.μ), deepcopy(bp.b), deepcopy(bp.f))
 
     for i=1:20
         X, _ = onesample(bp; rng)

@@ -1,18 +1,22 @@
 struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
-    g  :: G                              # graph
-    w  :: Vector{V}                      # factors, one per variable
-    ϕ  :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
-    ψ  :: Vector{Vector{Matrix{F}}}      # edge-dependent factors
-    μ  :: Vector{MPEM2{F}}               # messages, two per edge
-    b  :: Vector{MPEM1{F}}               # beliefs in matrix product form
+    g     :: G                              # graph
+    w     :: Vector{V}                      # factors, one per variable
+    ϕ     :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
+    ψ     :: Vector{Vector{Matrix{F}}}      # edge-dependent factors
+    μ     :: Vector{MPEM2{F}}               # messages, two per edge
+    b     :: Vector{MPEM1{F}}               # beliefs in matrix product form
+    f     :: Vector{F}                      # free energy contributions
     
     function MPBP(g::G, w::Vector{V}, 
-            ϕ::Vector{Vector{Vector{F}}}, ψ::Vector{Vector{Matrix{F}}},
-            μ::Vector{MPEM2{F}}, b::Vector{MPEM1{F}}) where {G<:AbstractIndexedDiGraph,
+            ϕ::Vector{Vector{Vector{F}}},
+            ψ::Vector{Vector{Matrix{F}}},
+            μ::Vector{MPEM2{F}},
+            b::Vector{MPEM1{F}},
+            f::Vector{F}) where {G<:AbstractIndexedDiGraph,
                                                              F<:Real, V<:AbstractVector{<:BPFactor}}
     
         T = length(w[1]) - 1
-        @assert length(w) == length(ϕ) == length(b) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
+        @assert length(w) == length(ϕ) == length(b) == length(f) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
         @assert length(ψ) == ne(g)
         @assert all( length(wᵢ) == T + 1 for wᵢ in w )
         @assert all( length(ϕ[i][t]) == nstates(b[i]) for i in eachindex(ϕ) for t in eachindex(ϕ[i]) )
@@ -28,7 +32,7 @@ struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
         for i in vertices(g)
             ϕ[i][begin] ./= sum(ϕ[i][begin])
         end
-        return new{G,F,V}(g, w, ϕ, ψ, μ, b)
+        return new{G,F,V}(g, w, ϕ, ψ, μ, b, f)
     end
 end
 
@@ -64,8 +68,9 @@ function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}},
         ϕ = [[ones(q[i]) for t in 0:T] for i in vertices(g)],
         ψ = [[ones(q[i],q[j]) for t in 0:T] for (i,j) in edges(g)],
         μ = [mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
-        b = [mpem1(q[i], T; d, bondsizes) for i in vertices(g)])
-    return MPBP(g, w, ϕ, ψ, μ, b)
+        b = [mpem1(q[i], T; d, bondsizes) for i in vertices(g)],
+        f = zeros(nv(g)))
+    return MPBP(g, w, ϕ, ψ, μ, b, f)
 end
 
 function reset_messages!(bp::MPBP)
@@ -96,7 +101,8 @@ function onebpiter!(bp::MPBP, i::Integer, ::Type{U};
     end
     dᵢ = length(ein)
     bp.b[i] = onebpiter_dummy_neighbor(bp, i; svd_trunc) |> marginalize
-    return (1 / dᵢ) * logzᵢ
+    bp.f[i] = -(1 / dᵢ) * logzᵢ
+    nothing
 end
 
 function onebpiter!(bp::MPBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
@@ -217,15 +223,9 @@ end
 
 autocovariances(bp::MPBP) = autocovariances((x,i)->x, bp)
 
-function bethe_free_energy(bp::MPBP; svd_trunc=TruncThresh(1e-4))
-    fa = zeros(getN(bp))
-    for i in eachindex(fa)
-        logzi = onebpiter!(bp, i; svd_trunc)
-        fa[i] -= logzi
-    end
+function bethe_free_energy(bp::MPBP)
     _, logz_edges = pair_beliefs(bp)
-    fa .-= logz_edges
-    sum(fa)
+    sum(bp.f - logz_edges)
 end
 
 # compute log of posterior probability for a trajectory `x`

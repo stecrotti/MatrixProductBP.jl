@@ -30,5 +30,5 @@ function mpbp_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
     g = InfiniteRegularGraph(k)
     μ = mpem2(qi, qi, T; d, bondsizes)
     b = mpem1(qi, T; d, bondsizes)
-    MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b])
+    MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [0.0])
 end
