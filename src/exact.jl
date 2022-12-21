@@ -42,10 +42,10 @@ function site_marginals(bp::MPBP{G,F}; p = exact_prob(bp)[1]) where {G,F}
     m = [zeros(fill(2,T+1)...) for i in 1:N]
     prog = Progress(2^(N*(T+1)), desc="Computing exact marginals")
     qs = Tuple(nstates(bp,i) for t=1:T+1, i=1:N)
-    Q = prod(qs)
-    for i in 1:N
-        for x in 1:Q
-            X = _int_to_matrix(x, qs, (T+1,N))
+    X = zeros(Int, T+1,N)
+    for x in 1:prod(qs)
+        X .= _int_to_matrix(x, qs, (T+1,N))
+        for i in 1:N
             m[i][X[:,i]...] += p[x]
         end
         next!(prog)
