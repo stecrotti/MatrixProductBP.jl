@@ -8,9 +8,6 @@ struct HomogeneousGlauberFactor{T<:Real} <: RecursiveBPFactor
     βh :: T
 end
 
-nstates(::Type{<:GenericGlauberFactor}) = 2
-nstates(::Type{<:HomogeneousGlauberFactor}) = 2
-
 # the sum of `l` spins can assume `l+1` values
 nstates(::Type{<:HomogeneousGlauberFactor}, l::Integer) = l + 1
 
