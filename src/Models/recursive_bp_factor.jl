@@ -122,6 +122,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     end
     B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
     bp.b[i] = B |> mpem2 |> marginalize
-    return dᵢ == 0 ? 0.0 : logzᵢ / dᵢ
+    bp.f[i] = dᵢ == 0 ? 0.0 : -logzᵢ / dᵢ
+    nothing
 end
 

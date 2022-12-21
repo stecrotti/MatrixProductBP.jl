@@ -38,7 +38,7 @@ p_exact, Z_exact = exact_prob(bp)
 b_exact = exact_marginals(bp; p_exact)
 p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
-f_bethe = bethe_free_energy(bp; svd_trunc)
+f_bethe = bethe_free_energy(bp)
 Z_bp = exp(-f_bethe)
 
 f(x,i) = 2x-3
