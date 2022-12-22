@@ -32,7 +32,6 @@ function onesample!(x::Matrix{Int}, bp::MPBP{G,F};
     logl = 0.0
 
     for i in 1:N
-        @assert sum(ϕ[i][1]) == 1
         xᵢ⁰ = sample_noalloc(rng, ϕ[i][1])
         x[i, 1] = xᵢ⁰
         logl += log( ϕ[i][1][xᵢ⁰] )
