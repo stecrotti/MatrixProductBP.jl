@@ -3,9 +3,9 @@ struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
     w     :: Vector{V}                      # factors, one per variable
     ϕ     :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
     ψ     :: Vector{Vector{Matrix{F}}}      # edge-dependent factors
-    μ     :: AtomicVector{MPEM2{F}}               # messages, two per edge
-    b     :: AtomicVector{MPEM1{F}}               # beliefs in matrix product form
-    f     :: AtomicVector{F}                      # free energy contributions
+    μ     :: AtomicVector{MPEM2{F}}         # messages, two per edge
+    b     :: Vector{MPEM1{F}}               # beliefs in matrix product form
+    f     :: Vector{F}                      # free energy contributions
     
     function MPBP(g::G, w::Vector{V}, 
             ϕ::Vector{Vector{Vector{F}}},
@@ -27,7 +27,7 @@ struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
         @assert all( getT(bᵢ) == T for bᵢ in b )
         @assert length(μ) == ne(g)
         normalize!.(μ)
-        return new{G,F,V}(g, w, ϕ, ψ, AtomicVector(μ), AtomicVector(b), AtomicVector(f))
+        return new{G,F,V}(g, w, ϕ, ψ, AtomicVector(μ), b, f)
     end
 end
 
