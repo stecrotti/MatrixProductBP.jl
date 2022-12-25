@@ -24,7 +24,7 @@ export
     mpbp_infinite_graph,
     Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, mpbp, 
-    SIS, SISFactor, SUSCEPTIBLE, INFECTED,
+    SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
     kl_marginals, l1_marginals, auc
 
 
@@ -37,5 +37,7 @@ include("glauber/glauber_bp.jl")
 include("sis/sis.jl")
 include("sis/sis_bp.jl")
 include("sis/sis_inference.jl")
+include("sis/sirs.jl")
+include("sis/sirs_bp.jl")
 
 end # end module
