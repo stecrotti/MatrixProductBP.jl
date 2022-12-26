@@ -81,7 +81,7 @@ end
 
     for i=1:20
         X, _ = onesample(bp; rng)
-        @test logprob(bp, X) ≈ logprob(bpfake, X) ≈ logprob(bpslow ,x)
+        @test logprob(bp, X) ≈ logprob(bpfake, X) ≈ logprob(bpslow, X)
     end
 
     iterate!(bpfake, maxiter=10; svd_trunc, showprogress=false)

@@ -21,21 +21,6 @@ function Ising(g::IndexedGraph; J = ones(ne(g)), h = zeros(nv(g)), β = 1.0)
 end
 
 is_homogeneous(ising::Ising) = all(isequal(ising.J[1]), ising.J)
-
-function local_w(g::IndexedGraph, J::Vector, h::Vector, i::Integer, xᵢ::Integer, 
-        xₙᵢ::Vector{<:Integer}, β::Real)
-    ei = outedges(g, i)
-    isempty(ei) && return exp( β * potts2spin(xᵢ) * h[i] ) / (2cosh( β * potts2spin(xᵢ) * h[i] ))
-    ∂i = idx.(ei)
-    @assert length(∂i) == length(xₙᵢ)
-    Js = @view J[∂i]
-    hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼ) for (xⱼ, Jᵢⱼ) in zip(xₙᵢ, Js); init=0.0)
-    p = exp( β * potts2spin(xᵢ) * (hⱼᵢ + h[i]) ) / (2cosh(β* (hⱼᵢ + h[i])))
-    @assert 0 < p <1
-    p
-end
-
-
 struct Glauber{T, N, F<:AbstractFloat}
     ising :: Ising{F}
     ϕ  :: Vector{Vector{Vector{F}}}  # observations
