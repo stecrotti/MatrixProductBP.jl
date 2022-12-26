@@ -63,7 +63,7 @@ end
 function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
     d::Integer, prob::Function, qj) where {U<:RecursiveBPFactor}
     q = length(ϕᵢ[1])
-    B = [zeros(size(a,1), size(a,2), q, q, q) for a in A]
+    B = [zeros(size(a,1), size(a,2), q, qj, q) for a in A]
     for t in 1:getT(A)
         Aᵗ,Bᵗ = A[t], B[t]
         @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
@@ -116,7 +116,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     @assert wᵢ[1] isa U
     C, full, logzᵢ = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
-        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, size(ψ[idx(e)],2))
+        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)))
         μ[idx(e)] = sweep_RtoL!(mpem2(B); svd_trunc)
         logzᵢ += normalize!(μ[idx(e)])
     end
