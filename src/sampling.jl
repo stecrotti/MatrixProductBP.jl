@@ -143,14 +143,10 @@ end
 # draw `nobs` observations from the prior
 # flag `last_time` draws all observations from time T
 function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}}, 
-        X::Matrix{<:Integer}, nobs::Integer; softinf::Real=Inf,
-        last_time::Bool=false, rng=GLOBAL_RNG) where {F<:Real}
-    N, T = size(X) .- (0, 1)
-    it = if last_time
-        sample(rng,  collect(Iterators.product(T+1:T+1, 1:N)), nobs, replace=false)
-    else
-        sample(rng,  collect(Iterators.product(1:T+1, 1:N)), nobs, replace=false)
-    end
+        X::Matrix{<:Integer}, nobs::Integer; softinf::Real=Inf, last_time::Bool=false,
+        times=((last_time ? size(X,2) : 1):size(X,2)), rng=GLOBAL_RNG) where {F<:Real}
+    N = size(X,1)
+    it = sample(rng,  collect(Iterators.product(times, 1:N)), nobs, replace=false)
     softone = logistic(log(softinf)); softzero = logistic(-log(softinf))
     for (t, i) in it
         ϕ[i][t] .*= [x==X[i,t] ? softone : softzero for x in eachindex(ϕ[i][t])]
