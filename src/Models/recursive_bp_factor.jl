@@ -102,12 +102,11 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout,
 
     Minit = fill(1.0, 1, 1, 1, qi)
     init = (MPEM2(fill(Minit, T + 1)), 0.0, 0)
-    dest, (full, )  = cavity(B, op, init)
+    dest, (full, logzᵢ,)  = cavity(B, op, init)
     (C, logzs) = unzip(dest)
-    logzᵢ = sum(logzs)
-    C, full, logzᵢ
+    sumlogzᵢ₂ⱼ = sum(logzs)
+    C, full, logzᵢ, sumlogzᵢ₂ⱼ
 end
-
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U}; 
@@ -116,16 +115,17 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     ein, eout = inedges(g,i), outedges(g, i)
     wᵢ, ϕᵢ, dᵢ  = w[i], ϕ[i], length(ein)
     @assert wᵢ[1] isa U
-    C, full, logzᵢ = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
+    C, full, logzᵢ, sumlogzᵢ₂ⱼ = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
         μj = sweep_RtoL!(mpem2(B); svd_trunc, verbose=svd_verbose)
-        logzᵢ += normalize!(μj)
+        sumlogzᵢ₂ⱼ += normalize!(μj)
         μ[idx(e)] = μj
     end
     B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
     bp.b[i] = B |> mpem2 |> marginalize
-    bp.f[i] = dᵢ == 0 ? 0.0 : -logzᵢ / dᵢ
+    logzᵢ += normalize!(bp.b[i])
+    fᵢ = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
+    bp.f[i] = fᵢ
     nothing
 end
-

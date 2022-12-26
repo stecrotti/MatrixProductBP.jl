@@ -220,10 +220,7 @@ end
 
 autocovariances(bp::MPBP) = autocovariances((x,i)->x, bp)
 
-function bethe_free_energy(bp::MPBP)
-    _, logz_edges = pair_beliefs(bp)
-    sum(bp.f - logz_edges)
-end
+bethe_free_energy(bp::MPBP) = sum(bp.f)
 
 # compute log of posterior probability for a trajectory `x`
 function logprob(bp::MPBP, x::Matrix{<:Integer})
