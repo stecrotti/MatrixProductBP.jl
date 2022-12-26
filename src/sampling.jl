@@ -150,9 +150,6 @@ function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}},
     softone = logistic(log(softinf)); softzero = logistic(-log(softinf))
     for (t, i) in it
         ϕ[i][t] .*= [x==X[i,t] ? softone : softzero for x in eachindex(ϕ[i][t])]
-        if t == 1
-            ϕ[i][t] ./= sum(ϕ[i][t])
-        end
     end
     ϕ
 end
