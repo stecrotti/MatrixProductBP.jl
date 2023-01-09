@@ -6,7 +6,7 @@ MPEM2(tensors::Vector{Array{Float64, 4}}) = MatrixProductTrain(tensors)
 mpem2(q1::Int, q2, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(bondsizes, q1, q2)
 
 # construct a uniform mpem with given bond dimensions
-rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(T, d, bondsizes, q1, q2)
+rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(bondsizes, q1, q2)
 
 
 # at each time t, return p(xᵢᵗ, xⱼᵗ)
