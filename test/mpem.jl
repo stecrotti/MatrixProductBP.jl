@@ -20,6 +20,24 @@ svd_trunc = TruncThresh(0.0)
     @test [sum(x,dims=2) for x in pair_marginal(C)] ≈ firstvar_marginal(C)
 end
 
+@testset "MPEM2 random" begin
+    T = 5
+    q1 = 2; q2 = 4
+    C = rand_mpem2(q1, q2, T)
+    x = [[rand(1:q1), rand(1:q2)] for t in 1:T+1]
+    e1 = evaluate(C, x)
+
+    sweep_RtoL!(C; svd_trunc)
+    e2 = evaluate(C, x)
+    @test e2 ≈ e1
+
+    sweep_LtoR!(C; svd_trunc)
+    e3 = evaluate(C, x)
+    @test e3 ≈ e1
+
+    @test [sum(x,dims=2) for x in pair_marginal(C)] ≈ firstvar_marginal(C)
+end
+
 @testset "MPEM3" begin
     tensors = [ rand(1,3,2,2,2), rand(3,4,2,2,2), rand(4,1,2,2,2) ]
     tensors[end][:,:,:,:,2] .= tensors[end][:,:,:,:,1]
