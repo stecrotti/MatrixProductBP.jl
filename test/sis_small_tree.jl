@@ -3,7 +3,6 @@ import MatrixProductBP: nstates
 import MatrixProductBP.Models: prob_xy, prob_yy, prob_y
 
 
-
 T = 3
 
 A = [0 1 1 1; 1 0 0 0; 1 0 0 0; 1 0 0 0]
@@ -25,8 +24,8 @@ end
 
 draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
-svd_trunc = TruncThresh(0.0)
-iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
+svd_trunc = TruncBond(4)
+iterate!(bp, maxiter=10; svd_trunc, showprogress=false, svd_verbose=true)
 
 b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]

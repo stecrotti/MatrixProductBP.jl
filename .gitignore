@@ -29,3 +29,6 @@ Manifest.toml
 # Temp files
 *~
 .vscode/settings.json
+
+# Log file for SVD truncations
+notebooks/svd_log.txt
