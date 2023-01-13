@@ -80,7 +80,7 @@ end
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP, i::Integer, ::Type{U}; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:BPFactor}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), svd_verbose::Bool=false) where {U<:BPFactor}
     @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
@@ -90,7 +90,7 @@ function onebpiter!(bp::MPBP, i::Integer, ::Type{U};
     for (j_ind, e_out) in enumerate(eout)
         B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
         C = mpem2(B)
-        μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc)
+        μ[idx(e_out)] = sweep_RtoL!(C; svd_trunc, verbose=svd_verbose)
         logzᵢ₂ⱼ += normalize!(μ[idx(e_out)])
         logzᵢ += logzᵢ₂ⱼ
     end
@@ -106,14 +106,14 @@ end
 
 
 function onebpiter_dummy_neighbor(bp::MPBP, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6))
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), svd_verbose::Bool=false)
     @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
     B, _ = f_bp_dummy_neighbor(A, w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc)
     C = mpem2(B)
-    A = sweep_RtoL!(C; svd_trunc)
+    A = sweep_RtoL!(C; svd_trunc, verbose=svd_verbose)
 end
 
 # A callback to print info and save stuff during the iterations 
@@ -149,10 +149,11 @@ end
 function iterate!(bp::MPBP; maxiter::Integer=5, 
         svd_trunc::SVDTrunc=TruncThresh(1e-6),
         showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
-        nodes = collect(vertices(bp.g)), shuffle::Bool=true)
+        nodes = collect(vertices(bp.g)), shuffle::Bool=true,
+        svd_verbose::Bool=false)
     for it in 1:maxiter
         Threads.@threads for i in nodes
-            onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc)
+            onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc, svd_verbose)
         end
         Δ = cb(bp, it)
         Δ < tol && return it, cb

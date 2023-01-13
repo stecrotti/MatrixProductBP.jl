@@ -89,7 +89,7 @@ draw_node_observations!(bp, N)
 
 cb = CB_BP(bp; showprogress=false)
 svd_trunc = TruncThresh(0.0)
-iterate!(bp, maxiter=10; svd_trunc, cb, showprogress=false)
+iterate!(bp, maxiter=10; svd_trunc, cb, showprogress=false, svd_verbose=true)
 
 b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]

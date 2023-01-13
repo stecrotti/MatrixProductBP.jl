@@ -69,8 +69,18 @@ evaluate(A::MatrixProductTrain, X...) = only(prod(@view a[:, :, x...] for (a,x) 
 _reshape1(x) = reshape(x, size(x,1), size(x,2), prod(size(x)[3:end])...)
 _reshapeas(x,y) = reshape(x, size(x,1), size(x,2), size(y)[3:end]...)
 
+# print info about truncations
+function _print_svd(t, M, U, λ, V, mprime)
+    println("t=$t. M", size(M), " = U", size(U), "*Λ", (length(λ),length(λ)), 
+        "*V", reverse(size(V)))
+    println("Truncated to $mprime singular values")
+    ε = sum(abs2, @view λ[mprime+1:end]) / sum(abs2, λ) |> sqrt
+    println("Truncation error ε=$ε\n")
+end
+
 # when truncating it assumes that matrices are already left-orthogonal
-function sweep_RtoL!(C::MatrixProductTrain; svd_trunc::SVDTrunc=TruncThresh(1e-6))
+function sweep_RtoL!(C::MatrixProductTrain; svd_trunc::SVDTrunc=TruncThresh(1e-6),
+        verbose::Bool=false)
     Cᵀ = _reshape1(C[end])
     q = size(Cᵀ, 3)
     @cast M[m, (n, x)] := Cᵀ[m, n, x]
@@ -80,6 +90,7 @@ function sweep_RtoL!(C::MatrixProductTrain; svd_trunc::SVDTrunc=TruncThresh(1e-6
         U, λ, V = svd(M)
         mprime = svd_trunc(λ)
         @assert mprime !== nothing "λ=$λ, M=$M"
+        verbose && _print_svd(t, M, U, λ, V, mprime)
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]
         @cast Aᵗ[m, n, x] := V_trunc'[m, (n, x)] m in 1:mprime, x in 1:q
         C[t] = _reshapeas(Aᵗ, C[t])     
@@ -93,7 +104,8 @@ end
 
 
 # when truncating it assumes that matrices are already right-orthogonal
-function sweep_LtoR!(C::MatrixProductTrain; svd_trunc::SVDTrunc=TruncThresh(1e-6))
+function sweep_LtoR!(C::MatrixProductTrain; svd_trunc::SVDTrunc=TruncThresh(1e-6),
+        verbose::Bool=false)
     C⁰ = _reshape1(C[begin])
     q = size(C⁰, 3)
     @cast M[(m, x), n] |= C⁰[m, n, x]
@@ -103,6 +115,7 @@ function sweep_LtoR!(C::MatrixProductTrain; svd_trunc::SVDTrunc=TruncThresh(1e-6
         U, λ, V = svd(M)
         mprime = svd_trunc(λ)
         @assert mprime !== nothing "λ=$λ, M=$M"
+        verbose && _print_svd(t, M, U, λ, V, mprime)
         U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
         @cast Aᵗ[m, n, x] := U_trunc[(m, x), n] n in 1:mprime, x in 1:q
         C[t] = _reshapeas(Aᵗ, C[t])
