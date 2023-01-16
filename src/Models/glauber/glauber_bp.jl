@@ -50,8 +50,8 @@ function (wᵢ::HomogeneousGlauberFactor)(xᵢᵗ⁺¹::Integer,
     @assert xᵢᵗ⁺¹ ∈ 1:2
     @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
 
-    hⱼᵢ = wᵢ.βJ * sum(potts2spin, xₙᵢᵗ)
-    E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + wᵢ.βh)
+    hⱼᵢ = wᵢ.βJ * sum(potts2spin, xₙᵢᵗ; init=0.0)
+    E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.βh)
     exp( -E ) / (2cosh(E))
 end
 
@@ -108,10 +108,11 @@ function glauber_factors(ising::Ising, T::Integer)
         J = ising.J[∂i]
         h = ising.h[i]
         wᵢᵗ = if is_absJ_const(ising)
+            Jᵢ = length(∂i) == 0 ? 0.0 : J[1] 
             if is_homogeneous(ising)
-                HomogeneousGlauberFactor(J[1], h, β)
+                HomogeneousGlauberFactor(Jᵢ, h, β)
             else
-                PMJGlauberFactor(Int.(sign.(J)), β*abs(J[1]), β*h)
+                PMJGlauberFactor(Int.(sign.(J)), β*abs(Jᵢ), β*h)
             end
         else
             GenericGlauberFactor(J, h, ising.β)
