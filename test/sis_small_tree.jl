@@ -79,8 +79,21 @@ nstates(::Type{<:FakeSIS}, l::Int) = nstates(SISFactor, l)
 
 end
 
+@testset "RecursiveTraceFactor" begin
+    rng2 = MersenneTwister(111)
+    bpfake = MPBP(bp.g, [RecursiveTraceFactor.(w,2) for w in bp.w], bp.ϕ, bp.ψ, 
+                    deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
 
+    for i=1:20
+        X, _ = onesample(bp; rng)
+        @test logprob(bp, X) ≈ logprob(bpfake, X)
+    end
 
+    iterate!(bpfake, maxiter=10; svd_trunc=TruncBond(10), showprogress=false)
+
+    @test beliefs(bpfake) ≈ beliefs(bp)
+
+end
 
 # observe everything and check that the free energy corresponds to the posterior of sample `X`
 sis = SIS(g, λ, ρ, T; γ)

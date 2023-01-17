@@ -14,4 +14,4 @@ end
 
 prob_xy(wᵢ::RecursiveTraceFactor, yₖ, xₖ, xᵢ, k) = (yₖ == xₖ)
 
-prob_yy(wᵢ::U, y, y1, y2, xᵢ, d1, d2) where {U<:RecursiveTraceFactor} = (y - 1 == (y1 - 1) * d2 + (y2 - 1))
+prob_yy(wᵢ::U, y, y1, y2, xᵢ, d1, d2) where {U<:RecursiveTraceFactor} = (y - 1 == (y1 - 1)  + (y2 - 1) * d1)
