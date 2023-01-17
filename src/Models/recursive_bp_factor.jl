@@ -44,7 +44,7 @@ end
 
 function prob_y_partial(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, k) where {U<:RecursiveBPFactor}
     sum(prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d + 1) * 
-        prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ) * 
+        prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ,k) * 
         prob_yy(wᵢ, yᵗ, y1, y2, xᵢᵗ, nstates(U,d), nstates(U,1)) 
         for yᵗ in 1:nstates(U, d + 1), y2 in 1:nstates(U,1))
 end
