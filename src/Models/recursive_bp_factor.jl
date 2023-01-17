@@ -17,13 +17,15 @@ prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, yₙᵢᵗ, dᵢ) where {U<:RecursiveBPFa
 
 "P(yₖᵗ| xₖᵗ, xᵢᵗ)"
 prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ) = error("Not implemented")
+prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ, k) = prob_xy(wᵢ, yₖ, xₖ, xᵢ)
 
 "P(yₐᵦ|yₐ,yᵦ,xᵢᵗ)"
 prob_yy(wᵢ::RecursiveBPFactor, y, y1, y2, xᵢ) = error("Not implemented")
 
 
 ##############################################
-#### the next two methods are optional
+#### the next methods are optional
+
 
 "P(xᵢᵗ⁺¹|xᵢᵗ, xₙᵢᵗ, d)"
 function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
@@ -32,14 +34,14 @@ function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVe
     d = length(xₙᵢᵗ)
     Pyy = fill(1.0, 1)
     for k in 1:d
-        Pyy = [sum(prob_yy(wᵢ, y, y1, y2, xᵢᵗ)*prob_xy(wᵢ, y1, xₙᵢᵗ[k], xᵢᵗ)*Pyy[y2]
+        Pyy = [sum(prob_yy(wᵢ, y, y1, y2, xᵢᵗ)*prob_xy(wᵢ, y1, xₙᵢᵗ[k], xᵢᵗ,k)*Pyy[y2]
                    for y1 in 1:nstates(U,1), y2 in 1:nstates(U,k-1)) 
                for y in 1:nstates(U,k)]
     end
     sum(Pyy[y] * prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, y, d) for y in eachindex(Pyy))
 end
 
-function prob_y_partial(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where {U<:RecursiveBPFactor}
+function prob_y_partial(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d,k) where {U<:RecursiveBPFactor}
     sum(prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d + 1) * 
         prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ) * 
         prob_yy(wᵢ, yᵗ, y1, y2, xᵢᵗ) 
@@ -49,24 +51,24 @@ end
 
 #####################################################
 
-prob_y_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d) where U = prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, y1, d) 
+prob_y_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, j) where U = prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, y1, d) 
 
 
-function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer, qj) where {U<:RecursiveBPFactor}
-    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_partial, qj)
+function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer, qj, j) where {U<:RecursiveBPFactor}
+    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_partial, qj, j)
 end
 
 function f_bp_partial_i(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
-    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_dummy, 1)
+    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_dummy, 1, 1)
 end
 
 function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
-    d::Integer, prob::Function, qj) where {U<:RecursiveBPFactor}
+    d::Integer, prob::Function, qj, j) where {U<:RecursiveBPFactor}
     q = length(ϕᵢ[1])
     B = [zeros(size(a,1), size(a,2), q, qj, q) for a in A]
     for t in 1:getT(A)
         Aᵗ,Bᵗ = A[t], B[t]
-        @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
+        @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d,j)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
     end
     Aᵀ,Bᵀ = A[end], B[end]
     @tullio Bᵀ[m,n,xᵢᵀ,xⱼᵀ,xᵢᵀ⁺¹] = Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
@@ -82,7 +84,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout,
         Bk = map(1:getT(μin[k]) + 1) do t
             μkt, wᵢᵗ, ψᵢₖᵗ = μin[k][t], wᵢ[t], ψout[k][t]
             Bkt = zeros(size(μkt,1), size(μkt,2), nstates(U, 1), size(μkt,4))
-            @tullio Bkt[m,n,yₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ) * μkt[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ]
+            @tullio Bkt[m,n,yₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * μkt[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ]
         end |> MPEM2
         Bk, 0.0, 1
     end
@@ -117,7 +119,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     @assert wᵢ[1] isa U
     C, full, logzᵢ = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
-        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)))
+        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
         μ[idx(e)] = sweep_RtoL!(mpem2(B); svd_trunc, verbose=svd_verbose)
         logzᵢ += normalize!(μ[idx(e)])
     end
