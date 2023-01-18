@@ -79,31 +79,28 @@ end
 
 function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout, T, svd_trunc;
         svd_verbose::Bool=false) where {U<:RecursiveBPFactor}
-    @assert all(normalization(a) ≈ 1 for a in μin)
-    dᵢ = length(ψout)
-    B = map(1:dᵢ) do k
-        Bk = map(1:getT(μin[k]) + 1) do t
-            μkt, wᵢᵗ, ψᵢₖᵗ = μin[k][t], wᵢ[t], ψout[k][t]
-            Bkt = zeros(size(μkt,1), size(μkt,2), nstates(U, 1), size(μkt,4))
-            @tullio Bkt[m,n,yₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * μkt[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ]
+    B = map(zip(eachindex(μin), μin, ψout)) do (k, μink, ψoutk)
+        @assert normalization(μink) ≈ 1
+        Bk = map(zip(μink, wᵢ,  ψoutk)) do (μₖᵗ, wᵢᵗ, ψᵢₖᵗ)
+            @reduce _[m,n,yₖ,xᵢ] := sum(xₖ) prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) #=
+                =# * μₖᵗ[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ] (yₖ in 1:nstates(U, 1))
         end |> MPEM2
         Bk, 0.0, 1
     end
 
-    Minit = fill(1.0, 1, 1, 1, qi)
-    init = (MPEM2(fill(Minit, T + 1)), 0.0, 0)
-
     function op((B1, lz1, n1), (B2, lz2, n2))
-        B = map(eachindex(B1.tensors)) do t
-            Bᵗ = kron2(B1[t], B2[t])
-            Bout = zeros(size(Bᵗ,1), size(Bᵗ,2), nstates(U,n1+n2), size(Bᵗ,3))
-            @tullio Bout[m,n,y,xᵢ] = prob_yy(wᵢ[$t],y,y1,y2,xᵢ,$n1,$n2) * Bᵗ[m,n,xᵢ,y1,y2]
+        B = map(zip(B1, B2, wᵢ)) do (B₁ᵗ, B₂ᵗ, wᵢᵗ)
+            @reduce _[(m₁,m₂),(n₁,n₂),y,xᵢ] := sum(y1,y2) prob_yy(wᵢᵗ,y,y1,y2,xᵢ,$n1,$n2) #=
+            =# * B₁ᵗ[m₁,n₁,y1,xᵢ] * B₂ᵗ[m₂,n₂,y2,xᵢ] (y in 1:nstates(U, n1 + n2))
         end |> MPEM2
         lz = normalize!(B)
         sweep_LtoR!(B, svd_trunc=TruncThresh(0.0))
         sweep_RtoL!(B; svd_trunc, verbose=svd_verbose)
         B, lz + lz1 + lz2, n1 + n2
     end
+
+    Minit = fill(1.0, 1, 1, 1, qi)
+    init = (MPEM2(fill(Minit, T + 1)), 0.0, 0)
     dest, (full, )  = cavity(B, op, init)
     (C, logzs) = unzip(dest)
     logzᵢ = sum(logzs)
