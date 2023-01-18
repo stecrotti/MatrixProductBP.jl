@@ -13,10 +13,8 @@ struct MatrixProductTrain{F<:Real, N} <: MPEM
 end
 
 @forward MatrixProductTrain.tensors getindex, iterate, firstindex, lastindex, setindex!, 
-    check_bond_dims, length
+    check_bond_dims, length, eachindex
 
-
-check_bond_dims(A::MatrixProductTrain) = check_bond_dims(A.tensors)
 
 function check_bond_dims(tensors::Vector{<:Array})
     for t in 1:lastindex(tensors)-1

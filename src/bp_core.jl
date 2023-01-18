@@ -9,6 +9,9 @@ That's it!
 """
 abstract type BPFactor; end
 
+# Factors are not collections (avoid confusion in TensorCast)
+Base.broadcastable(b::BPFactor) = Ref(b)
+
 # compute outgoing message as a function of the incoming ones
 # A is a vector with all incoming messages. At index j_index there is m(j → i)
 # ψᵢⱼ are the ones living on the outedges of node i
