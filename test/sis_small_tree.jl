@@ -79,6 +79,27 @@ nstates(::Type{<:FakeSIS}, l::Int) = nstates(SISFactor, l)
 
 end
 
+struct SlowFactor{F} <: BPFactor
+    w::F
+end
+
+(w::SlowFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, xᵢᵗ::Integer) = w.w(xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)
+
+@testset "SlowFactor - extensive trace update test" begin
+    rng2 = MersenneTwister(111)
+    bpfake = MPBP(bp.g, [SlowFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
+                    deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
+
+    for i=1:20
+        X, _ = onesample(bp; rng)
+        @test logprob(bp, X) ≈ logprob(bpfake, X)
+    end
+
+    iterate!(bpfake, maxiter=10; svd_trunc, showprogress=false)
+
+    @test beliefs(bpfake) ≈ beliefs(bp)
+end
+
 struct RecursiveTraceFactor{F<:BPFactor,N} <: RecursiveBPFactor
     w :: F
 end
