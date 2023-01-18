@@ -35,7 +35,7 @@ function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVe
     d = length(xₙᵢᵗ)
     Pyy = fill(1.0, 1)
     for k in 1:d
-        Pyy = [sum(prob_yy(wᵢ, y, y1, y2, xᵢᵗ, nstates(U,1), nstates(U,k-1))*prob_xy(wᵢ, y1, xₙᵢᵗ[k], xᵢᵗ,k)*Pyy[y2]
+        Pyy = [sum(prob_yy(wᵢ, y, y1, y2, xᵢᵗ, 1, k-1)*prob_xy(wᵢ, y1, xₙᵢᵗ[k], xᵢᵗ,k)*Pyy[y2]
                    for y1 in 1:nstates(U,1), y2 in 1:nstates(U,k-1)) 
                for y in 1:nstates(U,k)]
     end
@@ -45,7 +45,7 @@ end
 function prob_y_partial(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, k) where {U<:RecursiveBPFactor}
     sum(prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d + 1) * 
         prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ,k) * 
-        prob_yy(wᵢ, yᵗ, y1, y2, xᵢᵗ, nstates(U,d), nstates(U,1)) 
+        prob_yy(wᵢ, yᵗ, y1, y2, xᵢᵗ, d, 1) 
         for yᵗ in 1:nstates(U, d + 1), y2 in 1:nstates(U,1))
 end
 
@@ -94,11 +94,10 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout,
     init = (MPEM2(fill(Minit, T + 1)), 0.0, 0)
 
     function op((B1, lz1, n1), (B2, lz2, n2))
-        d1,d2 = nstates(U,n1),nstates(U,n1)
         B = map(eachindex(B1.tensors)) do t
             Bᵗ = kron2(B1[t], B2[t])
             Bout = zeros(size(Bᵗ,1), size(Bᵗ,2), nstates(U,n1+n2), size(Bᵗ,3))
-            @tullio Bout[m,n,y,xᵢ] = prob_yy(wᵢ[$t],y,y1,y2,xᵢ,$d1,$d2) * Bᵗ[m,n,xᵢ,y1,y2]
+            @tullio Bout[m,n,y,xᵢ] = prob_yy(wᵢ[$t],y,y1,y2,xᵢ,$n1,$n2) * Bᵗ[m,n,xᵢ,y1,y2]
         end |> MPEM2
         lz = normalize!(B)
         sweep_LtoR!(B, svd_trunc=TruncThresh(0.0))
