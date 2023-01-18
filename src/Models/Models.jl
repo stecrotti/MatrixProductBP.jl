@@ -15,17 +15,19 @@ import SparseArrays: nonzeros, nzrange, rowvals
 import TensorCast: @reduce, @cast, TensorCast 
 import ProgressMeter: Progress, next!
 import LogExpFunctions: xlogx, xlogy
-import Statistics: mean
+import Statistics: mean, std
+import Measurements: Measurement, ±
 import Tullio: @tullio
 import Unzip: unzip
+import Distributions: rand, Poisson, truncated
 
 export 
     RecursiveBPFactor, beliefs, beliefs_tu,
     mpbp_infinite_graph,
-    Ising, Glauber, 
-    HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp, 
+    Ising, Glauber, RandomRegular, ErdosRenyi, equilibrium_magnetization,
+    HomogeneousGlauberFactor, GenericGlauberFactor, mpbp, 
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
-    kl_marginals, l1_marginals, auc,
+    kl_marginals, l1_marginals, auc
     RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor
 
 
@@ -35,6 +37,7 @@ include("infinite_graph.jl")
 
 include("glauber/glauber.jl")
 include("glauber/glauber_bp.jl")
+include("glauber/equilibrium.jl")
 
 include("sis/sis.jl")
 include("sis/sis_bp.jl")
