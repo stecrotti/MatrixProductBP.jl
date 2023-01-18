@@ -23,7 +23,7 @@ export
     RecursiveBPFactor, beliefs, beliefs_tu,
     mpbp_infinite_graph,
     Ising, Glauber, 
-    HomogeneousGlauberFactor, GenericGlauberFactor, mpbp, 
+    HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp, 
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
     kl_marginals, l1_marginals, auc,
     RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor
