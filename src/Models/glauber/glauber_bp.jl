@@ -74,7 +74,7 @@ function prob_y(wᵢ::PMJGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
 end
 
 # yₖ = σₖ*sign(Jᵢₖ), but with sign(Jᵢₖ) ∈ {0,1}, xₖ ∈ {1,2}, yₖ ∈ {1,2}
-prob_xy(wᵢ::PMJGlauberFactor, yₖ, xₖ, xᵢ, k) = (yₖ != spin2potts(-potts2spin(xₖ)*wᵢ.signs[k]))
+prob_xy(wᵢ::PMJGlauberFactor, yₖ, xₖ, xᵢ, k) = (yₖ == spin2potts(potts2spin(xₖ)*wᵢ.signs[k]))
 prob_yy(wᵢ::PMJGlauberFactor, y, y1, y2, xᵢ) = (y == y1 + y2 - 1)
 
 # function (wᵢ::PMJGlauberFactor)(xᵢᵗ⁺¹::Integer, 
@@ -101,6 +101,7 @@ end
 # construct an array of GlauberFactors corresponding to gl
 # seems to be type stable
 function glauber_factors(ising::Ising, T::Integer)
+    β = ising.β
     map(1:nv(ising.g)) do i
         ei = outedges(ising.g, i)
         ∂i = idx.(ei)
@@ -108,9 +109,9 @@ function glauber_factors(ising::Ising, T::Integer)
         h = ising.h[i]
         wᵢᵗ = if is_absJ_const(ising)
             if is_homogeneous(ising)
-                HomogeneousGlauberFactor(J[1], h, ising.β)
+                HomogeneousGlauberFactor(J[1], h, β)
             else
-                PMJGlauberFactor(Int.(sign.(J)), h, ising.β)
+                PMJGlauberFactor(Int.(sign.(J)), β*abs(J[1]), β*h)
             end
         else
             GenericGlauberFactor(J, h, ising.β)

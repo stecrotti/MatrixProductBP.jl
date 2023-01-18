@@ -12,17 +12,7 @@ J = [0 -1  0  0;
 N = size(J, 1)
 h = randn(rng, N)
 
-# for i in 1:N
-#     for j in i:N
-#         if J[i,j] != 0
-#             r = 1e-12*randn(rng)
-#             J[i,j] += r
-#             J[j,i] += r
-#         end
-#     end
-# end
-
-β = 1.0
+β = 2.0
 ising = Ising(J, h, β)
 
 gl = Glauber(ising, T)
@@ -58,9 +48,78 @@ r_exact = exact_autocorrelations(f, bp; p_exact)
 c_bp = autocovariances(f, bp)
 c_exact = exact_autocovariances(f, bp; r = r_exact)
 
-@testset "Glauber small tree" begin
+@testset "Glauber ±J small tree" begin
     @test Z_exact ≈ Z_bp
     @test p_ex ≈ p_bp
     @test r_bp ≈ r_exact
     @test c_bp ≈ c_exact
 end
+
+### Test against generic BP
+Jvec = filter.(!iszero, eachcol(J))
+w_generic = [[GenericGlauberFactor(Jvec[i], h[i], β) for wit in bp.w[i]] for i in 1:N]
+
+bp_generic = mpbp(bp.g, w_generic, fill(2,N), T; ϕ=bp.ϕ)
+
+w1 = bp.w[2][1]
+w2 = bp_generic.w[2][1]
+
+svd_trunc = TruncThresh(0.0)
+cb = CB_BP(bp_generic; showprogress=false)
+iterate!(bp_generic; maxiter=20, svd_trunc, cb)
+
+b_bp_generic = beliefs(bp_generic)
+p_bp_generic = [[bbb[2] for bbb in bb] for bb in b_bp_generic]
+f_bethe = bethe_free_energy(bp_generic)
+Z_bp_generic = exp(-f_bethe)
+r_bp_generic = autocorrelations(f, bp_generic)
+c_bp_generic = autocovariances(f, bp_generic)
+
+@testset "Glauber ±J small tree GenericFactor" begin
+    @test Z_exact ≈ Z_bp_generic
+    @test p_ex ≈ p_bp_generic
+    @test r_bp_generic ≈ r_exact
+    @test c_bp_generic ≈ c_exact
+end
+
+# ### Perturb slightly the Js and check that observables are unchanged
+
+# J2 = copy(J)
+# for i in 1:N
+#     for j in i:N
+#         if J[i,j] != 0
+#             r = eps(1.0)
+#             J2[i,j] += r
+#             J2[j,i] += r
+#         end
+#     end
+# end
+
+# ising2 = Ising(J2, h, β)
+# gl2 = Glauber(ising2, T)
+
+# for i in 1:N
+#     r = 0.75
+#     gl2.ϕ[i][1] .*= [r, 1-r]
+# end
+
+# bp2 = mpbp(gl2)
+# bp2.ϕ .= bp.ϕ
+
+# cb = CB_BP(bp2; showprogress=false)
+# iterate!(bp2; maxiter=20, svd_trunc, cb)
+# b_bp2 = beliefs(bp2)
+# p_bp2 = [[bbb[2] for bbb in bb] for bb in b_bp2]
+# p_exact2, Z_exact2 = exact_prob(bp2)
+# b_exact2 = exact_marginals(bp2; p_exact=p_exact2)
+# p_ex2 = [[bbb[2] for bbb in bb] for bb in b_exact2]
+
+# f_bethe2 = bethe_free_energy(bp2)
+# Z_bp2 = exp(-f_bethe2)
+
+# @testset "Glauber ±J small tree generic from perturbation" begin
+#     @test Z_exact2 ≈ Z_bp2
+#     @test p_ex2≈ p_bp2
+#     @test Z_exact2 ≈ Z_exact
+#     @test p_ex2≈ p_ex
+# end
