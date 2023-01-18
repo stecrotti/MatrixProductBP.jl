@@ -155,8 +155,8 @@ function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}},
 end
 
 # draw 1 sample from the prior, observe something and return the sample
-function draw_node_observations!(bp::MPBP, nobs::Integer; kw...)
-    X, _ = onesample(bp)
-    draw_node_observations!(bp.ϕ, X, nobs; kw...)
+function draw_node_observations!(bp::MPBP, nobs::Integer; rng=GLOBAL_RNG, kw...)
+    X, _ = onesample(bp; rng)
+    draw_node_observations!(bp.ϕ, X, nobs; rng, kw...)
     X
 end
