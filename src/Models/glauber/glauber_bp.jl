@@ -31,7 +31,6 @@ end
 # the sum of `l` spins can assume `l+1` values
 nstates(::Type{<:HomogeneousGlauberFactor}, l::Integer) = l + 1
 
-
 # ignore neighbor because it doesn't exist
 function prob_y(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
     @unpack βJ, βh = wᵢ
@@ -51,7 +50,6 @@ function (wᵢ::HomogeneousGlauberFactor)(xᵢᵗ⁺¹::Integer,
     @assert xᵢᵗ⁺¹ ∈ 1:2
     @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
 
-    hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, wᵢ.βJ))
     hⱼᵢ = wᵢ.βJ * sum(potts2spin, xₙᵢᵗ)
     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + wᵢ.βh)
     exp( -E ) / (2cosh(E))
@@ -59,17 +57,36 @@ end
 
 # Ising model with ±J interactions
 struct PMJGlauberFactor{T<:Real} <: RecursiveBPFactor
-    signs :: BitVector
+    signs :: Vector{Int}
     βJ    :: T     
     βh    :: T
 end
 
 nstates(::Type{<:PMJGlauberFactor}, l::Integer) = l + 1
 
-bool2sign(x::Bool) = 1 - 2x
-sign2bool(s::Integer) = (@assert abs(s) == 1; (1 - s) / 2)
+function prob_y(wᵢ::PMJGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
+    @unpack βJ, βh = wᵢ
+    yᵗ = 2 * zᵗ - 2 - d
+    h = βJ * yᵗ + βh
+    p = exp(potts2spin(xᵢᵗ⁺¹) * h) / (2*cosh(h))
+    @assert 0 ≤ p ≤ 1
+    p
+end
 
+# yₖ = σₖ*sign(Jᵢₖ), but with sign(Jᵢₖ) ∈ {0,1}, xₖ ∈ {1,2}, yₖ ∈ {1,2}
+prob_xy(wᵢ::PMJGlauberFactor, yₖ, xₖ, xᵢ, k) = (yₖ != spin2potts(-potts2spin(xₖ)*wᵢ.signs[k]))
+prob_yy(wᵢ::PMJGlauberFactor, y, y1, y2, xᵢ) = (y == y1 + y2 - 1)
 
+# function (wᵢ::PMJGlauberFactor)(xᵢᵗ⁺¹::Integer, 
+#         xₙᵢᵗ::AbstractVector{<:Integer}, 
+#         xᵢᵗ::Integer)
+#     @assert xᵢᵗ⁺¹ ∈ 1:2
+#     @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
+
+#     hⱼᵢ = wᵢ.βJ * sum( s * potts2spin(xⱼᵗ) for (xⱼᵗ,s) in zip(xₙᵢᵗ, wᵢ.signs))
+#     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + wᵢ.βh)
+#     exp( -E ) / (2cosh(E))
+# end
 
 
 function mpbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
@@ -89,8 +106,12 @@ function glauber_factors(ising::Ising, T::Integer)
         ∂i = idx.(ei)
         J = ising.J[∂i]
         h = ising.h[i]
-        wᵢᵗ = if is_homogeneous(ising)
-            HomogeneousGlauberFactor(J[1], h, ising.β)
+        wᵢᵗ = if is_absJ_const(ising)
+            if is_homogeneous(ising)
+                HomogeneousGlauberFactor(J[1], h, ising.β)
+            else
+                PMJGlauberFactor(Int.(sign.(J)), h, ising.β)
+            end
         else
             GenericGlauberFactor(J, h, ising.β)
         end
