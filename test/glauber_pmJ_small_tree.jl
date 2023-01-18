@@ -24,6 +24,10 @@ end
 
 bp = mpbp(gl)
 
+@testset "Factor type" begin
+    @test all(eltype(wᵢ) <: PMJGlauberFactor for wᵢ in bp.w)
+end
+
 X = draw_node_observations!(bp, N; rng)
 
 svd_trunc = TruncThresh(0.0)
