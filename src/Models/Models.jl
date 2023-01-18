@@ -25,10 +25,12 @@ export
     Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, mpbp, 
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
-    kl_marginals, l1_marginals, auc
+    kl_marginals, l1_marginals, auc,
+    RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor
 
 
 include("recursive_bp_factor.jl")
+include("test_factors.jl")
 include("infinite_graph.jl")
 
 include("glauber/glauber.jl")

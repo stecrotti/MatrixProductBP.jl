@@ -52,20 +52,9 @@ c_exact = exact_autocovariances(f, bp; r = r_exact)
     @test c_bp ≈ c_exact
 end
 
-struct FakeSIS <: RecursiveBPFactor
-    w::SISFactor
-end
-
-prob_xy(w::FakeSIS, x...) = prob_xy(w.w, x...)
-prob_yy(w::FakeSIS, x...) = prob_yy(w.w, x...)
-prob_y(w::FakeSIS, x...) = prob_y(w.w, x...)
-
-nstates(::Type{<:FakeSIS}, l::Int) = nstates(SISFactor, l)
-
-
-@testset "FakeSIS - RecursiveBPFactor generic methods" begin
+@testset "RestrictedRecursiveBPFactor - RecursiveBPFactor generic methods" begin
     rng2 = MersenneTwister(111)
-    bpfake = MPBP(bp.g, [FakeSIS.(w) for w in bp.w], bp.ϕ, bp.ψ, 
+    bpfake = MPBP(bp.g, [RestrictedRecursiveBPFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
                     deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
 
     for i=1:20
@@ -79,15 +68,9 @@ nstates(::Type{<:FakeSIS}, l::Int) = nstates(SISFactor, l)
 
 end
 
-struct SlowFactor{F} <: BPFactor
-    w::F
-end
-
-(w::SlowFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, xᵢᵗ::Integer) = w.w(xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)
-
-@testset "SlowFactor - extensive trace update test" begin
+@testset "GenericFactor - extensive trace update test" begin
     rng2 = MersenneTwister(111)
-    bpfake = MPBP(bp.g, [SlowFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
+    bpfake = MPBP(bp.g, [GenericFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
                     deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
 
     for i=1:20
@@ -99,24 +82,6 @@ end
 
     @test beliefs(bpfake) ≈ beliefs(bp)
 end
-
-struct RecursiveTraceFactor{F<:BPFactor,N} <: RecursiveBPFactor
-    w :: F
-end
-
-RecursiveTraceFactor(f,N) = RecursiveTraceFactor{typeof(f),N}(f)
-
-nstates(::Type{RecursiveTraceFactor{F,N}}, d::Integer) where {F,N} = N^d
-
-function prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, yₙᵢᵗ, dᵢ) where {U <: RecursiveTraceFactor{F,N}} where {F,N}
-    wᵢ.w(xᵢᵗ⁺¹, reverse(digits(yₙᵢᵗ-1; base=N, pad=dᵢ)) .+ 1, xᵢᵗ)
-end
-
-prob_xy(wᵢ::RecursiveTraceFactor, yₖ, xₖ, xᵢ, k) = (yₖ == xₖ)
-
-prob_yy(wᵢ::U, y, y1, y2, xᵢ, d1, d2) where {U<:RecursiveTraceFactor} = (y - 1 == (y1 - 1)  + (y2 - 1) * nstates(U,d1))
-
-
 
 @testset "RecursiveTraceFactor" begin
     rng2 = MersenneTwister(111)
