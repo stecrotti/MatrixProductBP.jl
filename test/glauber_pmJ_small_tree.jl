@@ -61,9 +61,6 @@ w_generic = [[GenericGlauberFactor(Jvec[i], h[i], β) for wit in bp.w[i]] for i 
 
 bp_generic = mpbp(bp.g, w_generic, fill(2,N), T; ϕ=bp.ϕ)
 
-w1 = bp.w[2][1]
-w2 = bp_generic.w[2][1]
-
 svd_trunc = TruncThresh(0.0)
 cb = CB_BP(bp_generic; showprogress=false)
 iterate!(bp_generic; maxiter=20, svd_trunc, cb)
@@ -75,11 +72,34 @@ Z_bp_generic = exp(-f_bethe)
 r_bp_generic = autocorrelations(f, bp_generic)
 c_bp_generic = autocovariances(f, bp_generic)
 
-@testset "Glauber ±J small tree GenericFactor" begin
+@testset "Glauber ±J small tree GenericGlauberFactor" begin
     @test Z_exact ≈ Z_bp_generic
     @test p_ex ≈ p_bp_generic
     @test r_bp_generic ≈ r_exact
     @test c_bp_generic ≈ c_exact
+end
+
+### Test with GenericFactor
+w_slow = [[GenericFactor(wit) for wit in bp.w[i]] for i in 1:N]
+
+bp_slow = mpbp(bp.g, w_slow, fill(2,N), T; ϕ=bp.ϕ)
+
+svd_trunc = TruncThresh(0.0)
+cb = CB_BP(bp_slow; showprogress=false)
+iterate!(bp_slow; maxiter=20, svd_trunc, cb)
+
+b_bp_slow = beliefs(bp_slow)
+p_bp_slow = [[bbb[2] for bbb in bb] for bb in b_bp_slow]
+f_bethe = bethe_free_energy(bp_slow)
+Z_bp_slow = exp(-f_bethe)
+r_bp_slow = autocorrelations(f, bp_slow)
+c_bp_slow = autocovariances(f, bp_slow)
+
+@testset "Glauber ±J small tree GenericFactor" begin
+    @test Z_exact ≈ Z_bp_slow
+    @test p_ex ≈ p_bp_slow
+    @test r_bp_slow ≈ r_exact
+    @test c_bp_slow ≈ c_exact
 end
 
 # ### Perturb slightly the Js and check that observables are unchanged
