@@ -21,7 +21,6 @@ import Unzip: unzip
 
 export 
     RecursiveBPFactor, beliefs, beliefs_tu,
-    RecursiveTraceFactor,
     mpbp_infinite_graph,
     Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, mpbp, 
@@ -30,7 +29,6 @@ export
 
 
 include("recursive_bp_factor.jl")
-include("recursive_trace_factor.jl")
 include("infinite_graph.jl")
 
 include("glauber/glauber.jl")
