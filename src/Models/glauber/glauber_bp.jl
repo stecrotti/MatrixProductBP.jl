@@ -51,7 +51,7 @@ function (wᵢ::HomogeneousGlauberFactor)(xᵢᵗ⁺¹::Integer,
     @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
 
     hⱼᵢ = wᵢ.βJ * sum(potts2spin, xₙᵢᵗ; init=0.0)
-    E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.βh)
+    E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + wᵢ.βh)
     exp( -E ) / (2cosh(E))
 end
 
