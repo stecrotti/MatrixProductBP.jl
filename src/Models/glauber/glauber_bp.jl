@@ -62,6 +62,10 @@ struct PMJGlauberFactor{T<:Real} <: RecursiveBPFactor
     βh    :: T
 end
 
+function PMJGlauberFactor(signs::Vector{Int}, J::T, h::T, β::T) where {T<:Real}
+    PMJGlauberFactor(signs, J*β, h*β)
+end
+
 nstates(::Type{<:PMJGlauberFactor}, l::Integer) = l + 1
 
 function prob_y(wᵢ::PMJGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
