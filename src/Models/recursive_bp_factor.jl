@@ -79,24 +79,25 @@ end
 
 function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout, T, svd_trunc;
         svd_verbose::Bool=false) where {U<:RecursiveBPFactor}
-    B = map(zip(eachindex(μin), μin, ψout)) do (k, μink, ψoutk)
-        @assert normalization(μink) ≈ 1
-        Bk = map(zip(μink, wᵢ,  ψoutk)) do (μₖᵗ, wᵢᵗ, ψᵢₖᵗ)
-            @reduce _[m,n,yₖ,xᵢ] := sum(xₖ) prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) #=
-                =# * μₖᵗ[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ] (yₖ in 1:nstates(U, 1))
+    @assert all(normalization(a) ≈ 1 for a in μin)
+    yrange = Base.OneTo(nstates(U, 1))
+    B = map(eachindex(ψout)) do k
+        Bk = map(zip(wᵢ, μin[k], ψout[k])) do (wᵢᵗ, μₖᵢᵗ, ψᵢₖᵗ)
+            @tullio _[m,n,yₖ,xᵢ] := prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * μₖᵢᵗ[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ] (yₖ in yrange)
         end |> MPEM2
         Bk, 0.0, 1
     end
 
-    function op((B1, lz1, n1), (B2, lz2, n2))
-        B = map(zip(B1, B2, wᵢ)) do (B₁ᵗ, B₂ᵗ, wᵢᵗ)
-            @reduce _[(m₁,m₂),(n₁,n₂),y,xᵢ] := sum(y1,y2) prob_yy(wᵢᵗ,y,y1,y2,xᵢ,$n1,$n2) #=
-            =# * B₁ᵗ[m₁,n₁,y1,xᵢ] * B₂ᵗ[m₂,n₂,y2,xᵢ] (y in 1:nstates(U, n1 + n2))
+    function op((B1, lz1, d1), (B2, lz2, d2))
+        yrange = Base.OneTo(nstates(U,d1+d2))
+        B = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
+            @tullio B3[m1,m2,n1,n2,y,xᵢ] := prob_yy(wᵢᵗ,y,y1,y2,xᵢ,d1,d2) * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ] (y in yrange)
+            reshape(B3, size(B3,1)*size(B3,2), size(B3,3)*size(B3,4), size(B3,5), qi)
         end |> MPEM2
         lz = normalize!(B)
         sweep_LtoR!(B, svd_trunc=TruncThresh(0.0))
         sweep_RtoL!(B; svd_trunc, verbose=svd_verbose)
-        B, lz + lz1 + lz2, n1 + n2
+        B, lz + lz1 + lz2, d1 + d2
     end
 
     Minit = fill(1.0, 1, 1, 1, qi)
