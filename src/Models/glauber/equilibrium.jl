@@ -52,12 +52,15 @@ function equilibrium_magnetization(g::ErdosRenyi, J::Real; β::Real=1.0, h::Real
     end
 
     iters = 0; err = Inf
+    prog = Progress(maxiter, desc="Running population dynamics")
     for _ in 1:maxiter
         iterate_ER!(Pnew, f, c, J, β, h)
         err = abs(mean(P) - mean(Pnew)) 
         err < tol && break
         P, Pnew = Pnew, P
         iters += 1
+        next!(prog, showvalues=[(:it, "$iters/$maxiter"), 
+            (:ε,"$(round(err, digits=ceil(Int, log10(1/tol))))/$tol")])
     end
 
     iters == maxiter && @warn "Population dynamics did not converge. Error $err"
