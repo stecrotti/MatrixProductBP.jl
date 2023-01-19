@@ -119,8 +119,9 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     C, full, logzᵢ = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
-        μ[idx(e)] = sweep_RtoL!(mpem2(B); svd_trunc, verbose=svd_verbose)
-        logzᵢ += normalize!(μ[idx(e)])
+        μj = sweep_RtoL!(mpem2(B); svd_trunc, verbose=svd_verbose)
+        logzᵢ += normalize!(μj)
+        μ[idx(e)] = μj
     end
     B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
     bp.b[i] = B |> mpem2 |> marginalize
