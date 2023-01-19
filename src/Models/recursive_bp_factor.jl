@@ -92,7 +92,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout,
         yrange = Base.OneTo(nstates(U,d1+d2))
         B = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
             @tullio B3[m1,m2,n1,n2,y,xᵢ] := prob_yy(wᵢᵗ,y,y1,y2,xᵢ,d1,d2) * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ] (y in yrange)
-            reshape(B3, size(B3,1)*size(B3,2), size(B3,3)*size(B3,4), size(B3,5), qi)
+            @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
         end |> MPEM2
         lz = normalize!(B)
         sweep_LtoR!(B, svd_trunc=TruncThresh(0.0))
