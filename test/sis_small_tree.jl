@@ -25,7 +25,7 @@ end
 draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
 svd_trunc = TruncBond(4)
-iterate!(bp, maxiter=10; svd_trunc, showprogress=false, svd_verbose=true)
+iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
 
 b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
