@@ -24,8 +24,9 @@ import Distributions: rand, Poisson, truncated
 export 
     RecursiveBPFactor, beliefs, beliefs_tu,
     mpbp_infinite_graph,
-    Ising, Glauber, RandomRegular, ErdosRenyi, equilibrium_magnetization,
-    HomogeneousGlauberFactor, GenericGlauberFactor, mpbp, 
+    Ising, Glauber, 
+    HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
+    equilibrium_magnetization, RandomRegular, ErdosRenyi,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
     kl_marginals, l1_marginals, auc
     RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor
