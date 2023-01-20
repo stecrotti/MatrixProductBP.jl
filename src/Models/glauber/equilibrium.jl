@@ -33,7 +33,7 @@ end
 
 
 function equilibrium_magnetization(g::ErdosRenyi, J::Real; β::Real=1.0, h::Real=0.0,
-        popsize=10^3, maxiter=10^3, tol=sqrt(popsize), nsamples=10^3)
+        popsize=10^3, maxiter=10^3, tol=1/sqrt(popsize), nsamples=10^3)
     c = g.c
     m = zeros(nsamples)
     
