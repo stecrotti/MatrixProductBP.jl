@@ -17,6 +17,7 @@ import StatsBase: weights, proportions
 import LogExpFunctions: logistic, logsumexp
 import .Threads: SpinLock, lock, unlock
 import Lazy: @forward
+import CavityTools: cavity
 
 
 export
