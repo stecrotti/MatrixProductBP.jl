@@ -4,6 +4,7 @@ authors = ["stecrotti <stefano.crotti@polito.it>"]
 version = "0.1.0"
 
 [deps]
+CavityTools = "217fe2f1-7e3d-419f-9934-cd6900c2759a"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 IndexedGraphs = "8a731c18-cfb7-4915-927e-cc26b56b67cd"
 InvertedIndices = "41ab1584-1d38-5bbf-9106-f11c6c58b48f"
