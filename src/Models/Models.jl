@@ -28,7 +28,7 @@ export
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
     equilibrium_magnetization, RandomRegular, ErdosRenyi,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
-    kl_marginals, l1_marginals, auc
+    kl_marginals, l1_marginals, auc,
     RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor
 
 
