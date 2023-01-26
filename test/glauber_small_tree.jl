@@ -7,8 +7,6 @@ J = [0 1 0 0;
      1 0 1 1;
      0 1 0 0;
      0 1 0 0] .|> float
-     
-J = [0 1 1 1; 1 0 0 0; 1 0 0 0; 1 0 0 0] .|> float
 
 N = size(J, 1)
 h = randn(rng, N)
@@ -59,8 +57,9 @@ end
 # observe everything and check that the free energy corresponds to the posterior of sample `X`
 
 draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
-reset_messages!(bp)
-iters, cb = iterate!(bp, maxiter=50; svd_trunc, showprogress=false)
+reset!(bp)
+cb = CB_BP(bp; showprogress=false)
+iters, cb = iterate!(bp, maxiter=50; svd_trunc, showprogress=false, tol=0)
 f_bethe = bethe_free_energy(bp)
 logl_bp = - f_bethe
 logp = logprob(bp, X)
