@@ -7,7 +7,8 @@ J = [0 1 0 0;
      1 0 1 1;
      0 1 0 0;
      0 1 0 0] .|> float
-# J = [0 1.0; 1.0 0]
+     
+J = [0 1 1 1; 1 0 0 0; 1 0 0 0; 1 0 0 0] .|> float
 
 N = size(J, 1)
 h = randn(rng, N)
@@ -24,9 +25,7 @@ end
 
 bp = mpbp(gl)
 
-
 X = draw_node_observations!(bp, N; rng)
-
 
 svd_trunc = TruncThresh(0.0)
 cb = CB_BP(bp; showprogress=false)
@@ -58,18 +57,10 @@ c_exact = exact_autocovariances(f, bp; r = r_exact)
 end
 
 # observe everything and check that the free energy corresponds to the posterior of sample `X`
-gl = Glauber(ising, T)
-
-for i in 1:N
-    r = 0.75
-    gl.ϕ[i][1] .*= [r, 1-r]
-end
-
-bp = mpbp(gl)
 
 draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
 reset_messages!(bp)
-iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
+iters, cb = iterate!(bp, maxiter=50; svd_trunc, showprogress=false)
 f_bethe = bethe_free_energy(bp)
 logl_bp = - f_bethe
 logp = logprob(bp, X)
