@@ -86,18 +86,19 @@ function onebpiter!(bp::MPBP, i::Integer, ::Type{U};
     eout = outedges(g, i)
     A = μ[ein.|>idx]
     @assert all(normalization(a) ≈ 1 for a in A)
-    logzᵢ = 0.0
+    sumlogzᵢ₂ⱼ = 0.0
     for (j_ind, e_out) in enumerate(eout)
         B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
+        sumlogzᵢ₂ⱼ += logzᵢ₂ⱼ
         C = mpem2(B)
         μj = sweep_RtoL!(C; svd_trunc, verbose=svd_verbose)
-        logzᵢ₂ⱼ += normalize!(μj)
-        logzᵢ += logzᵢ₂ⱼ
+        sumlogzᵢ₂ⱼ += normalize!(μj)
         μ[idx(e_out)] = μj
     end
     dᵢ = length(ein)
     bp.b[i] = onebpiter_dummy_neighbor(bp, i; svd_trunc) |> marginalize
-    bp.f[i] = -(1 / dᵢ) * logzᵢ
+    logzᵢ = log(normalization(bp.b[i]))
+    bp.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
     nothing
 end
 
