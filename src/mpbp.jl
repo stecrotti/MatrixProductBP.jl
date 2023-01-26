@@ -77,6 +77,15 @@ function reset_messages!(bp::MPBP)
     end
     nothing
 end
+function reset!(bp::MPBP)
+    reset_messages!(bp)
+    for b in bp.b
+        for bᵗ in b
+            bᵗ .= 1
+        end
+    end
+    nothing
+end
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP, i::Integer, ::Type{U}; 
@@ -130,7 +139,6 @@ struct CB_BP{TP<:ProgressUnknown, F}
         prog = ProgressUnknown(desc="Running MPBP: iter", dt=dt)
         TP = typeof(prog)
 
-        ## warning :: FIXME and also below
         m = [[expectation.(x->f(x,i), marginals(bp.b[i])) for i in eachindex(bp.b)]]
         Δs = zeros(0)
         new{TP,F}(prog, m, Δs, f)
@@ -151,7 +159,7 @@ end
 function iterate!(bp::MPBP; maxiter::Integer=5, 
         svd_trunc::SVDTrunc=TruncThresh(1e-6),
         showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
-        nodes = collect(vertices(bp.g)), shuffle::Bool=true,
+        nodes = collect(vertices(bp.g)), shuffle_nodes::Bool=true,
         svd_verbose::Bool=false)
     for it in 1:maxiter
         Threads.@threads for i in nodes
@@ -159,7 +167,7 @@ function iterate!(bp::MPBP; maxiter::Integer=5,
         end
         Δ = cb(bp, it)
         Δ < tol && return it, cb
-        shuffle && sample!(nodes, collect(vertices(bp.g)), replace=false)
+        shuffle_nodes && sample!(nodes, collect(vertices(bp.g)), replace=false)
     end
     return maxiter, cb
 end
