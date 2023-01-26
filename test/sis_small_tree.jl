@@ -6,10 +6,6 @@ import MatrixProductBP.Models: prob_xy, prob_yy, prob_y
 T = 3
 
 A = [0 1 1 1; 1 0 0 0; 1 0 0 0; 1 0 0 0]
-A = [0 1 0 0;
-    1 0 1 1;
-    0 1 0 0;
-    0 1 0 0]
 g = IndexedGraph(A)
 N = size(A, 1)
 
@@ -23,8 +19,7 @@ rng = MersenneTwister(111)
 X, _ = onesample(bp; rng)
 
 @testset "logprob" begin
-    @test logprob(bp, X) ≈ -7.99394504765169
-    # @test logprob(bp, X) ≈ -8.50477067141768 
+    @test logprob(bp, X) ≈ -8.50477067141768 
 end
 
 draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
@@ -108,7 +103,7 @@ end
 
 draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
 reset_messages!(bp)
-iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
+iterate!(bp, maxiter=50; svd_trunc, showprogress=false, tol=0)
 f_bethe = bethe_free_energy(bp)
 logl_bp = - f_bethe
 logp = logprob(bp, X)
