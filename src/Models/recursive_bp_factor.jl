@@ -125,7 +125,6 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
     bp.b[i] = B |> mpem2 |> marginalize
     logzᵢ += normalize!(bp.b[i])
-    fᵢ = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
-    bp.f[i] = fᵢ
+    bp.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
     nothing
 end
