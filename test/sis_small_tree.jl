@@ -81,6 +81,9 @@ end
     iterate!(bpfake, maxiter=10; svd_trunc, showprogress=false)
 
     @test beliefs(bpfake) ≈ beliefs(bp)
+    pb_fake,_ = pair_beliefs(bpfake)
+    pb, _ = pair_beliefs(bp)
+    @test pb_fake ≈ pb
 end
 
 @testset "RecursiveTraceFactor" begin
