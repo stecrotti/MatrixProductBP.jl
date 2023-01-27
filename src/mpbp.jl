@@ -77,14 +77,26 @@ function reset_messages!(bp::MPBP)
     end
     nothing
 end
-function reset!(bp::MPBP)
-    reset_messages!(bp)
+function reset_beliefs!(bp::MPBP)
     for b in bp.b
         for bᵗ in b
             bᵗ .= 1
         end
     end
     nothing
+end
+function reset_observations!(bp::MPBP)
+    for ϕ in bp.ϕ
+        for ϕᵗ in ϕ
+            ϕᵗ .= 1
+        end
+    end
+    nothing
+end
+function reset!(bp::MPBP; messages=false, beliefs=false, observations=false)
+    messages && reset_messages!(bp)
+    beliefs && reset_beliefs!(bp)
+    observations && reset_observations!(bp)
 end
 
 # compute outgoing messages from node `i`
