@@ -67,33 +67,24 @@ evaluate(A::MatrixProductTrain, X...) = only(prod(@view a[:, :, x...] for (a,x) 
 _reshape1(x) = reshape(x, size(x,1), size(x,2), prod(size(x)[3:end])...)
 _reshapeas(x,y) = reshape(x, size(x,1), size(x,2), size(y)[3:end]...)
 
-# print info about truncations
-function _debug_svd(t, M, U, λ, V, mprime)
-    @debug "svd" """t=$t M$(size(M))=U$(size(U))*Λ$((length(λ),length(λ)))*V$(size(V'))
-    Truncation to $mprime singular values.
-    Error=$(sum(abs2, λ[mprime+1:end]) / sum(abs2, λ) |> sqrt)"""
-end
+
 
 # when truncating it assumes that matrices are already left-orthogonal
 function sweep_RtoL!(C::MatrixProductTrain; svd_trunc::SVDTrunc=TruncThresh(1e-6))
     Cᵀ = _reshape1(C[end])
     q = size(Cᵀ, 3)
     @cast M[m, (n, x)] := Cᵀ[m, n, x]
-    Cᵗ⁻¹_trunc = fill(1.0,1,1,1)  # initialize
+    D = fill(1.0,1,1,1)  # initialize
 
     for t in getT(C)+1:-1:2
-        U, λ, V = svd(M)
-        mprime = svd_trunc(λ)
-        @assert mprime !== nothing "λ=$λ, M=$M"
-        _debug_svd(t, M, U, λ, V, mprime)
-        U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]
-        @cast Aᵗ[m, n, x] := V_trunc'[m, (n, x)] m in 1:mprime, x in 1:q
+        U, λ, V = svd_trunc(M)
+        @cast Aᵗ[m, n, x] := V'[m, (n, x)] x in 1:q
         C[t] = _reshapeas(Aᵗ, C[t])     
         Cᵗ⁻¹ = _reshape1(C[t-1])
-        @tullio Cᵗ⁻¹_trunc[m, n, x] := Cᵗ⁻¹[m, k, x] * U_trunc[k, n] * λ_trunc[n]
-        @cast M[m, (n, x)] := Cᵗ⁻¹_trunc[m, n, x]
+        @tullio D[m, n, x] := Cᵗ⁻¹[m, k, x] * U[k, n] * λ[n]
+        @cast M[m, (n, x)] := D[m, n, x]
     end
-    C[begin] = _reshapeas(Cᵗ⁻¹_trunc, C[begin])
+    C[begin] = _reshapeas(D, C[begin])
     return C
 end
 
@@ -103,21 +94,17 @@ function sweep_LtoR!(C::MatrixProductTrain; svd_trunc::SVDTrunc=TruncThresh(1e-6
     C⁰ = _reshape1(C[begin])
     q = size(C⁰, 3)
     @cast M[(m, x), n] |= C⁰[m, n, x]
-    Cᵗ⁺¹_trunc = fill(1.0,1,1,1)  # initialize
+    D = fill(1.0,1,1,1)  # initialize
 
     for t in 1:getT(C)
         U, λ, V = svd(M)
-        mprime = svd_trunc(λ)
-        @assert mprime !== nothing "λ=$λ, M=$M"
-        _debug_svd(t, M, U, λ, V, mprime)
-        U_trunc = U[:,1:mprime]; λ_trunc = λ[1:mprime]; V_trunc = V[:,1:mprime]  
-        @cast Aᵗ[m, n, x] := U_trunc[(m, x), n] n in 1:mprime, x in 1:q
+        @cast Aᵗ[m, n, x] := U[(m, x), n] x in 1:q
         C[t] = _reshapeas(Aᵗ, C[t])
         Cᵗ⁺¹ = _reshape1(C[t+1])
-        @tullio Cᵗ⁺¹_trunc[m, n, x] := λ_trunc[m] * V_trunc'[m, l] * Cᵗ⁺¹[l, n, x]
-        @cast M[(m, x), n] |= Cᵗ⁺¹_trunc[m, n, x]
+        @tullio D[m, n, x] := λ[m] * V'[m, l] * Cᵗ⁺¹[l, n, x]
+        @cast M[(m, x), n] |= D[m, n, x]
     end
-    C[end] = _reshapeas(Cᵗ⁺¹_trunc, C[end])
+    C[end] = _reshapeas(D, C[end])
     return C
 end
 
