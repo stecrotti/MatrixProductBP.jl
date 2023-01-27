@@ -73,12 +73,11 @@ function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
     end
     Aᵀ,Bᵀ = A[end], B[end]
     @tullio Bᵀ[m,n,xᵢᵀ,xⱼᵀ,xᵢᵀ⁺¹] = Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
-    any(any(isnan, b) for b in B) && println("NaN in tensor train")
+    any(any(isnan, b) for b in B) && @error "NaN in tensor train"
     return MPEM3(B)
 end
 
-function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout, T, svd_trunc;
-        svd_verbose::Bool=false) where {U<:RecursiveBPFactor}
+function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor}
     @assert all(normalization(a) ≈ 1 for a in μin)
     yrange = Base.OneTo(nstates(U, 1))
     B = map(eachindex(ψout)) do k
@@ -96,7 +95,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout,
         end |> MPEM2
         lz = normalize!(B)
         sweep_LtoR!(B, svd_trunc=TruncThresh(0.0))
-        sweep_RtoL!(B; svd_trunc, verbose=svd_verbose)
+        sweep_RtoL!(B; svd_trunc)
         B, lz + lz1 + lz2, d1 + d2
     end
 
@@ -110,7 +109,7 @@ end
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U}; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6), svd_verbose::Bool=false) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
     @unpack g, w, ϕ, ψ, μ = bp
     ein, eout = inedges(g,i), outedges(g, i)
     wᵢ, ϕᵢ, dᵢ  = w[i], ϕ[i], length(ein)
@@ -118,7 +117,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     C, full, logzᵢ, sumlogzᵢ₂ⱼ = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
-        μj = sweep_RtoL!(mpem2(B); svd_trunc, verbose=svd_verbose)
+        μj = sweep_RtoL!(mpem2(B); svd_trunc)
         sumlogzᵢ₂ⱼ += normalize!(μj)
         μ[idx(e)] = μj
     end

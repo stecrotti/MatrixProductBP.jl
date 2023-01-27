@@ -52,7 +52,7 @@ function f_bp(A::Vector{MPEM2{F}}, wᵢ::Vector{U},
             Bᵗ[:, :, xᵢᵗ, :, :] *= ϕᵢ[t][xᵢᵗ]
         end
         B[t] = Bᵗ
-        any(isnan, Bᵗ) && println("NaN in tensor at time $t")
+        any(isnan, Bᵗ) && @error "NaN in tensor at time $t"
         next!(prog, showvalues=[(:t, "$t/$T")])
     end
 
