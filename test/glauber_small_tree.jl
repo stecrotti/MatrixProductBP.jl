@@ -23,7 +23,7 @@ end
 
 bp = mpbp(gl)
 
-X = draw_node_observations!(bp, N; rng)
+X, observed = draw_node_observations!(bp, N; rng)
 
 svd_trunc = TruncThresh(0.0)
 cb = CB_BP(bp; showprogress=false)
@@ -57,7 +57,7 @@ end
 # observe everything and check that the free energy corresponds to the posterior of sample `X`
 
 draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
-reset!(bp)
+reset_messages!(bp)
 cb = CB_BP(bp; showprogress=false)
 iters, cb = iterate!(bp, maxiter=50; svd_trunc, showprogress=false, tol=0)
 f_bethe = bethe_free_energy(bp)
