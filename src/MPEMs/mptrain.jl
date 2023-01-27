@@ -97,7 +97,7 @@ function sweep_LtoR!(C::MatrixProductTrain; svd_trunc::SVDTrunc=TruncThresh(1e-6
     D = fill(1.0,1,1,1)  # initialize
 
     for t in 1:getT(C)
-        U, λ, V = svd(M)
+        U, λ, V = svd_trunc(M)
         @cast Aᵗ[m, n, x] := U[(m, x), n] x in 1:q
         C[t] = _reshapeas(Aᵗ, C[t])
         Cᵗ⁺¹ = _reshape1(C[t+1])
