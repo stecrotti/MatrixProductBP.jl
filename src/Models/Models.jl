@@ -40,10 +40,10 @@ include("glauber/glauber.jl")
 include("glauber/glauber_bp.jl")
 include("glauber/equilibrium.jl")
 
-include("sis/sis.jl")
-include("sis/sis_bp.jl")
-include("sis/sis_inference.jl")
-include("sis/sirs.jl")
-include("sis/sirs_bp.jl")
+include("epidemics/sis.jl")
+include("epidemics/sis_bp.jl")
+include("epidemics/sis_inference.jl")
+include("epidemics/sirs.jl")
+include("epidemics/sirs_bp.jl")
 
 end # end module
