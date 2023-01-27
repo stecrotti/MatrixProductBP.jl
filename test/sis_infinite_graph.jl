@@ -1,4 +1,4 @@
-using Test, MatrixProductBP
+
 
 T = 6         # final time
 k = 3          # degree
@@ -16,7 +16,7 @@ maxiter = 200
 tol = 1e-14
 iters = iterate!(bp; maxiter, svd_trunc, tol);
 
-@testset "Infinite graph" begin
+@testset "SIS infinite graph" begin
 
 @test beliefs(bp)[1] ≈ [
     [0.9000000001671186, 0.0999999998328814],
