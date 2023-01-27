@@ -42,7 +42,7 @@ include("glauber/equilibrium.jl")
 
 include("epidemics/sis.jl")
 include("epidemics/sis_bp.jl")
-include("epidemics/sis_inference.jl")
+include("epidemics/inference.jl")
 include("epidemics/sirs.jl")
 include("epidemics/sirs_bp.jl")
 
