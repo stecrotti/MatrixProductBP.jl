@@ -70,14 +70,14 @@ _reshapeas(x,y) = reshape(x, size(x,1), size(x,2), size(y)[3:end]...)
 
 
 # when truncating it assumes that matrices are already left-orthogonal
-function sweep_RtoL!(C::MatrixProductTrain; svd=TruncThresh(1e-6))
+function sweep_RtoL!(C::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
     Cᵀ = _reshape1(C[end])
     q = size(Cᵀ, 3)
     @cast M[m, (n, x)] := Cᵀ[m, n, x]
     D = fill(1.0,1,1,1)  # initialize
 
     for t in getT(C)+1:-1:2
-        U, λ, V = svd(M)
+        U, λ, V = svd_trunc(M)
         @cast Aᵗ[m, n, x] := V'[m, (n, x)] x in 1:q
         C[t] = _reshapeas(Aᵗ, C[t])     
         Cᵗ⁻¹ = _reshape1(C[t-1])
@@ -90,14 +90,14 @@ end
 
 
 # when truncating it assumes that matrices are already right-orthogonal
-function sweep_LtoR!(C::MatrixProductTrain; svd=TruncThresh(1e-6))
+function sweep_LtoR!(C::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
     C⁰ = _reshape1(C[begin])
     q = size(C⁰, 3)
     @cast M[(m, x), n] |= C⁰[m, n, x]
     D = fill(1.0,1,1,1)  # initialize
 
     for t in 1:getT(C)
-        U, λ, V = svd(M)
+        U, λ, V = svd_trunc(M)
         @cast Aᵗ[m, n, x] := U[(m, x), n] x in 1:q
         C[t] = _reshapeas(Aᵗ, C[t])
         Cᵗ⁺¹ = _reshape1(C[t+1])
