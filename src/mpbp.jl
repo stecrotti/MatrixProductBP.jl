@@ -93,7 +93,7 @@ function reset_observations!(bp::MPBP)
     end
     nothing
 end
-function reset!(bp::MPBP; messages=false, beliefs=false, observations=false)
+function reset!(bp::MPBP; messages=true, beliefs=true, observations=true)
     messages && reset_messages!(bp)
     beliefs && reset_beliefs!(bp)
     observations && reset_observations!(bp)
