@@ -6,9 +6,10 @@ abstract type SVDTrunc; end
 
 # print info about truncations
 function _debug_svd(M, U, λ, V, mprime)
-    @debug "svd" """M$(size(M))=U$(size(U))*Λ$((length(λ),length(λ)))*V$(size(V'))
+    msg = """M$(size(M))=U$(size(U))*Λ$((length(λ),length(λ)))*V$(size(V'))
     Truncation to $mprime singular values.
     Error=$(sum(abs2, λ[mprime+1:end]) / sum(abs2, λ) |> sqrt)"""
+    @debug "svd: "*msg
 end
 
 struct TruncThresh{T} <: SVDTrunc
