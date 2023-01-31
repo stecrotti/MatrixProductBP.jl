@@ -55,28 +55,12 @@ c_exact = exact_autocovariances(f, bp; r = r_exact)
     @test c_bp ≈ c_exact
 end
 
-struct FakeSIRS <: RecursiveBPFactor
-    w::SIRSFactor
-end
-
-prob_xy(w::FakeSIRS, x...) = prob_xy(w.w, x...)
-prob_yy(w::FakeSIRS, x...) = prob_yy(w.w, x...)
-prob_y(w::FakeSIRS, x...) = prob_y(w.w, x...)
-
-nstates(::Type{<:FakeSIRS}, l::Int) = nstates(SIRSFactor, l)
-
-struct SlowSIRS <: BPFactor
-    w::SIRSFactor
-end
-
-(w::SlowSIRS)(x...) = w.w(x...)
-
 
 @testset "FakeSIRS - RecursiveBPFactor generic methods" begin
     rng2 = MersenneTwister(111)
-    bpfake = MPBP(bp.g, [FakeSIRS.(w) for w in bp.w], bp.ϕ, bp.ψ, 
+    bpfake = MPBP(bp.g, [RecursiveTraceFactor.(w,3) for w in bp.w], bp.ϕ, bp.ψ, 
                     deepcopy(collect(bp.μ)), deepcopy(bp.b), collect(bp.f))
-    bpslow = MPBP(bp.g, [SlowSIRS.(w) for w in bp.w], bp.ϕ, bp.ψ, 
+    bpslow = MPBP(bp.g, [GenericFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
                     deepcopy(collect(bp.μ)), deepcopy(bp.b), collect(bp.f))
 
     for i=1:20
