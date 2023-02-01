@@ -1,8 +1,23 @@
 # Matrix [Bᵗᵢⱼ(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 5-array B[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹]
 # The last matrix should have the same values no matter what xᵢᵀ⁺¹ is
+struct MPEM3{F<:Real} <: MPEM
+    tensors::Vector{Array{F,5}}
+    function MPEM3(tensors::Vector{Array{F,5}}) where {F<:Real}
+        size(tensors[1],1) == size(tensors[end],2) == 1 ||
+            throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
+        check_bond_dims(tensors) ||
+            throw(ArgumentError("Matrix indices for matrix product non compatible"))
+        new{F}(tensors)
+    end
+end
 
-MPEM3(tensors::Vector{Array{Float64,5}}) = MatrixProductTrain(tensors)
+@forward MPEM3.tensors getindex, iterate, firstindex, lastindex, setindex!, 
+    check_bond_dims, length, eachindex
+    
+getT(B::MPEM3) = length(B.tensors) - 1
 
+# evaluate of MPEM3 is not simply evaluate(MatrixProductTrain{F,5}) because of how we
+# interpret the entries of the tensors
 function evaluate(B::MPEM3, x)
     length(x) == length(B) || throw(ArgumentError("`x` must be of length $(length(B)), got $(length(x))"))
     M = [1.0;;]
