@@ -59,3 +59,16 @@ end
     R = MatrixProductBP.MPEMs.accumulate_R(A)
     @test L[end] ≈ R[begin]
 end
+
+@testset "Sum of MPEMs" begin
+    for N in 1:3
+        for q in 1:3
+            qs = fill(q, N)
+            T = 5
+            A = MatrixProductBP.MPEMs.rand_mpem( [1; rand(1:7, T-2); 1], qs... )
+            B = MatrixProductBP.MPEMs.rand_mpem( [1; rand(1:7, T-2); 1], qs... )
+            x = [rand(1:q[1],N) for t in 0:T]
+            @test evaluate(A, x) + evaluate(B, x) ≈ evaluate(A+B, x)
+        end
+    end
+end
