@@ -42,13 +42,11 @@ function normalize_eachmatrix!(A::MatrixProductTrain)
     c
 end
 
--(A::T, B::T) where {T<:MatrixProductTrain} = MPEM([AA .- BB for (AA,BB) in zip(A.tensors,B.tensors)])
-
 isapprox(A::T, B::T; kw...) where {T<:MatrixProductTrain} = isapprox(A.tensors, B.tensors; kw...)
 
 const MPEM1{F} = MatrixProductTrain{F, 3}
 const MPEM2{F} = MatrixProductTrain{F, 4}
-const MPEM3{F} = MatrixProductTrain{F, 5}
+# const MPEM3{F} = MatrixProductTrain{F, 5}
 
 "Construct a uniform mpem with given bond dimensions"
 mpem(bondsizes, q...) = MatrixProductTrain([ones(bondsizes[t], bondsizes[t+1], q...) for t in 1:length(bondsizes)-1])
@@ -180,4 +178,27 @@ function normalize!(A::MatrixProductTrain)
         a ./= Z^(1/(T+1))
     end
     c + log(Z)
+end
+
+# return a new MPTrain such that `A(x)+B(x)=(A+B)(x)`. Matrix sizes are doubled
+function +(A::MatrixProductTrain{F,NA}, B::MatrixProductTrain{F,NB}) where {F,NA,NB}
+    @assert NA == NB
+    @assert length(A) == length(B)
+    tensors = map(zip(eachindex(A),A,B)) do (t,Aᵗ,Bᵗ)
+        sa = size(Aᵗ); sb = size(Bᵗ)
+        if t == 1
+            Cᵗ = [ hcat(Aᵗ[:,:,x...], Bᵗ[:,:,x...]) 
+                for x in Iterators.product(axes(Aᵗ)[3:end]...)]
+            reshape( reduce(hcat, Cᵗ), 1, sa[2]+sb[2], size(Aᵗ)[3:end]...)
+        elseif t == lastindex(A)
+            Cᵗ = [ vcat(Aᵗ[:,:,x...], Bᵗ[:,:,x...]) 
+                for x in Iterators.product(axes(Aᵗ)[3:end]...)]
+            reshape( reduce(hcat, Cᵗ), sa[1]+sb[1], 1, size(Aᵗ)[3:end]...)
+        else
+            Cᵗ = [ [Aᵗ[:,:,x...] zeros(sa[1],sb[2]); zeros(sb[1],sa[2]) Bᵗ[:,:,x...]] 
+                for x in Iterators.product(axes(Aᵗ)[3:end]...)]
+            reshape( reduce(hcat, Cᵗ), (sa .+ sb)[1:2]..., size(Aᵗ)[3:end]...)
+        end
+    end
+    MatrixProductTrain(tensors)
 end
