@@ -55,7 +55,7 @@ c_exact = exact_autocovariances(f, bp; r = r_exact)
 end
 
 # observe everything and check that the free energy corresponds to the posterior of sample `X`
-
+reset!(bp)
 draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
 reset_messages!(bp)
 cb = CB_BP(bp; showprogress=false)

@@ -10,5 +10,6 @@ include("glauber_pmJ_small_tree.jl")
 include("sis_small_tree.jl")
 include("sirs_small_tree.jl")
 include("sis_infinite_graph.jl")
+include("sampling.jl")
 
 nothing
