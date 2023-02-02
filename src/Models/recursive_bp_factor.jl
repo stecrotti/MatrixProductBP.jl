@@ -94,7 +94,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout,
             @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
         end |> MPEM2
         lz = normalize!(B)
-        compress!(B, svd_trunc)
+        compress!(B; svd_trunc)
         B, lz + lz1 + lz2, d1 + d2
     end
 
