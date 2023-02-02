@@ -1,8 +1,6 @@
 module Models
 
-
-
-import MatrixProductBP: exact_prob, getT, nstates, mpbp, 
+import MatrixProductBP: exact_prob, getT, nstates, mpbp, compress!,
     kron2, f_bp, f_bp_dummy_neighbor, onebpiter_dummy_neighbor,
     beliefs, beliefs_tu, marginals, 
     marginalize, cavity, onebpiter!, check_ψs
