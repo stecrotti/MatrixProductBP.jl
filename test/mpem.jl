@@ -1,6 +1,26 @@
 import MatrixProductBP: sweep_RtoL!, sweep_LtoR!
+import MatrixProductBP.MPEMs.MPEM1
 
 svd_trunc = TruncThresh(0.0)
+
+@testset "MPEM1" begin
+    tensors = [rand(1,3,2), rand(3,4,2), rand(4,10,2), rand(10,1,2)]
+    C = MPEM1(tensors)
+    T = getT(C)
+    x = [rand(1:2,1) for t in 1:T+1]
+    e1 = evaluate(C, x)
+
+    sweep_RtoL!(C; svd_trunc)
+    e2 = evaluate(C, x)
+    @test e2 ≈ e1
+
+    sweep_LtoR!(C; svd_trunc)
+    e3 = evaluate(C, x)
+    @test e3 ≈ e1
+
+    e4 = evaluate(C, only.(x))
+    @test e4 ≈ e1
+end
 
 @testset "MPEM2" begin
     tensors = [rand(1,3,2,2), rand(3,4,2,2), rand(4,10,2,2), rand(10,1,2,2)]

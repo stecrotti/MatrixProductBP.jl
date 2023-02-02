@@ -24,7 +24,7 @@ end
 
 draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
-svd_trunc = TruncBond(4)
+svd_trunc = TruncBondMax(4)
 iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
 
 b_bp = beliefs(bp)
