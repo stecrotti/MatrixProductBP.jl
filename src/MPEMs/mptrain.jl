@@ -86,7 +86,6 @@ function sweep_RtoL!(C::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
     return C
 end
 
-
 # when truncating it assumes that matrices are already right-orthogonal
 function sweep_LtoR!(C::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
     C⁰ = _reshape1(C[begin])
@@ -104,6 +103,11 @@ function sweep_LtoR!(C::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
     end
     C[end] = _reshapeas(D, C[end])
     return C
+end
+
+function compress!(A::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
+    sweep_LtoR!(A, svd_trunc=TruncThresh(0.0))
+    sweep_RtoL!(A; svd_trunc)
 end
 
 function accumulate_L(A::MatrixProductTrain)
@@ -181,13 +185,16 @@ function normalize!(A::MatrixProductTrain)
 end
 
 # return a new MPTrain such that `A(x)+B(x)=(A+B)(x)`. Matrix sizes are doubled
-function +(A::MatrixProductTrain{F,NA}, B::MatrixProductTrain{F,NB}) where {F,NA,NB}
++(A::MatrixProductTrain, B::MatrixProductTrain) = _compose(+, A, B)
+-(A::MatrixProductTrain, B::MatrixProductTrain) = _compose(-, A, B)
+
+function _compose(f, A::MatrixProductTrain{F,NA}, B::MatrixProductTrain{F,NB}) where {F,NA,NB}
     @assert NA == NB
     @assert length(A) == length(B)
     tensors = map(zip(eachindex(A),A,B)) do (t,Aᵗ,Bᵗ)
         sa = size(Aᵗ); sb = size(Bᵗ)
         if t == 1
-            Cᵗ = [ hcat(Aᵗ[:,:,x...], Bᵗ[:,:,x...]) 
+            Cᵗ = [ hcat(Aᵗ[:,:,x...], f(Bᵗ[:,:,x...])) 
                 for x in Iterators.product(axes(Aᵗ)[3:end]...)]
             reshape( reduce(hcat, Cᵗ), 1, sa[2]+sb[2], size(Aᵗ)[3:end]...)
         elseif t == lastindex(A)
