@@ -56,7 +56,7 @@ function (svd_trunc::TruncBondMax)(M::AbstractMatrix)
     U[:,1:mprime], λ[1:mprime], V[:,1:mprime]
 end
 
-function summary(io::IO, svd_trunc::TruncBondMax)
+function summary(svd_trunc::TruncBondMax)
     "SVD truncation to bond size m'="*string(svd_trunc.mprime)*
         ". Max error "*string(only(svd_trunc.maxerr))
 end

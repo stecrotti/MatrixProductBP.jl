@@ -12,6 +12,7 @@ wᵢ = fill(Models.SISFactor(λ, ρ), floor(Int, T/ΔT) + 1)
 bp = mpbp_infinite_graph(k, wᵢ, 2, ϕᵢ)
 
 svd_trunc = TruncBond(10)
+@show svd_trunc
 maxiter = 200
 tol = 1e-14
 iters = iterate!(bp; maxiter, svd_trunc, tol);

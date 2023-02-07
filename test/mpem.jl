@@ -2,6 +2,7 @@ import MatrixProductBP: sweep_RtoL!, sweep_LtoR!
 import MatrixProductBP.MPEMs.MPEM1
 
 svd_trunc = TruncThresh(0.0)
+@show svd_trunc
 
 @testset "MPEM1" begin
     tensors = [rand(1,3,2), rand(3,4,2), rand(4,10,2), rand(10,1,2)]
