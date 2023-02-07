@@ -157,13 +157,13 @@ struct CB_BP{TP<:ProgressUnknown, F}
     end
 end
 
-function (cb::CB_BP)(bp::MPBP, it::Integer)
+function (cb::CB_BP)(bp::MPBP, it::Integer, svd_trunc::SVDTrunc)
     marg_new = [expectation.(x->cb.f(x,i), marginals(bp.b[i])) for i in eachindex(bp.b)]
     marg_old = cb.m[end]
     Δ = isempty(marg_new) ? NaN : mean(mean(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
     push!(cb.Δs, Δ)
     push!(cb.m, marg_new)
-    next!(cb.prog, showvalues=[(:Δ,Δ)])
+    next!(cb.prog, showvalues=[(:Δ,Δ), summary_compact(svd_trunc)])
     flush(stdout)
     return Δ
 end
@@ -176,7 +176,7 @@ function iterate!(bp::MPBP; maxiter::Integer=5,
         Threads.@threads for i in nodes
             onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc)
         end
-        Δ = cb(bp, it)
+        Δ = cb(bp, it, svd_trunc)
         Δ < tol && return it, cb
         shuffle_nodes && sample!(nodes, collect(vertices(bp.g)), replace=false)
     end
