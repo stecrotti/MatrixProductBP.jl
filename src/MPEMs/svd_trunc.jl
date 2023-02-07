@@ -12,6 +12,9 @@ function _debug_svd(M, U, λ, V, mprime)
     @debug "svd: "*msg
 end
 
+summary(::SVDTrunc) = error("Not implemented")
+show(io::IO, svd_trunc::SVDTrunc) = println(io, summary(svd_trunc))
+
 struct TruncThresh{T} <: SVDTrunc
     ε :: T
 end
@@ -23,9 +26,7 @@ function (svd_trunc::TruncThresh)(M::AbstractMatrix)
     U[:,1:mprime], λ[1:mprime], V[:,1:mprime]
 end
 
-function show(io::IO, svd_trunc::TruncThresh)
-    println(io, "SVD truncation with threshold ε=", svd_trunc.ε)
-end
+summary(svd_trunc::TruncThresh) = "SVD truncation with threshold ε="*string(svd_trunc.ε)
 
 struct TruncBond <: SVDTrunc
     mprime :: Int
@@ -37,9 +38,7 @@ function (svd_trunc::TruncBond)(M::AbstractMatrix)
     U[:,1:mprime], λ[1:mprime], V[:,1:mprime]
 end
 
-function show(io::IO, svd_trunc::TruncBond)
-    println(io, "SVD truncation to bond size m'=", svd_trunc.mprime)
-end
+summary(svd_trunc::TruncBond) = "SVD truncation to bond size m'="*string(svd_trunc.mprime)
 
 # truncates matrices to size `mprime`, stores the maximum error
 struct TruncBondMax <: SVDTrunc
@@ -57,7 +56,17 @@ function (svd_trunc::TruncBondMax)(M::AbstractMatrix)
     U[:,1:mprime], λ[1:mprime], V[:,1:mprime]
 end
 
-function Base.show(io::IO, svd_trunc::TruncBondMax)
-    println(io, "SVD truncation to bond size m'=", svd_trunc.mprime,
-        ". Max error ", only(svd_trunc.maxerr))
+function summary(io::IO, svd_trunc::TruncBondMax)
+    "SVD truncation to bond size m'="*string(svd_trunc.mprime)*
+        ". Max error "*string(only(svd_trunc.maxerr))
+end
+
+summary_compact(svd_trunc::SVDTrunc) = summary(svd_trunc)
+
+function summary_compact(svd_trunc::Union{TruncBond,TruncBondMax}) 
+    ("SVD Matrix size", string(svd_trunc.mprime))
+end
+
+function summary_compact(svd_trunc::TruncThresh) 
+    ("SVD tolerance", string(svd_trunc.ε))
 end
