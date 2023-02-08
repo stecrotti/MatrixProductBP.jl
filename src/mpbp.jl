@@ -146,9 +146,10 @@ struct CB_BP{TP<:ProgressUnknown, F}
     Δs   :: Vector{Float64}
     f    :: F
 
-    function CB_BP(bp::MPBP; showprogress::Bool=true, f::F=(x,i)->x) where F
+    function CB_BP(bp::MPBP; showprogress::Bool=true, f::F=(x,i)->x, info="") where F
         dt = showprogress ? 0.1 : Inf
-        prog = ProgressUnknown(desc="Running MPBP: iter", dt=dt)
+        isempty(info) || (info *= "\n")
+        prog = ProgressUnknown(desc=info*"Running MPBP: iter", dt=dt)
         TP = typeof(prog)
 
         m = [[expectation.(x->f(x,i), marginals(bp.b[i])) for i in eachindex(bp.b)]]
