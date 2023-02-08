@@ -26,7 +26,7 @@ bp = mpbp(gl)
 X, observed = draw_node_observations!(bp, N; rng)
 
 svd_trunc = TruncThresh(0.0)
-cb = CB_BP(bp; showprogress=false)
+cb = CB_BP(bp; showprogress=false, info="Glauber")
 iterate!(bp; maxiter=20, svd_trunc, cb)
 
 b_bp = beliefs(bp)
