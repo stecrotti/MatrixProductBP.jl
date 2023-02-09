@@ -32,3 +32,6 @@ Manifest.toml
 
 # Log file for SVD truncations
 notebooks/svd_log.txt
+
+# PDF files, should be plots
+*.pdf
