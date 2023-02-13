@@ -17,7 +17,7 @@ import Statistics: mean, std
 import Measurements: Measurement, ±
 import Tullio: @tullio
 import Unzip: unzip
-import Distributions: rand, Poisson, truncated
+import Distributions: rand, Poisson, Distribution, Dirac, MixtureModel
 
 export 
     RecursiveBPFactor, beliefs, beliefs_tu,

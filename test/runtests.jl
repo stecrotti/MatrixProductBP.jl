@@ -1,6 +1,6 @@
 using Test, MatrixProductBP
 using MatrixProductBP.Models
-using Graphs, IndexedGraphs, Random
+using Graphs, IndexedGraphs, Random, Distributions
 
 include("mpem.jl")
 include("normalizations.jl")
