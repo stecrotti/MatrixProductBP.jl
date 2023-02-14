@@ -108,7 +108,7 @@ end
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U}; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp::Real=0.0) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
     @unpack g, w, ϕ, ψ, μ = bp
     ein, eout = inedges(g,i), outedges(g, i)
     wᵢ, ϕᵢ, dᵢ  = w[i], ϕ[i], length(ein)
@@ -117,12 +117,24 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
         μj = sweep_RtoL!(mpem2(B); svd_trunc)
-        sumlogzᵢ₂ⱼ += normalize!(μj)
-        μ[idx(e)] = μj
+        sumlogzᵢ₂ⱼ += set_msg!(bp, μj, idx(e), damp, svd_trunc)
     end
     B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
     bp.b[i] = B |> mpem2 |> marginalize
     logzᵢ += normalize!(bp.b[i])
     bp.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
     nothing
+end
+
+function set_msg!(bp::MPBP, μj, edge_id, damp, svd_trunc)
+    @assert 0 ≤ damp < 1
+    μ_old = bp.μ[edge_id]
+    logzᵢ₂ⱼ = normalize!(μj)
+    if damp > 0 
+        μj = MatrixProductBP.MPEMs._compose(x->x*damp/(1-damp), μj, μ_old)
+        compress!(μj; svd_trunc)
+        normalize!(μj)
+    end
+    bp.μ[edge_id] = μj
+    logzᵢ₂ⱼ
 end

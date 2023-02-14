@@ -93,7 +93,7 @@ function reset_observations!(bp::MPBP)
     end
     nothing
 end
-function reset!(bp::MPBP; messages=true, beliefs=true, observations=true)
+function reset!(bp::MPBP; messages=true, beliefs=true, observations=false)
     messages && reset_messages!(bp)
     beliefs && reset_beliefs!(bp)
     observations && reset_observations!(bp)
@@ -101,7 +101,7 @@ end
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP, i::Integer, ::Type{U}; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6)) where {U<:BPFactor}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp=0.0) where {U<:BPFactor}
     @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
@@ -124,7 +124,7 @@ function onebpiter!(bp::MPBP, i::Integer, ::Type{U};
 end
 
 function onebpiter!(bp::MPBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
-    onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc)
+    onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc, damp=0.0)
 end
 
 
@@ -172,10 +172,10 @@ end
 function iterate!(bp::MPBP; maxiter::Integer=5, 
         svd_trunc::SVDTrunc=TruncThresh(1e-6),
         showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
-        nodes = collect(vertices(bp.g)), shuffle_nodes::Bool=true)
+        nodes = collect(vertices(bp.g)), shuffle_nodes::Bool=true, damp=0.0)
     for it in 1:maxiter
         Threads.@threads for i in nodes
-            onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc)
+            onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc, damp)
         end
         Δ = cb(bp, it, svd_trunc)
         Δ < tol && return it, cb

@@ -11,20 +11,21 @@ import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, AbstractIndexedDiGraph, ne
 import UnPack: @unpack
 import SparseArrays: nonzeros, nzrange, rowvals
 import TensorCast: @reduce, @cast, TensorCast 
-import ProgressMeter: Progress, next!
+import ProgressMeter: Progress, next!, ProgressUnknown
 import LogExpFunctions: xlogx, xlogy
 import Statistics: mean, std
 import Measurements: Measurement, ±
 import Tullio: @tullio
 import Unzip: unzip
 import Distributions: rand, Poisson, Distribution, Dirac, MixtureModel
+import Random: GLOBAL_RNG, shuffle!
 
 export 
     RecursiveBPFactor, beliefs, beliefs_tu,
     mpbp_infinite_graph,
     Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
-    equilibrium_magnetization, RandomRegular, ErdosRenyi,
+    equilibrium_magnetization, RandomRegular, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
     kl_marginals, l1_marginals, roc, auc,
     RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor
