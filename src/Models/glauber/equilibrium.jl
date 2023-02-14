@@ -110,7 +110,6 @@ function equilibrium_magnetization(pkm1::Distribution, pk::Distribution;
         Js = rand(rng, pJ, k); h = rand(ph)
         u = f(P[idx_in], Js, β, h)
         m[s] = tanh(β*u)
-        us[s] = u
     end
 
     m_avg = abs(mean(m))
