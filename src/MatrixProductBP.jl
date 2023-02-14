@@ -3,6 +3,7 @@ module MatrixProductBP
 import InvertedIndices: Not
 import ProgressMeter: Progress, ProgressUnknown, next!
 import TensorCast: @reduce, @cast, TensorCast 
+import LoopVectorization
 import Tullio: @tullio
 import IndexedGraphs: nv, ne, edges, vertices, AbstractIndexedDiGraph, IndexedGraph,
     IndexedBiDiGraph, inedges, outedges, src, dst, idx, neighbors

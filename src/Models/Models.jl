@@ -15,6 +15,7 @@ import ProgressMeter: Progress, next!
 import LogExpFunctions: xlogx, xlogy
 import Statistics: mean, std
 import Measurements: Measurement, ±
+import LoopVectorization
 import Tullio: @tullio
 import Unzip: unzip
 import Distributions: rand, Poisson, truncated
