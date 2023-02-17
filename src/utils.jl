@@ -21,17 +21,17 @@ end
 # SAMPLING
 # sample an index `i` of `w` with probability prop to `w[i]`
 # copied from StatsBase but avoids creating a `Weight` object
-function sample_noalloc(rng::AbstractRNG, w::AbstractVector) 
-    t = rand(rng) * sum(w)
-    n = length(w)
-    i = 1
-    cw = w[1]
-    while cw < t && i < n
+function sample_noalloc(rng::AbstractRNG, w) 
+    t = rand(rng)# * sum(w)
+    i = 0
+    cw = 0.0
+    for p in w
+        cw += p
         i += 1
-        @inbounds cw += w[i]
+        cw > t && return i
     end
-    return i
+    @assert false
 end
-sample_noalloc(w::AbstractVector) = sample_noalloc(GLOBAL_RNG, w)
+sample_noalloc(w) = sample_noalloc(GLOBAL_RNG, w)
 
 
