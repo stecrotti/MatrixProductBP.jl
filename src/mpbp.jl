@@ -97,6 +97,7 @@ function reset!(bp::MPBP; messages=true, beliefs=true, observations=false)
     messages && reset_messages!(bp)
     beliefs && reset_beliefs!(bp)
     observations && reset_observations!(bp)
+    nothing
 end
 
 # compute outgoing messages from node `i`
