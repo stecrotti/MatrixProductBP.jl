@@ -25,6 +25,7 @@ end
 
 # a sample with its weight
 function onesample!(x::Matrix{Int}, bp::MPBP{G,F};
+        p⁰ = [ϕᵢ[1] ./ sum(ϕᵢ[1]) for ϕᵢ in bp.ϕ],
         rng = GLOBAL_RNG) where {G,F}
     @unpack g, w, ϕ, ψ, μ = bp
     N = nv(bp.g); T = getT(bp);
@@ -32,16 +33,15 @@ function onesample!(x::Matrix{Int}, bp::MPBP{G,F};
     logl = 0.0
 
     for i in 1:N
-        xᵢ⁰ = sample_noalloc(rng, ϕ[i][1])
+        xᵢ⁰ = sample_noalloc(rng, p⁰[i])
         x[i, 1] = xᵢ⁰
-        logl += log( ϕ[i][1][xᵢ⁰] )
     end
 
     for t in 1:T
         for i in 1:N
             ∂i = neighbors(bp.g, i)
             q = nstates(bp, i)
-            @views p = [w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q]
+            p = (w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q)
             xᵢᵗ = sample_noalloc(rng, p)
             x[i, t+1] = xᵢᵗ
             logl += log( ϕ[i][t+1][xᵢᵗ] )
@@ -67,9 +67,10 @@ function sample!(sms::SoftMarginSampler, nsamples::Integer;
     prog = Progress(nsamples, desc="SoftMargin sampling"; dt)
     T = getT(sms.bp); N = getN(sms.bp)
     X = [zeros(Int, N, T+1) for _ in 1:nsamples]
+    p⁰ = [ϕᵢ[1] ./ sum(ϕᵢ[1]) for ϕᵢ in sms.bp.ϕ]
     w = zeros(nsamples)
     for n in 1:nsamples
-        _, w[n] = onesample!(X[n], sms.bp)
+        _, w[n] = onesample!(X[n], sms.bp; p⁰)
         next!(prog)
     end 
     append!(sms.X, X)
