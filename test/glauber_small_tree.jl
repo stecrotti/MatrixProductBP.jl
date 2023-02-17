@@ -26,6 +26,7 @@ bp = mpbp(gl)
 X, observed = draw_node_observations!(bp, N; rng)
 
 svd_trunc = TruncThresh(0.0)
+svd_trunc = TruncThreshBond(0.0, 10)
 cb = CB_BP(bp; showprogress=false, info="Glauber")
 iterate!(bp; maxiter=20, svd_trunc, cb)
 
