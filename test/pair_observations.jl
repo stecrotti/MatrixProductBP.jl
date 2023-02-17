@@ -28,8 +28,8 @@ for i in 1:N
 end
 
 bp = mpbp(gl)
-
-draw_node_observations!(bp, N)
+rng = MersenneTwister(111)
+draw_node_observations!(bp, N; rng)
 
 cb = CB_BP(bp; showprogress=false)
 svd_trunc = TruncThresh(0.0)
@@ -85,7 +85,7 @@ end
 
 bp = mpbp(gl)
 
-draw_node_observations!(bp, N)
+draw_node_observations!(bp, N; rng)
 
 cb = CB_BP(bp; showprogress=false)
 svd_trunc = TruncThresh(0.0)
