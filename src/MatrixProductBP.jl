@@ -37,7 +37,7 @@ include("utils.jl")
 include("atomic_vector.jl")
 include("MPEMs/MPEMs.jl")
 using .MPEMs, Reexport
-@reexport import .MPEMs: SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncThreshBond, 
+@reexport import .MPEMs: SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh, 
     summary_compact, normalize_eachmatrix!, -, isapprox, evaluate, getT, bond_dims,
     MPEM, MPEM2, MPEM3, MatrixProductTrain, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!,
     compress!, accumulate_L, accumulate_R, accumulate_M, pair_marginal, firstvar_marginal,

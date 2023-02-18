@@ -11,7 +11,7 @@ import Tullio: @tullio
 import Random: AbstractRNG, GLOBAL_RNG
 
 export 
-    SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncThreshBond, summary_compact,
+    SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh, summary_compact,
     MPEM, normalize_eachmatrix!, +, -, isapprox, evaluate, getT, bond_dims,
     MPEM2, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!, compress!,
     MPEM1, mpem1, marginalize, marginals,

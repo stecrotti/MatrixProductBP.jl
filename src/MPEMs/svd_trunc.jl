@@ -71,11 +71,12 @@ function summary_compact(svd_trunc::TruncThresh)
     ("SVD tolerance", string(svd_trunc.ε))
 end
 
-struct TruncThreshBond{T} <: SVDTrunc
-    ε :: T
+struct TruncBondThresh{T} <: SVDTrunc
     mprime :: Int
+    ε :: T
+    TruncBondThresh(mprime::Int; ε::T=0.0) where T = new{T}(mprime, ε)
 end
-function (svd_trunc::TruncThreshBond)(M::AbstractMatrix)
+function (svd_trunc::TruncBondThresh)(M::AbstractMatrix)
     U, λ, V = svd(M)
     λ_norm = norm(λ)
     mprime = min(
@@ -87,9 +88,9 @@ function (svd_trunc::TruncThreshBond)(M::AbstractMatrix)
     U[:,1:mprime], λ[1:mprime], V[:,1:mprime]
 end
 
-summary(svd_trunc::TruncThreshBond) = "SVD truncation with truncation to bond size given by the minimum of threshold ε="*string(svd_trunc.ε)*
+summary(svd_trunc::TruncBondThresh) = "SVD truncation with truncation to bond size given by the minimum of threshold ε="*string(svd_trunc.ε)*
     " and m'="*string(svd_trunc.mprime)
 
-function summary_compact(svd_trunc::TruncThreshBond) 
+function summary_compact(svd_trunc::TruncBondThresh) 
     ("SVD tolerance, m'", string(svd_trunc.ε)*", "*string(svd_trunc.mprime))
 end
