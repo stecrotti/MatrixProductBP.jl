@@ -31,6 +31,7 @@ export
     exact_prob, exact_marginals, site_marginals, exact_autocorrelations,
     exact_autocovariances, exact_marginal_expectations, 
     SoftMarginSampler, onesample!, onesample, sample!, sample, marginals, 
+    continuous_sis_sampler, simulate_queue_sis!,
     draw_node_observations!, AtomicVector
 
 
