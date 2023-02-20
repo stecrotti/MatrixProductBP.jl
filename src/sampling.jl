@@ -1,3 +1,6 @@
+import ProgressMeter: @showprogress
+import CavityTools: ExponentialQueue
+
 # as in https://doi.org/10.1103/PhysRevLett.114.248701
 # draw samples from the prior and weight them with their likelihood
 struct SoftMarginSampler{B<:MPBP, F<:AbstractFloat}
@@ -161,4 +164,81 @@ function draw_node_observations!(bp::MPBP, nobs::Integer; rng=GLOBAL_RNG, kw...)
     X, _ = onesample(bp; rng)
     _, observed = draw_node_observations!(bp.ϕ, X, nobs; rng, kw...)
     X, observed
+end
+
+
+# A continous-time sampler for SIS
+# g = contact network
+# λ = rate of infection
+# μ = rate of recovery
+# T = final time
+function simulate_queue_sis!(x, g, P0, λ, μ, T;
+    stats = (t, i, x) -> println("$t $i $(x[i])"),
+    Q = ExponentialQueue(length(x)))
+    t = 0.0
+    @assert eachindex(x) == vertices(g)
+    fill!(x, false)
+    empty!(Q)
+    for (i,p) in pairs(P0)
+        if rand() < p
+            Q[i] = Inf
+        end
+    end
+    while !isempty(Q)
+        i, Δt = pop!(Q)
+        t += Δt
+        t > T && break
+        x[i] ⊻= true
+        stats(t, i, x)
+        if x[i] == 1
+            for j in neighbors(g, i)
+                if x[j] == 0
+                    Q[j] = haskey(Q, j) ? Q[j] + λ : λ
+                end
+            end
+            Q[i] = μ
+        else
+            s = 0.0
+            for j in neighbors(g, i)
+                if x[j] == 0
+                    Q[j] -= λ
+                else
+                    s += λ
+                end
+            end
+            Q[i] = s
+        end
+    end
+    x
+end
+
+
+function continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^5, sites=1:nv(sis.g), Δt=T/200)
+    K = floor(Int, T/Δt)+1
+    av, va, ni = zeros(K), zeros(K), zeros(Int, K)
+    function stats(t, i, x)
+        if i ∈ sites
+            k = floor(Int, t/Δt) + 1
+            ni[k] += 2x[i]-1
+        end
+    end
+
+    N = nv(sis.g)
+    P0 = [p[1][2] for p in sis.ϕ]
+    x = falses(N);
+    Q = ExponentialQueue(N)
+    @showprogress for _ = 1:nsamples
+        fill!(ni, 0)
+        simulate_queue_sis!(x, sis.g, P0, λ, ρ, T; stats, Q)
+        s = 0
+        for (k,v) in pairs(ni)
+            s += v
+            av[k] += s
+            va[k] += s^2
+        end
+    end
+    av ./= nsamples * length(sites)
+    va ./= nsamples * length(sites)^2
+    va .-= av .^ 2
+    (;mean=av, std=sqrt.(va))
 end
