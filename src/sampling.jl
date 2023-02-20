@@ -41,7 +41,7 @@ function onesample!(x::Matrix{Int}, bp::MPBP{G,F};
         for i in 1:N
             ∂i = neighbors(bp.g, i)
             q = nstates(bp, i)
-            p = (w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q)
+            p = @views (w[i][t](xx, x[∂i, t], x[i, t]) for xx in 1:q)
             xᵢᵗ = sample_noalloc(rng, p)
             x[i, t+1] = xᵢᵗ
             logl += log( ϕ[i][t+1][xᵢᵗ] )
