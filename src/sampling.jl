@@ -64,7 +64,7 @@ function onesample(bp::MPBP; kw...)
 end
 
 function sample!(sms::SoftMarginSampler, nsamples::Integer;
-        showprogress::Bool=true)
+        showprogress::Bool=true, rng = GLOBAL_RNG)
 
     dt = showprogress ? 0.1 : Inf
     prog = Progress(nsamples, desc="SoftMargin sampling"; dt)
@@ -73,7 +73,7 @@ function sample!(sms::SoftMarginSampler, nsamples::Integer;
     p⁰ = [ϕᵢ[1] ./ sum(ϕᵢ[1]) for ϕᵢ in sms.bp.ϕ]
     w = zeros(nsamples)
     for n in 1:nsamples
-        _, w[n] = onesample!(X[n], sms.bp; p⁰)
+        _, w[n] = onesample!(X[n], sms.bp; p⁰, rng)
         next!(prog)
     end 
     append!(sms.X, X)
@@ -82,9 +82,9 @@ function sample!(sms::SoftMarginSampler, nsamples::Integer;
     sms
 end
 
-function sample(bp::MPBP, nsamples::Integer; showprogress::Bool=true)
+function sample(bp::MPBP, nsamples::Integer; kw...)
     sms = SoftMarginSampler(bp)
-    sample!(sms, nsamples; showprogress)
+    sample!(sms, nsamples; kw...)
 end
 
 # return a (T+1) by N matrix, with uncertainty estimates
