@@ -40,7 +40,7 @@ function marginals(A::MPEM1)
 end
 
 
-function marginals_tu(A::MPEM1; showprogress::Bool=true)
+function marginals_tu(A::MPEM1)
     l = accumulate_L(A); r = accumulate_R(A); m = accumulate_M(A)
     q = size(A[1], 3)
     T = getT(A)
