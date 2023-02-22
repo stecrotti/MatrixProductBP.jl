@@ -74,7 +74,7 @@ end
 struct TruncBondThresh{T} <: SVDTrunc
     mprime :: Int
     ε :: T
-    TruncBondThresh(mprime::Int; ε::T=0.0) where T = new{T}(mprime, ε)
+    TruncBondThresh(mprime::Int, ε::T=0.0) where T = new{T}(mprime, ε)
 end
 function (svd_trunc::TruncBondThresh)(M::AbstractMatrix)
     U, λ, V = svd(M)
