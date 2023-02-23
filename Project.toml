@@ -25,7 +25,7 @@ UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 Unzip = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 
 [compat]
-CavityTools = "0.1, 0.2"
+CavityTools = "0.2"
 Distributions = "0"
 IndexedGraphs = "0.3"
 InvertedIndices = "1"
