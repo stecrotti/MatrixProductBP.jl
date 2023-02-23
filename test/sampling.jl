@@ -22,6 +22,8 @@ m = marginals(sms)
 f(x,i) = x-1
 c = autocovariances(f, sms)
 
+av, va = continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^4, sites=1)
+
 # just check that it runs without errors
 @testset "sampling" begin
     @test true
