@@ -8,10 +8,9 @@ N = size(A, 1)
 ρ = 0.4
 γ = 0.5
 ρ = 0.2
-σ = 0.1
 
-sirs = SIRS(g, λ, ρ, σ, T; γ)
-bp = mpbp(sirs)
+sis = SIS(g, λ, ρ, T; γ)
+bp = mpbp(sis)
 rng = MersenneTwister(111)
 
 draw_node_observations!(bp, N, last_time=true; rng)
