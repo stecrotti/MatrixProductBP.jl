@@ -88,13 +88,14 @@ function sample(bp::MPBP, nsamples::Integer; kw...)
 end
 
 # return a (T+1) by N matrix, with uncertainty estimates
-function marginals(sms::SoftMarginSampler) 
+function marginals(sms::SoftMarginSampler; showprogress::Bool=true) 
     @unpack bp, X, w = sms
     N = nv(bp.g); T = getT(bp);
     marg = [[zeros(Measurement, nstates(bp,i)) for t in 0:T] for i in 1:N]
     @assert all(>=(0), w)
     wv = weights(w)
     nsamples = length(X)
+    prog = Progress(N, desc="Marginals from Soft Margin"; dt=showprogress ? 0.1 : Inf)
 
     for i in 1:N
         for t in 1:T+1
@@ -105,6 +106,7 @@ function marginals(sms::SoftMarginSampler)
             mit_var = mit_avg .* (1 .- mit_avg) ./ nsamples
             marg[i][t] .= mit_avg .± sqrt.( mit_var )
         end
+        next!(prog)
     end
 
    return marg
