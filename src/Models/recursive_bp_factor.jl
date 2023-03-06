@@ -11,8 +11,8 @@ abstract type RecursiveBPFactor <: BPFactor; end
 nstates(::Type{<:RecursiveBPFactor}, l::Integer) = error("Not implemented")
 
 "P(xᵢᵗ⁺¹|xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ)
-Might depend on the degree `dᵢ` because of the (possible) change of variable from 
-    y ∈ {1,2,...} to its physical value, e.g. {-dᵢ,...,dᵢ}"
+Might depend on the degree `dᵢ` because of a change of variable from 
+    y ∈ {1,2,...} to its physical value, e.g. {-dᵢ,...,dᵢ} for Ising"
 prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, yₙᵢᵗ, dᵢ) where {U<:RecursiveBPFactor} = error("Not implemented")
 
 "P(yₖᵗ| xₖᵗ, xᵢᵗ)"
@@ -42,6 +42,7 @@ function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVe
     sum(Pyy[y] * prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, y, d) for y in eachindex(Pyy))
 end
 
+"P(xᵢᵗ⁺¹|xᵢᵗ, xₙᵢᵗ, d)"
 function prob_y_partial(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, k) where {U<:RecursiveBPFactor}
     sum(prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d + 1) * 
         prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ,k) * 
@@ -54,11 +55,12 @@ end
 
 prob_y_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, j) where U = prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, y1, d) 
 
-
+# compute matrix B for mᵢⱼ
 function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer, qj, j) where {U<:RecursiveBPFactor}
     _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_partial, qj, j)
 end
 
+# compute matrix B for bᵢ
 function f_bp_partial_i(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
     _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_dummy, 1, 1)
 end
@@ -77,6 +79,7 @@ function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
     return MPEM3(B)
 end
 
+# compute ̃m{∂i∖j→i}(̅y_{∂i∖j},̅xᵢ)
 function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor}
     @assert all(normalization(a) ≈ 1 for a in μin)
     yrange = Base.OneTo(nstates(U, 1))
@@ -126,6 +129,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     nothing
 end
 
+# write message to destination after applying damping
 function set_msg!(bp::MPBP, μj, edge_id, damp, svd_trunc)
     @assert 0 ≤ damp < 1
     μ_old = bp.μ[edge_id]
