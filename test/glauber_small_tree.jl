@@ -3,10 +3,11 @@
 rng = MersenneTwister(111)
 
 T = 3
-J = [0 1 0 0;
-     1 0 1 1;
-     0 1 0 0;
-     0 1 0 0] .|> float
+J = [0 1 0 0 0;
+     1 0 1 1 0;
+     0 1 0 0 0;
+     0 1 0 0 0;
+     0 0 0 0 0] .|> float
 
 N = size(J, 1)
 h = randn(rng, N)
