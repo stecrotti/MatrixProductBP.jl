@@ -218,35 +218,43 @@ end
 function continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^5, sites=1:nv(sis.g), Δt=T/200,
         discard_dead_epidemics=false)
     K = floor(Int, T/Δt)+1
-    av, va, ni = zeros(K), zeros(K), zeros(Int, K)
+    N = nv(sis.g)
+    av = [zeros(K) for _ in 1:N]
+    va = [zeros(K) for _ in 1:N]
+    ni = [zeros(Int, K) for _ in 1:N]
     function stats(t, i, x)
         if i ∈ sites
-            k = floor(Int, t/Δt) + 1
-            ni[k] += 2x[i]-1
+            k = ceil(Int, t/Δt) + 1
+            ni[i][k] += 2x[i]-1
         end
     end
 
-    N = nv(sis.g)
     P0 = [p[1][2] for p in sis.ϕ]
     x = falses(N);
     Q = ExponentialQueue(N)
     ndiscarded = 0
     @showprogress for _ = 1:nsamples
-        fill!(ni, 0)
+        for nik in ni; fill!(nik, 0); end
         simulate_queue_sis!(x, sis.g, P0, λ, ρ, T; stats, Q)
-        s = 0
+        @assert ni[1][1] == 1
         if discard_dead_epidemics && all(isequal(false), x)
             ndiscarded += 1
         else
-            for (k,v) in pairs(ni)
-                s += v
-                av[k] += s
-                va[k] += s^2
+            for i in sites
+                s = 0
+                for (k,v) in pairs(ni[i])
+                    s += v
+                    av[i][k] += s
+                    va[i][k] += s^2
+                end
             end
         end
     end
-    av ./= (nsamples - ndiscarded) * length(sites)
-    va ./= (nsamples - ndiscarded) * length(sites)^2
-    va .-= av .^ 2
-    (;mean=av, std=sqrt.(va))
+    for i in 1:N
+        av[i] ./= (nsamples - ndiscarded)
+        va[i] ./= (nsamples - ndiscarded)
+        va[i] .-= av[i] .^ 2
+        va[i] .= sqrt.(va[i])
+    end
+    (;mean=av, std=va)
 end
