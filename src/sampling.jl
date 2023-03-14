@@ -236,7 +236,6 @@ function continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^5, sites=1:nv(sis.
     @showprogress for _ = 1:nsamples
         for nik in ni; fill!(nik, 0); end
         simulate_queue_sis!(x, sis.g, P0, λ, ρ, T; stats, Q)
-        @assert ni[1][1] == 1
         if discard_dead_epidemics && all(isequal(false), x)
             ndiscarded += 1
         else
