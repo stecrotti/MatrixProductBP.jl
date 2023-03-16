@@ -29,7 +29,8 @@ export
     equilibrium_magnetization, RandomRegular, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
     kl_marginals, l1_marginals, roc, auc,
-    RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor
+    RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor,
+    dmp_disc, ibmf_disc
 
 
 include("recursive_bp_factor.jl")
@@ -45,5 +46,6 @@ include("epidemics/sis_bp.jl")
 include("epidemics/inference.jl")
 include("epidemics/sirs.jl")
 include("epidemics/sirs_bp.jl")
+include("epidemics/meanfield.jl")
 
 end # end module
