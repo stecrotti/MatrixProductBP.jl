@@ -22,7 +22,7 @@ end
 function SIS(g::IndexedGraph{Int}, λ::F, ρ::F, T::Int;
         ψ = [[ones(2,2) for t in 0:T] for _ in 1:2*ne(g)],
         γ = 0.5,
-        ϕ = [[t == 0 ? [1-γ, γ] : ones(2) for t in 0:T] for _ in vertices(g)]) where {F<:Real}
+        ϕ = [[t == 0 ? (length(γ)==1 ? [1-γ, γ] : [1-γ[i],γ[i]]) : ones(2) for t in 0:T] for i in vertices(g)]) where {F<:Real}
     return SIS(g, λ, ρ, ϕ, ψ)
 end
 
