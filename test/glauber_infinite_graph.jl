@@ -17,7 +17,7 @@ wᵢ = fill(HomogeneousGlauberFactor(J, h, β), T+1)
 bp = mpbp_infinite_graph(k, wᵢ, 2, ϕᵢ)
 cb = CB_BP(bp)
 
-iters, cb = iterate!(bp; maxiter=100, svd_trunc=TruncThresh(0.0), cb, tol=1e-15, damp=0.1)
+iters, cb = iterate!(bp; maxiter=150, svd_trunc=TruncThresh(0.0), cb, tol=1e-15, damp=0.1)
 
 b_bp = beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
@@ -30,7 +30,7 @@ g = IndexedBiDiGraph(complete_graph(N))
 bp_exact = mpbp(g, fill(wᵢ, N), fill(2,N), T)
 for i in 1:N; bp_exact.ϕ[i] = ϕᵢ; end
 
-iterate!(bp_exact; maxiter=100, svd_trunc=TruncThresh(0.0), cb, tol=1e-15)
+iterate!(bp_exact; maxiter=150, svd_trunc=TruncThresh(0.0), cb, tol=1e-15)
 
 b_exact = beliefs(bp_exact)
 p_exact = [[bbb[2] for bbb in bb] for bb in b_exact][1:1]

@@ -10,4 +10,6 @@ m_distr = equilibrium_magnetization(RandomRegular(k); pJ=Dirac(J), ph=Dirac(h), 
     tol=1e-15, maxiter=100)
 m_fp = equilibrium_magnetization(RandomRegular(k), J; β, h, tol=1e-15)
 m_distr, m_fp
-@test m_distr ≈ m_fp
+@testset "Equilibrium" begin
+    @test m_distr ≈ m_fp
+end
