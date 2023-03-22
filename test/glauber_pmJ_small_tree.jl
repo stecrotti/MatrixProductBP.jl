@@ -5,9 +5,9 @@ rng = MersenneTwister(111)
 T = 3
 
 J = [0 -1  0  0;
-     -1 0  1 -1;
+     -1 0  1  1;
      0  1  0  0;
-     0 -1  0  0] .|> float
+     0  1  0  0] .|> float
 
 N = size(J, 1)
 h = randn(rng, N)
@@ -105,6 +105,12 @@ c_bp_slow = autocovariances(f, bp_slow)
     @test r_bp_slow ≈ r_exact
     @test c_bp_slow ≈ c_exact
 end
+
+sms = SoftMarginSampler(bp)
+sample!(sms, 10^6)
+
+# using Plots
+p_mc = [[bbb[2] for bbb in bb] for bb in marginals(sms)]
 
 # ### Perturb slightly the Js and check that observables are unchanged
 

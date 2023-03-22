@@ -35,10 +35,9 @@ nstates(::Type{<:HomogeneousGlauberFactor}, l::Integer) = l + 1
 function prob_y(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
     @unpack βJ, βh = wᵢ
     yᵗ = 2 * zᵗ - 2 - d
-    h = βJ * yᵗ + βh
-    p = exp(potts2spin(xᵢᵗ⁺¹) * h) / (2*cosh(h))
-    @assert 0 ≤ p ≤ 1
-    p
+    hⱼᵢ = βJ * yᵗ + βh
+    E = - potts2spin(xᵢᵗ⁺¹) * hⱼᵢ
+    return 1 / (1 + exp(-2E))
 end
 
 prob_xy(wᵢ::HomogeneousGlauberFactor, yₖ, xₖ, xᵢ) = (yₖ != xₖ)
@@ -71,10 +70,9 @@ nstates(::Type{<:PMJGlauberFactor}, l::Integer) = l + 1
 function prob_y(wᵢ::PMJGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
     @unpack βJ, βh = wᵢ
     yᵗ = 2 * zᵗ - 2 - d
-    h = βJ * yᵗ + βh
-    p = exp(potts2spin(xᵢᵗ⁺¹) * h) / (2*cosh(h))
-    @assert 0 ≤ p ≤ 1
-    p
+    hⱼᵢ = βJ * yᵗ + βh
+    E = - potts2spin(xᵢᵗ⁺¹) * hⱼᵢ
+    return 1 / (1 + exp(-2E))
 end
 
 # yₖ = σₖ*sign(Jᵢₖ), but with sign(Jᵢₖ) ∈ {0,1}, xₖ ∈ {1,2}, yₖ ∈ {1,2}
