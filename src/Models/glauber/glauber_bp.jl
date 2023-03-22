@@ -16,7 +16,7 @@ function (fᵢ::GenericGlauberFactor)(xᵢᵗ⁺¹::Integer,
 
     hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.βJ))
     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.βh)
-    exp( -E ) / (2cosh(E))
+    return 1 / (1 + exp(-2E))
 end
 
 struct HomogeneousGlauberFactor{T<:Real} <: RecursiveBPFactor 
@@ -52,7 +52,7 @@ function (wᵢ::HomogeneousGlauberFactor)(xᵢᵗ⁺¹::Integer,
 
     hⱼᵢ = wᵢ.βJ * sum(potts2spin, xₙᵢᵗ; init=0.0)
     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + wᵢ.βh)
-    exp( -E ) / (2cosh(E))
+    return 1 / (1 + exp(-2E))
 end
 
 # Ising model with ±J interactions
@@ -78,19 +78,19 @@ function prob_y(wᵢ::PMJGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
 end
 
 # yₖ = σₖ*sign(Jᵢₖ), but with sign(Jᵢₖ) ∈ {0,1}, xₖ ∈ {1,2}, yₖ ∈ {1,2}
-prob_xy(wᵢ::PMJGlauberFactor, yₖ, xₖ, xᵢ, k) = (yₖ == spin2potts(potts2spin(xₖ)*wᵢ.signs[k]))
+prob_xy(wᵢ::PMJGlauberFactor, yₖ, xₖ, xᵢ, k) = (yₖ != spin2potts(potts2spin(xₖ)*wᵢ.signs[k]))
 prob_yy(wᵢ::PMJGlauberFactor, y, y1, y2, xᵢ) = (y == y1 + y2 - 1)
 
-# function (wᵢ::PMJGlauberFactor)(xᵢᵗ⁺¹::Integer, 
-#         xₙᵢᵗ::AbstractVector{<:Integer}, 
-#         xᵢᵗ::Integer)
-#     @assert xᵢᵗ⁺¹ ∈ 1:2
-#     @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
+function (wᵢ::PMJGlauberFactor)(xᵢᵗ⁺¹::Integer, 
+        xₙᵢᵗ::AbstractVector{<:Integer}, 
+        xᵢᵗ::Integer)
+    @assert xᵢᵗ⁺¹ ∈ 1:2
+    @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
 
-#     hⱼᵢ = wᵢ.βJ * sum( s * potts2spin(xⱼᵗ) for (xⱼᵗ,s) in zip(xₙᵢᵗ, wᵢ.signs))
-#     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + wᵢ.βh)
-#     exp( -E ) / (2cosh(E))
-# end
+    hⱼᵢ = wᵢ.βJ * sum( s * potts2spin(xⱼᵗ) for (xⱼᵗ,s) in zip(xₙᵢᵗ, wᵢ.signs); init=0.0)
+    E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + wᵢ.βh)
+    return 1 / (1 + exp(-2E))
+end
 
 
 function mpbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
