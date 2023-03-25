@@ -142,3 +142,28 @@ function set_msg!(bp::MPBP, μj, edge_id, damp, svd_trunc)
     bp.μ[edge_id] = μj
     logzᵢ₂ⱼ
 end
+
+# adds a further transition xᵢᵗ->xᵢᵗ⁺¹ with probability `p` and rescales all other
+#  transitions by `1-p`. Does nothing for `p=0`
+struct DampedFactor{T<:RecursiveBPFactor,F<:Real} <: RecursiveBPFactor
+    w :: T      # factor
+    p :: F      # probability of staying in previous state        
+    function DampedFactor(w::T, p::F) where {T<:RecursiveBPFactor,F<:Real}
+        @assert 0 ≤ p ≤ 1
+        new{T,F}(w, p)
+    end
+end
+
+nstates(::Type{<:DampedFactor{T}}, l::Integer) where {T} = nstates(T, l)
+
+@forward DampedFactor.w prob_xy, prob_yy
+
+function (wᵢ::DampedFactor)(xᵢᵗ⁺¹::Integer, 
+        xₙᵢᵗ::AbstractVector{<:Integer}, 
+        xᵢᵗ::Integer)
+    return (1-wᵢ.p)*(wᵢ.w(xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)) + wᵢ.p*(xᵢᵗ⁺¹ == xᵢᵗ)  
+end
+
+function prob_y(wᵢ::DampedFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
+    return (1-wᵢ.p)*(prob_y(wᵢ.w, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)) + wᵢ.p*(xᵢᵗ⁺¹ == xᵢᵗ)
+end
