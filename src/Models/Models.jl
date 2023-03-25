@@ -2,7 +2,7 @@ module Models
 
 import MatrixProductBP: exact_prob, getT, nstates, mpbp, compress!,
     kron2, f_bp, f_bp_dummy_neighbor, onebpiter_dummy_neighbor,
-    beliefs, beliefs_tu, marginals, 
+    beliefs, beliefs_tu, marginals, pair_belief, pair_beliefs,
     marginalize, cavity, onebpiter!, check_ψs
 using MatrixProductBP
 
@@ -20,10 +20,11 @@ import Tullio: @tullio
 import Unzip: unzip
 import Distributions: rand, Poisson, Distribution, Dirac, MixtureModel
 import Random: GLOBAL_RNG, shuffle!
+import Lazy: @forward
 
 export 
-    RecursiveBPFactor, beliefs, beliefs_tu,
-    mpbp_infinite_graph,
+    RecursiveBPFactor, DampedFactor, beliefs, beliefs_tu,
+    mpbp_infinite_graph, pair_beliefs,
     Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
     equilibrium_magnetization, RandomRegular, ErdosRenyi, CB_Pop,
