@@ -10,7 +10,7 @@ struct ErdosRenyi{T<:Real}
 end
 
 function equilibrium_magnetization(g::RandomRegular, J::Real; β::Real=1.0, h::Real=0.0,
-        maxiter=10^3, tol=1e-16, init=100.0*(sign(h)+rand()))
+        maxiter=10^3, tol=1e-16, init=100.0*(sign(h)+rand()), damp=0.0)
     k = g.k
     f(u) = (k-1)/β *atanh(tanh(β*u)*tanh(β*J)) + h
 
@@ -22,7 +22,7 @@ function equilibrium_magnetization(g::RandomRegular, J::Real; β::Real=1.0, h::R
             abs(xnew) < tol && return 0.0
             err = abs((x-xnew)/x) 
             err < tol && return x
-            x = xnew
+            x = (1-damp)*xnew + damp*x
         end
         error("Fixed point iterations did not converge. err=$err")
     end
