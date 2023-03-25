@@ -32,3 +32,10 @@ function mpbp_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
     b = mpem1(qi, T; d, bondsizes)
     MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [0.0])
 end
+
+function pair_beliefs(bp::MPBP{G,F}) where {G<:InfiniteRegularGraph,F}
+    μᵢⱼ = μⱼᵢ = bp.μ[1]
+    bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ, only(bp.ψ))
+    logz = [(1/(bp.g.k-1)- 1/2) * log(zᵢⱼ)]
+    [bᵢⱼ], logz
+end
