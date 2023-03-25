@@ -16,7 +16,7 @@ function (fᵢ::GenericGlauberFactor)(xᵢᵗ⁺¹::Integer,
 
     hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.βJ))
     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.βh)
-    return 1 / (1 + exp(-2E))
+    return 1 / (1 + exp(2E))
 end
 
 struct HomogeneousGlauberFactor{T<:Real} <: RecursiveBPFactor 
@@ -37,7 +37,7 @@ function prob_y(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
     yᵗ = 2 * zᵗ - 2 - d
     hⱼᵢ = βJ * yᵗ + βh
     E = - potts2spin(xᵢᵗ⁺¹) * hⱼᵢ
-    return 1 / (1 + exp(-2E))
+    return 1 / (1 + exp(2E))
 end
 
 prob_xy(wᵢ::HomogeneousGlauberFactor, yₖ, xₖ, xᵢ) = (yₖ != xₖ)
@@ -51,7 +51,7 @@ function (wᵢ::HomogeneousGlauberFactor)(xᵢᵗ⁺¹::Integer,
 
     hⱼᵢ = wᵢ.βJ * sum(potts2spin, xₙᵢᵗ; init=0.0)
     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + wᵢ.βh)
-    return 1 / (1 + exp(-2E))
+    return 1 / (1 + exp(2E))
 end
 
 # Ising model with ±J interactions
@@ -72,7 +72,7 @@ function prob_y(wᵢ::PMJGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
     yᵗ = 2 * zᵗ - 2 - d
     hⱼᵢ = βJ * yᵗ + βh
     E = - potts2spin(xᵢᵗ⁺¹) * hⱼᵢ
-    return 1 / (1 + exp(-2E))
+    return 1 / (1 + exp(2E))
 end
 
 # yₖ = σₖ*sign(Jᵢₖ), but with sign(Jᵢₖ) ∈ {0,1}, xₖ ∈ {1,2}, yₖ ∈ {1,2}
@@ -87,7 +87,7 @@ function (wᵢ::PMJGlauberFactor)(xᵢᵗ⁺¹::Integer,
 
     hⱼᵢ = wᵢ.βJ * sum( s * potts2spin(xⱼᵗ) for (xⱼᵗ,s) in zip(xₙᵢᵗ, wᵢ.signs); init=0.0)
     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + wᵢ.βh)
-    return 1 / (1 + exp(-2E))
+    return 1 / (1 + exp(2E))
 end
 
 
