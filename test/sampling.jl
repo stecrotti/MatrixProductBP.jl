@@ -17,11 +17,13 @@ draw_node_observations!(bp, N, last_time=true; rng)
 
 sms = sample(bp, 10; showprogress=false)
 m = marginals(sms)
+pb = pair_marginals(sms)
 
 f(x,i) = x-1
 c = autocovariances(f, sms)
 
-av, va = continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^4, sites=1)
+av, va = continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^4, sites=1,
+    discard_dead_epidemics=true)
 
 # just check that it runs without errors
 @testset "sampling" begin

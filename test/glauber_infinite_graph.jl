@@ -20,6 +20,7 @@ cb = CB_BP(bp)
 iters, cb = iterate!(bp; maxiter=150, svd_trunc=TruncThresh(0.0), cb, tol=1e-15, damp=0.1)
 
 b_bp = beliefs(bp)
+pb_bp = pair_beliefs(bp)
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
 f_bethe = bethe_free_energy(bp)
