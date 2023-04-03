@@ -17,7 +17,7 @@ prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, yₙᵢᵗ, dᵢ) where {U<:RecursiveBPFa
 
 "P(yₖᵗ| xₖᵗ, xᵢᵗ)"
 prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ) = error("Not implemented")
-prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ, k) = prob_xy(wᵢ, yₖ, xₖ, xᵢ)
+prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ, dᵢ) = prob_xy(wᵢ, yₖ, xₖ, xᵢ)
 
 "P(yₐᵦ|yₐ,yᵦ,xᵢᵗ)"
 prob_yy(wᵢ::RecursiveBPFactor, y, y1, y2, xᵢ, d1, d2) = prob_yy(wᵢ::RecursiveBPFactor, y, y1, y2, xᵢ)
