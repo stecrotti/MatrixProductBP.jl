@@ -152,15 +152,14 @@ struct CB_BP{TP<:ProgressUnknown, F}
         isempty(info) || (info *= "\n")
         prog = ProgressUnknown(desc=info*"Running MPBP: iter", dt=dt)
         TP = typeof(prog)
-
-        m = [[expectation.(x->f(x,i), marginals(bp.b[i])) for i in eachindex(bp.b)]]
+        m = [means(f, bp)]
         Δs = zeros(0)
         new{TP,F}(prog, m, Δs, f)
     end
 end
 
 function (cb::CB_BP)(bp::MPBP, it::Integer, svd_trunc::SVDTrunc)
-    marg_new = [expectation.(x->cb.f(x,i), marginals(bp.b[i])) for i in eachindex(bp.b)]
+    marg_new = means(cb.f, bp)
     marg_old = cb.m[end]
     Δ = isempty(marg_new) ? NaN : maximum(maximum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
     push!(cb.Δs, Δ)

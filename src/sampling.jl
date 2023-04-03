@@ -112,6 +112,11 @@ function marginals(sms::SoftMarginSampler; showprogress::Bool=true)
    return marg
 end
 
+function means(f, sms::SoftMarginSampler)
+    b_mc = marginals(sms)
+    return [[expectation(f, bb) for bb in b] for b in b_mc]
+end
+
 # return a (T+1) by |E| matrix, with uncertainty estimates
 function pair_marginals(sms::SoftMarginSampler; showprogress::Bool=true) 
     @unpack bp, X, w = sms
