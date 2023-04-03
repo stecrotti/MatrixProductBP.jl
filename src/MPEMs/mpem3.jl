@@ -38,8 +38,8 @@ function mpem2(B::MPEM3{F}) where {F}
     Bᵗ⁺¹_new = fill(1.0,1,1,1,1)  # initialize
     for t in 1:getT(B)
         U, λ, V = svd(M)   
-        m = length(λ)     
-        @cast Cᵗ[m, k, xᵢᵗ, xⱼᵗ] := U[(xᵢᵗ, xⱼᵗ, m), k] k in 1:m, xᵢᵗ in 1:qᵢᵗ, xⱼᵗ in 1:qⱼᵗ
+        M = length(λ)     
+        @cast Cᵗ[m, k, xᵢᵗ, xⱼᵗ] := U[(xᵢᵗ, xⱼᵗ, m), k] k in 1:M, xᵢᵗ in 1:qᵢᵗ, xⱼᵗ in 1:qⱼᵗ
         C[t] = Cᵗ
         @cast Vt[m, n, xᵢᵗ⁺¹] := V'[m, (n, xᵢᵗ⁺¹)]  xᵢᵗ⁺¹ in 1:qᵢᵗ⁺¹
         Bᵗ⁺¹ = B[t+1]
