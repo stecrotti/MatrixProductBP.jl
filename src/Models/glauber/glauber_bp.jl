@@ -65,18 +65,18 @@ function PMJGlauberFactor(signs::Vector{Int}, J::T, h::T, β::T) where {T<:Real}
     PMJGlauberFactor(signs, J*β, h*β)
 end
 
-nstates(::Type{<:PMJGlauberFactor}, l::Integer) = l + 1
+nstates(::Type{<:PMJGlauberFactor}, d::Integer) = 2d + 1
 
 function prob_y(wᵢ::PMJGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
     @unpack βJ, βh = wᵢ
-    yᵗ = 2 * zᵗ - 2 - d
+    yᵗ = zᵗ - d - 1
     hⱼᵢ = βJ * yᵗ + βh
     E = - potts2spin(xᵢᵗ⁺¹) * hⱼᵢ
     return 1 / (1 + exp(2E))
 end
 
-# yₖ = σₖ*sign(Jᵢₖ), but with sign(Jᵢₖ) ∈ {0,1}, xₖ ∈ {1,2}, yₖ ∈ {1,2}
-prob_xy(wᵢ::PMJGlauberFactor, yₖ, xₖ, xᵢ, k) = (yₖ != spin2potts(potts2spin(xₖ)*wᵢ.signs[k]))
+# yₖ = σₖ*sign(Jᵢₖ), but with xₖ ∈ {1,2}, yₖ ∈ {1,2,3}
+prob_xy(wᵢ::PMJGlauberFactor, yₖ, xₖ, xᵢ, k) = (yₖ == potts2spin(xₖ)*wᵢ.signs[k] + 2)
 prob_yy(wᵢ::PMJGlauberFactor, y, y1, y2, xᵢ) = (y == y1 + y2 - 1)
 
 function (wᵢ::PMJGlauberFactor)(xᵢᵗ⁺¹::Integer, 
@@ -105,7 +105,7 @@ end
 function glauber_factors(ising::Ising, T::Integer)
     β = ising.β
     map(1:nv(ising.g)) do i
-        ei = outedges(ising.g, i)
+        ei = inedges(ising.g, i)
         ∂i = idx.(ei)
         J = ising.J[∂i]
         h = ising.h[i]
