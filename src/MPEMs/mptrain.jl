@@ -4,8 +4,6 @@
 struct MatrixProductTrain{F<:Real, N} <: MPEM
     tensors::Vector{Array{F,N}}
     function MatrixProductTrain(tensors::Vector{Array{F,N}}) where {F<:Real, N}
-        size(tensors[1],1) == size(tensors[end],2) == 1 ||
-            throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
         check_bond_dims(tensors) ||
             throw(ArgumentError("Matrix indices for matrix product non compatible"))
         new{F,N}(tensors)
@@ -17,9 +15,13 @@ end
 
 
 function check_bond_dims(tensors::Vector{<:Array})
-    for t in 1:lastindex(tensors)-1
+    for t in eachindex(tensors)
         dᵗ = size(tensors[t],2)
-        dᵗ⁺¹ = size(tensors[t+1],1)
+        if t == lastindex(tensors)
+            dᵗ⁺¹ = size(tensors[1],1)
+        else
+            dᵗ⁺¹ = size(tensors[t+1],1)
+        end
         if dᵗ != dᵗ⁺¹
             println("Bond size for matrix t=$t. dᵗ=$dᵗ, dᵗ⁺¹=$dᵗ⁺¹")
             return false
@@ -46,7 +48,6 @@ isapprox(A::T, B::T; kw...) where {T<:MatrixProductTrain} = isapprox(A.tensors, 
 
 const MPEM1{F} = MatrixProductTrain{F, 3}
 const MPEM2{F} = MatrixProductTrain{F, 4}
-# const MPEM3{F} = MatrixProductTrain{F, 5}
 
 "Construct a uniform mpem with given bond dimensions"
 mpem(bondsizes, q...) = MatrixProductTrain([ones(bondsizes[t], bondsizes[t+1], q...) for t in 1:length(bondsizes)-1])
@@ -54,17 +55,16 @@ mpem(bondsizes, q...) = MatrixProductTrain([ones(bondsizes[t], bondsizes[t+1], q
 "Construct a random mpem with given bond dimensions"
 rand_mpem(bondsizes, q...) = MatrixProductTrain([rand(bondsizes[t], bondsizes[t+1], q...) for t in 1:length(bondsizes)-1])
 
-bond_dims(A::MPEM) = [size(A[t], 2) for t in 1:lastindex(A)-1]
+bond_dims(A::MPEM) = [size(A[t], 1) for t in eachindex(A)]
 
 getT(A::MatrixProductTrain) = length(A) - 1
 
 eltype(::MatrixProductTrain{F,N}) where {N,F} = F
 
-evaluate(A::MatrixProductTrain, X...) = only(prod(@view a[:, :, x...] for (a,x) in zip(A, X...)))
+evaluate(A::MatrixProductTrain, X...) = tr(prod(@view a[:, :, x...] for (a,x) in zip(A, X...)))
 
 _reshape1(x) = reshape(x, size(x,1), size(x,2), prod(size(x)[3:end])...)
 _reshapeas(x,y) = reshape(x, size(x,1), size(x,2), size(y)[3:end]...)
-
 
 
 # when truncating it assumes that matrices are already left-orthogonal
