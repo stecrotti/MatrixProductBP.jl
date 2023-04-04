@@ -3,8 +3,6 @@
 struct MPEM3{F<:Real} <: MPEM
     tensors::Vector{Array{F,5}}
     function MPEM3(tensors::Vector{Array{F,5}}) where {F<:Real}
-        size(tensors[1],1) == size(tensors[end],2) == 1 ||
-            throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
         check_bond_dims(tensors) ||
             throw(ArgumentError("Matrix indices for matrix product non compatible"))
         new{F}(tensors)

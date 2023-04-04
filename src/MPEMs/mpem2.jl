@@ -3,10 +3,10 @@
 MPEM2(tensors::Vector{Array{Float64, 4}}) = MatrixProductTrain(tensors)
 
 # construct a uniform mpem with given bond dimensions
-mpem2(q1::Int, q2, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(bondsizes, q1, q2)
+mpem2(q1::Int, q2, T::Int; d::Int=2, bondsizes=fill(d, T+2)) = mpem(bondsizes, q1, q2)
 
 # construct a uniform mpem with given bond dimensions
-rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(bondsizes, q1, q2)
+rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=fill(d, T+2)) = rand_mpem(bondsizes, q1, q2)
 
 
 # at each time t, return p(xᵢᵗ, xⱼᵗ)
@@ -15,18 +15,18 @@ function pair_marginal(A::MPEM2)
     R = accumulate_R(A)
 
     A⁰ = A[begin]; R¹ = R[2]
-    @reduce p⁰[xᵢ⁰,xⱼ⁰] := sum(a¹) A⁰[1,a¹,xᵢ⁰,xⱼ⁰] * R¹[a¹]
+    @reduce p⁰[xᵢ⁰,xⱼ⁰] := sum(a⁰,a¹) A⁰[a⁰,a¹,xᵢ⁰,xⱼ⁰] * R¹[a¹,a⁰]
     p⁰ ./= sum(p⁰)
 
     Aᵀ = A[end]; Lᵀ⁻¹ = L[end-1]
-    @reduce pᵀ[xᵢᵀ,xⱼᵀ] := sum(aᵀ) Lᵀ⁻¹[aᵀ] * Aᵀ[aᵀ,1,xᵢᵀ,xⱼᵀ]
+    @reduce pᵀ[xᵢᵀ,xⱼᵀ] := sum(aᵀ,a⁰) Lᵀ⁻¹[a⁰,aᵀ] * Aᵀ[aᵀ,a⁰,xᵢᵀ,xⱼᵀ]
     pᵀ ./= sum(pᵀ)
 
     p = map(2:getT(A)) do t 
         Lᵗ⁻¹ = L[t-1]
         Aᵗ = A[t]
         Rᵗ⁺¹ = R[t+1]
-        @reduce pᵗ[xᵢᵗ,xⱼᵗ] := sum(aᵗ,aᵗ⁺¹) Lᵗ⁻¹[aᵗ] * Aᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] * Rᵗ⁺¹[aᵗ⁺¹]  
+        @reduce pᵗ[xᵢᵗ,xⱼᵗ] := sum(a⁰,aᵗ,aᵗ⁺¹) Lᵗ⁻¹[a⁰,aᵗ] * Aᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ,xⱼᵗ] * Rᵗ⁺¹[aᵗ⁺¹,a⁰]  
         pᵗ ./= sum(pᵗ)
     end
 
@@ -41,20 +41,20 @@ function firstvar_marginal(A::MPEM2; p = pair_marginal(A))
 end
 
 function pair_marginal_tu(A::MPEM2; showprogress::Bool=true)
-    l = accumulate_L(A); r = accumulate_R(A); m = accumulate_M(A)
+    L = accumulate_L(A); R = accumulate_R(A); M = accumulate_M(A)
     qi, qj = size(A[1], 3), size(A[i,4])
     T = getT(A)
     b = [zeros(qi, qi, qj, qj) for _ in 0:T, _ in 0:T]
     for t in 1:T
-        lᵗ⁻¹ = t == 1 ? [1.0;] : l[t-1]
+        Lᵗ⁻¹ = t == 1 ? [1.0;;] : L[t-1]
         Aᵗ = A[t]
         for u in t+1:T+1
-            rᵘ⁺¹ = u == T + 1 ? [1.0;] : r[u+1]
+            Rᵘ⁺¹ = u == T + 1 ? [1.0;;] : R[u+1]
             Aᵘ = A[u]
-            mᵗᵘ = m[t, u]
+            Mᵗᵘ = M[t, u]
             @tullio bᵗᵘ[xᵢᵗ, xⱼᵗ, xᵢᵘ, xⱼᵘ] :=
-                lᵗ⁻¹[aᵗ] * Aᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * mᵗᵘ[aᵗ⁺¹, aᵘ] * 
-                Aᵘ[aᵘ, aᵘ⁺¹, xᵢᵘ, xⱼᵘ] * rᵘ⁺¹[aᵘ⁺¹]
+                Lᵗ⁻¹[a⁰,aᵗ] * Aᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * Mᵗᵘ[aᵗ⁺¹, aᵘ] * 
+                Aᵘ[aᵘ, aᵘ⁺¹, xᵢᵘ, xⱼᵘ] * Rᵘ⁺¹[aᵘ⁺¹,a⁰]
             b[t, u] .= bᵗᵘ ./ sum(bᵗᵘ)
         end
     end

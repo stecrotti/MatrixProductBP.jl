@@ -3,14 +3,14 @@ MPEM1(tensors::Vector{Array{Float64,3}}) = MatrixProductTrain(tensors)
 # can evaluate a MPEM1 with a vector of integers instead of a vector whose elements are 
 #  1-element vectors of integers as expected by the MatrixProductTrain interface
 function evaluate(A::MPEM1, x::Vector{U}) where {U<:Integer}
-    only(prod(@view a[:, :, xx...] for (a,xx) in zip(A, x)))
+    tr(prod(@view a[:, :, xx...] for (a,xx) in zip(A, x)))
 end
 
 # construct a uniform mpem with given bond dimensions
-mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = mpem(bondsizes, q)
+mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+2)) = mpem(bondsizes, q)
 
 # construct a uniform mpem with given bond dimensions
-rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_mpem(bondsizes, q)
+rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+2)) = rand_mpem(bondsizes, q)
 
 nstates(A::MPEM1) = size(A[1],3)
 
@@ -21,18 +21,18 @@ function marginals(A::MPEM1)
     R = accumulate_R(A)
 
     A⁰ = A[begin]; R¹ = R[2]
-    @reduce p⁰[x] := sum(a¹) A⁰[1,a¹,x] * R¹[a¹]
+    @reduce p⁰[x] := sum(a⁰,a¹) A⁰[a⁰,a¹,x] * R¹[a¹,a⁰]
     p⁰ ./= sum(p⁰)
 
     Aᵀ = A[end]; Lᵀ⁻¹ = L[end-1]
-    @reduce pᵀ[x] := sum(aᵀ) Lᵀ⁻¹[aᵀ] * Aᵀ[aᵀ,1,x]
+    @reduce pᵀ[x] := sum(aᵀ,a⁰) Lᵀ⁻¹[a⁰,aᵀ] * Aᵀ[aᵀ,a⁰,x]
     pᵀ ./= sum(pᵀ)
 
     p = map(2:getT(A)) do t 
         Lᵗ⁻¹ = L[t-1]
         Aᵗ = A[t]
         Rᵗ⁺¹ = R[t+1]
-        @reduce pᵗ[x] := sum(aᵗ,aᵗ⁺¹) Lᵗ⁻¹[aᵗ] * Aᵗ[aᵗ,aᵗ⁺¹,x] * Rᵗ⁺¹[aᵗ⁺¹]  
+        @reduce pᵗ[x] := sum(a⁰,aᵗ,aᵗ⁺¹) Lᵗ⁻¹[a⁰,aᵗ] * Aᵗ[aᵗ,aᵗ⁺¹,x] * Rᵗ⁺¹[aᵗ⁺¹,a⁰]  
         pᵗ ./= sum(pᵗ)
     end
 
@@ -41,20 +41,20 @@ end
 
 
 function marginals_tu(A::MPEM1)
-    l = accumulate_L(A); r = accumulate_R(A); m = accumulate_M(A)
+    L = accumulate_L(A); R = accumulate_R(A); M = accumulate_M(A)
     q = size(A[1], 3)
     T = getT(A)
     b = [zeros(q, q) for _ in 0:T, _ in 0:T]
     for t in 1:T
-        lᵗ⁻¹ = t == 1 ? [1.0;] : l[t-1]
+        Lᵗ⁻¹ = t == 1 ? Matrix(1.0*I, size(A[begin],1), size(A[begin],1)) : L[t-1]
         Aᵗ = A[t]
         for u in t+1:T+1
-            rᵘ⁺¹ = u == T + 1 ? [1.0;] : r[u+1]
+            Rᵘ⁺¹ = u == T + 1 ? Matrix(1.0*I, size(A[end],2), size(A[end],2)) : R[u+1]
             Aᵘ = A[u]
-            mᵗᵘ = m[t, u]
+            Mᵗᵘ = M[t, u]
             @tullio bᵗᵘ[xᵗ, xᵘ] :=
-                lᵗ⁻¹[aᵗ] * Aᵗ[aᵗ, aᵗ⁺¹, xᵗ] * mᵗᵘ[aᵗ⁺¹, aᵘ] * 
-                Aᵘ[aᵘ, aᵘ⁺¹, xᵘ] * rᵘ⁺¹[aᵘ⁺¹]
+                Lᵗ⁻¹[a⁰,aᵗ] * Aᵗ[aᵗ, aᵗ⁺¹, xᵗ] * Mᵗᵘ[aᵗ⁺¹, aᵘ] * 
+                Aᵘ[aᵘ, aᵘ⁺¹, xᵘ] * Rᵘ⁺¹[aᵘ⁺¹,a⁰]
             b[t, u] .= bᵗᵘ ./ sum(bᵗᵘ)
         end
     end

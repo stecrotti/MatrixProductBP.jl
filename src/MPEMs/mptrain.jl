@@ -69,10 +69,17 @@ _reshapeas(x,y) = reshape(x, size(x,1), size(x,2), size(y)[3:end]...)
 
 # when truncating it assumes that matrices are already left-orthogonal
 function sweep_RtoL!(C::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
-    Cᵀ = _reshape1(C[end])
-    q = size(Cᵀ, 3)
-    @cast M[m, (n, x)] := Cᵀ[m, n, x]
-    D = fill(1.0,1,1,1)  # initialize
+    C⁰ = _reshape1(C[begin])
+    q = size(C⁰, 3)
+    @cast M[m, (n, x)] := C⁰[m, n, x]
+    U, λ, V = svd_trunc(M)
+    @cast A⁰[m, n, x] := V'[m, (n, x)] x in 1:q
+    C[begin] = _reshapeas(A⁰, C[begin])     
+    Cᵗ⁻¹ = _reshape1(C[end])
+    @tullio D[m, n, x] := Cᵗ⁻¹[m, k, x] * U[k, n] * λ[n]
+    @cast M[m, (n, x)] := D[m, n, x]
+
+    # @show size(C[begin]) size(C[end]) 
 
     for t in getT(C)+1:-1:2
         U, λ, V = svd_trunc(M)
@@ -83,26 +90,38 @@ function sweep_RtoL!(C::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
         @cast M[m, (n, x)] := D[m, n, x]
     end
     C[begin] = _reshapeas(D, C[begin])
+
+    # @show size(C[begin]) size(C[end]) 
+    # println()
+
+    @assert check_bond_dims(C.tensors)
+
     return C
 end
 
 # when truncating it assumes that matrices are already right-orthogonal
-function sweep_LtoR!(C::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
-    C⁰ = _reshape1(C[begin])
-    q = size(C⁰, 3)
-    @cast M[(m, x), n] |= C⁰[m, n, x]
+function sweep_LtoR!(A::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
+    A⁰ = _reshape1(A[begin])
+    q = size(A⁰, 3)
+    @cast M[(m, x), n] |= A⁰[m, n, x]
     D = fill(1.0,1,1,1)  # initialize
 
-    for t in 1:getT(C)
+    for t in 1:getT(A)
         U, λ, V = svd_trunc(M)
         @cast Aᵗ[m, n, x] := U[(m, x), n] x in 1:q
-        C[t] = _reshapeas(Aᵗ, C[t])
-        Cᵗ⁺¹ = _reshape1(C[t+1])
-        @tullio D[m, n, x] := λ[m] * V'[m, l] * Cᵗ⁺¹[l, n, x]
+        A[t] = _reshapeas(Aᵗ, A[t])
+        Aᵗ⁺¹ = _reshape1(A[t+1])
+        @tullio D[m, n, x] := λ[m] * V'[m, l] * Aᵗ⁺¹[l, n, x]
         @cast M[(m, x), n] |= D[m, n, x]
     end
-    C[end] = _reshapeas(D, C[end])
-    return C
+    U, λ, V = svd_trunc(M)
+    @cast Aᵀ[m, n, x] := U[(m, x), n] x in 1:q
+    A[end] = _reshapeas(Aᵀ, A[end])
+    A⁰ = _reshape1(A[begin])
+    @tullio D[m, n, x] := λ[m] * V'[m, l] * A⁰[l, n, x]
+    A[begin] = _reshapeas(D,  A[begin])
+
+    return A
 end
 
 function compress!(A::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
@@ -112,15 +131,15 @@ end
 
 function accumulate_L(A::MatrixProductTrain)
     T = getT(A)
-    L = [zeros(0) for _ in 0:T]
+    L = [zeros(0,0) for _ in 0:T]
     A⁰ = _reshape1(A[begin])
-    @reduce L⁰[a¹] := sum(x) A⁰[1,a¹,x]
+    @reduce L⁰[a⁰,a¹] := sum(x) A⁰[a⁰,a¹,x]
     L[1] = L⁰
 
     Lᵗ = L⁰
     for t in 1:T
         Aᵗ = _reshape1(A[t+1])
-        @reduce Lᵗ[aᵗ⁺¹] |= sum(x,aᵗ) Lᵗ[aᵗ] * Aᵗ[aᵗ,aᵗ⁺¹,x] 
+        @reduce Lᵗ[a⁰,aᵗ⁺¹] |= sum(x,aᵗ) Lᵗ[a⁰,aᵗ] * Aᵗ[aᵗ,aᵗ⁺¹,x] 
         L[t+1] = Lᵗ
     end
     return L
@@ -128,15 +147,15 @@ end
 
 function accumulate_R(A::MatrixProductTrain)
     T = getT(A)
-    R = [zeros(0) for _ in 0:T]
+    R = [zeros(0,0) for _ in 0:T]
     Aᵀ = _reshape1(A[end])
-    @reduce Rᵀ[aᵀ] := sum(x) Aᵀ[aᵀ,1,x]
+    @reduce Rᵀ[aᵀ,a⁰] := sum(x) Aᵀ[aᵀ,a⁰,x]
     R[end] = Rᵀ
 
     Rᵗ = Rᵀ
     for t in T:-1:1
         Aᵗ = _reshape1(A[t])
-        @reduce Rᵗ[aᵗ] |= sum(x,aᵗ⁺¹) Aᵗ[aᵗ,aᵗ⁺¹,x] * Rᵗ[aᵗ⁺¹] 
+        @reduce Rᵗ[aᵗ,a⁰] |= sum(x,aᵗ⁺¹) Aᵗ[aᵗ,aᵗ⁺¹,x] * Rᵗ[aᵗ⁺¹,a⁰] 
         R[t] = Rᵗ
     end
     return R
@@ -166,10 +185,10 @@ function accumulate_M(A::MatrixProductTrain)
 end
 
 # compute normalization of an MPEM1 efficiently
-function normalization(A::MatrixProductTrain; l = accumulate_L(A), r = accumulate_R(A))
-    z = only(l[end])
-    @assert only(r[begin]) ≈ z "z=$z, got $(only(r[begin])), A=$A"  # sanity check
-    z
+function normalization(A::MatrixProductTrain; L = accumulate_L(A), R = accumulate_R(A))
+    Z = tr(L[end])
+    @assert tr(R[begin]) ≈ Z "Z=$Z, got $(tr(r[begin])), A=$A"  # sanity check
+    Z
 end
 
 # normalize so that the sum over all trajectories is 1.
@@ -194,13 +213,9 @@ function _compose(f, A::MatrixProductTrain{F,NA}, B::MatrixProductTrain{F,NB}) w
     tensors = map(zip(eachindex(A),A,B)) do (t,Aᵗ,Bᵗ)
         sa = size(Aᵗ); sb = size(Bᵗ)
         if t == 1
-            Cᵗ = [ hcat(Aᵗ[:,:,x...], f(Bᵗ[:,:,x...])) 
+            Cᵗ = [ [Aᵗ[:,:,x...] zeros(sa[1],sb[2]); zeros(sb[1],sa[2]) f(Bᵗ[:,:,x...])] 
                 for x in Iterators.product(axes(Aᵗ)[3:end]...)]
-            reshape( reduce(hcat, Cᵗ), 1, sa[2]+sb[2], size(Aᵗ)[3:end]...)
-        elseif t == lastindex(A)
-            Cᵗ = [ vcat(Aᵗ[:,:,x...], Bᵗ[:,:,x...]) 
-                for x in Iterators.product(axes(Aᵗ)[3:end]...)]
-            reshape( reduce(hcat, Cᵗ), sa[1]+sb[1], 1, size(Aᵗ)[3:end]...)
+            reshape( reduce(hcat, Cᵗ), (sa .+ sb)[1:2]..., size(Aᵗ)[3:end]...)
         else
             Cᵗ = [ [Aᵗ[:,:,x...] zeros(sa[1],sb[2]); zeros(sb[1],sa[2]) Bᵗ[:,:,x...]] 
                 for x in Iterators.product(axes(Aᵗ)[3:end]...)]
