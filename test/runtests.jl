@@ -12,6 +12,6 @@ include("pair_observations.jl")
 include("sampling.jl")
 include("sirs_small_tree.jl")
 # include("sis_infinite_graph.jl")
-# include("sis_small_tree.jl")
+include("sis_small_tree.jl")
 
 nothing
