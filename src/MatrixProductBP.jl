@@ -19,6 +19,7 @@ import LogExpFunctions: logistic, logsumexp
 import .Threads: SpinLock, lock, unlock
 import Lazy: @forward
 import CavityTools: cavity
+import LinearAlgebra: tr
 
 
 export
@@ -42,7 +43,7 @@ using .MPEMs, Reexport
 @reexport import .MPEMs: SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh, 
     summary_compact, normalize_eachmatrix!, -, isapprox, evaluate, getT, bond_dims,
     MPEM, MPEM2, MPEM3, MatrixProductTrain, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!,
-    compress!, accumulate_L, accumulate_R, accumulate_M, pair_marginal, firstvar_marginal,
+    compress!, accumulate_L, accumulate_R, pair_marginal, firstvar_marginal,
     pair_marginal_tu, firstvar_marginal_tu, marginals, marginals_tu, mpem1,
     normalization, normalize!,  nstates, marginalize
 

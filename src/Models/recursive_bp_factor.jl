@@ -56,17 +56,17 @@ end
 prob_y_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, j) where U = prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, y1, d) 
 
 # compute matrix B for mᵢⱼ
-function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer, qj, j) where {U<:RecursiveBPFactor}
-    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_partial, qj, j)
+function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer, qj, j, periodic::Bool) where {U<:RecursiveBPFactor}
+    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_partial, qj, j, periodic)
 end
 
 # compute matrix B for bᵢ
-function f_bp_partial_i(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
-    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_dummy, 1, 1)
+function f_bp_partial_i(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer, periodic::Bool) where {U<:RecursiveBPFactor}
+    _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_dummy, 1, 1, periodic)
 end
 
 function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
-    d::Integer, prob::Function, qj, j) where {U<:RecursiveBPFactor}
+    d::Integer, prob::Function, qj, j, periodic::Bool) where {U<:RecursiveBPFactor}
     q = length(ϕᵢ[1])
     B = [zeros(size(a,1), size(a,2), q, qj, q) for a in A]
     for t in 1:getT(A)
@@ -74,7 +74,11 @@ function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
         @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d,j)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
     end
     Aᵀ,Bᵀ = A[end], B[end]
-    @tullio Bᵀ[m,n,xᵢᵀ,xⱼᵀ,xᵢᵀ⁺¹] = Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
+    if periodic
+        @tullio Bᵀ[m,n,xᵢᵀ,xⱼᵀ,xᵢ⁰] = prob(wᵢ[end],xᵢ⁰,xᵢᵀ,xⱼᵀ,yᵀ,d,j)*Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
+    else
+        @tullio Bᵀ[m,n,xᵢᵀ,xⱼᵀ,xᵢᵀ⁺¹] = Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
+    end
     any(any(isnan, b) for b in B) && @error "NaN in tensor train"
     return MPEM3(B)
 end
@@ -111,18 +115,18 @@ end
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U}; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp::Real=0.0) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp::Real=0.0, periodic::Bool) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
     @unpack g, w, ϕ, ψ, μ = bp
     ein, eout = inedges(g,i), outedges(g, i)
     wᵢ, ϕᵢ, dᵢ  = w[i], ϕ[i], length(ein)
     @assert wᵢ[1] isa U
     C, full, logzᵢ, sumlogzᵢ₂ⱼ = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
-        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
+        B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j, periodic)
         μj = sweep_RtoL!(mpem2(B); svd_trunc)
         sumlogzᵢ₂ⱼ += set_msg!(bp, μj, idx(e), damp, svd_trunc)
     end
-    B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
+    B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ, periodic)
     bp.b[i] = B |> mpem2 |> marginalize
     logzᵢ += normalize!(bp.b[i])
     bp.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
@@ -166,4 +170,24 @@ end
 
 function prob_y(wᵢ::DampedFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
     return (1-wᵢ.p)*(prob_y(wᵢ.w, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)) + wᵢ.p*(xᵢᵗ⁺¹ == xᵢᵗ)
+end
+
+
+# A factor that behaves like the one it wraps when it comes to the y's, but all x variables 
+#  are equi-probable
+struct UniformBPFactor{T<:RecursiveBPFactor} <: RecursiveBPFactor
+    w :: T      # factor
+end
+
+function nstates(::Type{<:UniformBPFactor{T}}, l::Integer) where {T<:RecursiveBPFactor}
+    nstates(T, l)
+end
+
+prob_y(::UniformBPFactor{T}, xᵢᵗ⁺¹, xᵢᵗ, yₙᵢᵗ, dᵢ) where {T<:RecursiveBPFactor} = 1 / nstates(T, 1)
+prob_xy(wᵢ::UniformBPFactor, yₖ, xₖ, xᵢ) = prob_xy(wᵢ.w, yₖ, xₖ, xᵢ)
+prob_yy(wᵢ::UniformBPFactor, y, y1, y2, xᵢ) = prob_yy(wᵢ.w, y, y1, y2, xᵢ)
+function (wᵢ::UniformBPFactor{T})(xᵢᵗ⁺¹::Integer, 
+        xₙᵢᵗ::AbstractVector{<:Integer}, 
+        xᵢᵗ::Integer) where {T<:RecursiveBPFactor} 
+    return 1 / nstates(T, 1)
 end
