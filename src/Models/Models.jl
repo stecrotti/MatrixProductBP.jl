@@ -21,13 +21,14 @@ import Unzip: unzip
 import Distributions: rand, Poisson, Distribution, Dirac, MixtureModel
 import Random: GLOBAL_RNG, shuffle!
 import Lazy: @forward
+import LinearAlgebra: norm
 
 export 
     RecursiveBPFactor, DampedFactor, beliefs, beliefs_tu,
     mpbp_infinite_graph, pair_beliefs,
     Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
-    equilibrium_magnetization, RandomRegular, ErdosRenyi, CB_Pop,
+    equilibrium_magnetization, RandomRegular, RandomRegularParallel, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
     kl_marginals, l1_marginals, roc, auc,
     RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor

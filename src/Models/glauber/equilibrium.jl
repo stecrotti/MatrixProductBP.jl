@@ -10,7 +10,7 @@ struct ErdosRenyi{T<:Real}
 end
 
 function equilibrium_magnetization(g::RandomRegular, J::Real; β::Real=1.0, h::Real=0.0,
-        maxiter=10^3, tol=1e-16, init=100.0*(sign(h)+rand()), damp=0.0)
+        maxiter=10^3, tol=1e-10, init=100.0*(sign(h)+rand()), damp=0.0)
     k = g.k
     f(u) = (k-1)/β *atanh(tanh(β*u)*tanh(β*J)) + h
 
@@ -116,4 +116,53 @@ function equilibrium_magnetization(pkm1::Distribution, pk::Distribution;
     m_std = std(m) / sqrt(length(m))
 
     return m_avg ± m_std
+end
+
+struct RandomRegularParallel
+    k :: Int
+end
+
+function equilibrium_magnetization(g::RandomRegularParallel, J::Real; β::Real=1.0, 
+    h::Real=0.0,
+    maxiter=10^3, tol=1e-10, init=fill(0.25, 2, 2), damp=0.0, Jself::Real=0.0)
+
+    k = g.k
+
+    function iterate_fixedpoint(f, init; maxiter=10^3, tol=1e-16)
+        x = init
+        err = Inf
+        for _ in 1:maxiter
+            xnew = f(x)
+            norm(xnew) < tol && return zero(xnew)
+            err = norm(x-xnew)/norm(x) 
+            err < tol && return x
+            x = (1-damp)*xnew + damp*x
+        end
+        error("Fixed point iterations did not converge. err=$err")
+    end
+
+    function f(m, k)
+        mnew = map(Iterators.product((1,-1),(1,-1))) do σ
+            σᵢ, σⱼ = σ
+            p = 0.0
+            for σₙᵢ in Iterators.product(fill((1,-1), k)...)
+                p += exp(β*h*σᵢ) * cosh( β*(J*(sum(σₙᵢ) + σⱼ) + h + Jself*σᵢ) ) * 
+                    prod(m[Int(spin2potts(σₖ)),Int(spin2potts(σᵢ))] for σₖ in σₙᵢ)
+            end
+            p
+        end
+        mnew ./= sum(mnew)
+    end
+
+    mstar = iterate_fixedpoint(m->f(m, k-1), init; maxiter, tol)
+
+    pij = map(Iterators.product((1,-1),(1,-1))) do σ
+        σᵢ, σⱼ = σ
+        mstar[Int(spin2potts(σᵢ)),Int(spin2potts(σⱼ))] * mstar[Int(spin2potts(σⱼ)),Int(spin2potts(σᵢ))]
+    end
+    pij ./= sum(pij)
+    pi = sum(pij, dims=2)
+    magnetiz = pi[1] - pi[2]
+    
+    return mstar, pij, magnetiz
 end
