@@ -22,99 +22,96 @@ X, _ = onesample(bp; rng)
     @test logprob(bp, X) ≈ -8.50477067141768 
 end
 
-# draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
+draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
 svd_trunc = TruncBondMax(10)
 @show svd_trunc
 iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
 
-pb, _ = pair_beliefs(bp)
-using Tullio
+b_bp = beliefs(bp)
+p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
-# b_bp = beliefs(bp)
-# p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
+p_exact, Z_exact = exact_prob(bp)
+b_exact = exact_marginals(bp; p_exact)
+p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
-# p_exact, Z_exact = exact_prob(bp)
-# b_exact = exact_marginals(bp; p_exact)
-# p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
+f_bethe = bethe_free_energy(bp)
+Z_bp = exp(-f_bethe)
 
-# f_bethe = bethe_free_energy(bp)
-# Z_bp = exp(-f_bethe)
+f(x,i) = x-1
 
-# f(x,i) = x-1
+r_bp = autocorrelations(f, bp)
+r_exact = exact_autocorrelations(f, bp; p_exact)
 
-# r_bp = autocorrelations(f, bp)
-# r_exact = exact_autocorrelations(f, bp; p_exact)
+c_bp = autocovariances(f, bp)
+c_exact = exact_autocovariances(f, bp; r = r_exact)
 
-# c_bp = autocovariances(f, bp)
-# c_exact = exact_autocovariances(f, bp; r = r_exact)
+@testset "SIS small tree" begin
+    @test Z_exact ≈ Z_bp
+    @test p_ex ≈ p_bp
+    @test r_bp ≈ r_exact
+    @test c_bp ≈ c_exact
+end
 
-# @testset "SIS small tree" begin
-#     @test Z_exact ≈ Z_bp
-#     @test p_ex ≈ p_bp
-#     @test r_bp ≈ r_exact
-#     @test c_bp ≈ c_exact
-# end
+@testset "RestrictedRecursiveBPFactor - RecursiveBPFactor generic methods" begin
+    rng2 = MersenneTwister(111)
+    bpfake = MPBP(bp.g, [RestrictedRecursiveBPFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
+                    deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
 
-# @testset "RestrictedRecursiveBPFactor - RecursiveBPFactor generic methods" begin
-#     rng2 = MersenneTwister(111)
-#     bpfake = MPBP(bp.g, [RestrictedRecursiveBPFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
-#                     deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
+    for i=1:20
+        X, _ = onesample(bp; rng)
+        @test logprob(bp, X) ≈ logprob(bpfake, X)
+    end
 
-#     for i=1:20
-#         X, _ = onesample(bp; rng)
-#         @test logprob(bp, X) ≈ logprob(bpfake, X)
-#     end
+    iterate!(bpfake, maxiter=10; svd_trunc, showprogress=false)
 
-#     iterate!(bpfake, maxiter=10; svd_trunc, showprogress=false)
+    @test beliefs(bpfake) ≈ beliefs(bp)
 
-#     @test beliefs(bpfake) ≈ beliefs(bp)
+end
 
-# end
+@testset "GenericFactor - extensive trace update test" begin
+    rng2 = MersenneTwister(111)
+    bpfake = MPBP(bp.g, [GenericFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
+                    deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
 
-# @testset "GenericFactor - extensive trace update test" begin
-#     rng2 = MersenneTwister(111)
-#     bpfake = MPBP(bp.g, [GenericFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
-#                     deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
+    for i=1:20
+        X, _ = onesample(bp; rng)
+        @test logprob(bp, X) ≈ logprob(bpfake, X)
+    end
 
-#     for i=1:20
-#         X, _ = onesample(bp; rng)
-#         @test logprob(bp, X) ≈ logprob(bpfake, X)
-#     end
+    iterate!(bpfake, maxiter=10; svd_trunc, showprogress=false)
 
-#     iterate!(bpfake, maxiter=10; svd_trunc, showprogress=false)
+    @test beliefs(bpfake) ≈ beliefs(bp)
+    pb_fake,_ = pair_beliefs(bpfake)
+    pb, _ = pair_beliefs(bp)
+    @test pb_fake ≈ pb
+end
 
-#     @test beliefs(bpfake) ≈ beliefs(bp)
-#     pb_fake,_ = pair_beliefs(bpfake)
-#     pb, _ = pair_beliefs(bp)
-#     @test pb_fake ≈ pb
-# end
+@testset "RecursiveTraceFactor" begin
+    rng2 = MersenneTwister(111)
+    bpfake = MPBP(bp.g, [RecursiveTraceFactor.(w,2) for w in bp.w], bp.ϕ, bp.ψ, 
+                    deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
 
-# @testset "RecursiveTraceFactor" begin
-#     rng2 = MersenneTwister(111)
-#     bpfake = MPBP(bp.g, [RecursiveTraceFactor.(w,2) for w in bp.w], bp.ϕ, bp.ψ, 
-#                     deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
+    for i=1:20
+        X, _ = onesample(bp; rng)
+        @test logprob(bp, X) ≈ logprob(bpfake, X)
+    end
 
-#     for i=1:20
-#         X, _ = onesample(bp; rng)
-#         @test logprob(bp, X) ≈ logprob(bpfake, X)
-#     end
+    iterate!(bpfake, maxiter=10; svd_trunc=TruncBond(10), showprogress=false)
 
-#     iterate!(bpfake, maxiter=10; svd_trunc=TruncBond(10), showprogress=false)
+    @test beliefs(bpfake) ≈ beliefs(bp)
 
-#     @test beliefs(bpfake) ≈ beliefs(bp)
+end
 
-# end
+# observe everything and check that the free energy corresponds to the posterior of sample `X`
 
-# # observe everything and check that the free energy corresponds to the posterior of sample `X`
+draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
+reset_messages!(bp)
+iterate!(bp, maxiter=50; svd_trunc, showprogress=false, tol=0)
+f_bethe = bethe_free_energy(bp)
+logl_bp = - f_bethe
+logp = logprob(bp, X)
 
-# draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
-# reset_messages!(bp)
-# iterate!(bp, maxiter=50; svd_trunc, showprogress=false, tol=0)
-# f_bethe = bethe_free_energy(bp)
-# logl_bp = - f_bethe
-# logp = logprob(bp, X)
-
-# @testset "SIS small tree - observe everything" begin
-#     @test logl_bp ≈ logp
-# end
+@testset "SIS small tree - observe everything" begin
+    @test logl_bp ≈ logp
+end

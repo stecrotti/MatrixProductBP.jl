@@ -79,8 +79,6 @@ function sweep_RtoL!(C::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
     @tullio D[m, n, x] := Cᵗ⁻¹[m, k, x] * U[k, n] * λ[n]
     @cast M[m, (n, x)] := D[m, n, x]
 
-    # @show size(C[begin]) size(C[end]) 
-
     for t in getT(C)+1:-1:2
         U, λ, V = svd_trunc(M)
         @cast Aᵗ[m, n, x] := V'[m, (n, x)] x in 1:q
@@ -90,9 +88,6 @@ function sweep_RtoL!(C::MatrixProductTrain; svd_trunc=TruncThresh(1e-6))
         @cast M[m, (n, x)] := D[m, n, x]
     end
     C[begin] = _reshapeas(D, C[begin])
-
-    # @show size(C[begin]) size(C[end]) 
-    # println()
 
     @assert check_bond_dims(C.tensors)
 

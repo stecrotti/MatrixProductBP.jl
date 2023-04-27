@@ -104,14 +104,15 @@ end
 # seems to be type stable
 function glauber_factors(ising::Ising, T::Integer)
     β = ising.β
-    map(1:nv(ising.g)) do i
+    is_homog = is_homogeneous(ising)
+    map(vertices(ising.g)) do i
         ei = inedges(ising.g, i)
         ∂i = idx.(ei)
         J = ising.J[∂i]
         h = ising.h[i]
         wᵢᵗ = if is_absJ_const(ising)
             Jᵢ = length(∂i) == 0 ? 0.0 : J[1] 
-            if is_homogeneous(ising)
+            if is_homog
                 HomogeneousGlauberFactor(Jᵢ, h, β)
             else
                 PMJGlauberFactor(Int.(sign.(J)), β*abs(Jᵢ), β*h)

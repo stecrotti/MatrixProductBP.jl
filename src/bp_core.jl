@@ -137,15 +137,9 @@ function pair_belief(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
     Lᵀ = L[end]; R⁰ = R[begin]
     Lᵀ ≈ R⁰ || @warn "Lᵀ=$Lᵀ, R⁰=$R⁰"
     @tullio z = Lᵀ[a⁰,b⁰,a⁰,b⁰]
-    @tullio zz = R⁰[a⁰,b⁰,a⁰,b⁰]
-    if !(zz ≈ z) || z < 0 || zz < 0
-        @show Lᵀ, R⁰
-        @tullio z2 = Lᵀ[a,b,a,b]
-        @tullio zz2 = R⁰[a,b,a,b]
-        # @show Lᵀ, R⁰
-        @show zz2, z2
-    end
-    # z ≥ 0 || @warn "z=$z"
+    @tullio zR = R⁰[a⁰,b⁰,a⁰,b⁰]
+    @assert z ≈ zR
+    z ≥ 0 || @warn "z=$z"
 
     T = getT(Aᵢⱼ)
     @assert getT(Aⱼᵢ) == T

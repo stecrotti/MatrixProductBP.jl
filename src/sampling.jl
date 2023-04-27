@@ -132,7 +132,7 @@ function pair_marginals(sms::SoftMarginSampler; showprogress::Bool=true)
     for (i,j,id) in edges(g)
         linear = LinearIndices((1:nstates(bp,i), 1:nstates(bp,j)))
         for t in 1:T+1
-            x .= [linear[xx[i, t],xx[j,t]] for xx in X]
+            x .= [linear[xx[i,t],xx[j,t]] for xx in X]
             mijt_avg_linear = proportions(x, nstates(bp,i)*nstates(bp,j), wv)
             mijt_avg = reshape(mijt_avg_linear, linear.indices...)
             # avoid numerical errors yielding probabilities > 1
