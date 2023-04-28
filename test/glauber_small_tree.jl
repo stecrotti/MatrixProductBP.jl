@@ -49,11 +49,17 @@ r_exact = exact_autocorrelations(f, bp; p_exact)
 c_bp = autocovariances(f, bp)
 c_exact = exact_autocovariances(f, bp; r = r_exact)
 
+b_bp = beliefs(bp)
+pb_bp = pair_beliefs(bp)[1]
+p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
+pb_bp2 = marginals.(pair_beliefs_as_mpem(bp)[1])
+
 @testset "Glauber small tree" begin
     @test Z_exact ≈ Z_bp
     @test p_ex ≈ p_bp
     @test r_bp ≈ r_exact
     @test c_bp ≈ c_exact
+    @test pb_bp ≈ pb_bp2
 end
 
 # observe everything and check that the free energy corresponds to the posterior of sample `X`
