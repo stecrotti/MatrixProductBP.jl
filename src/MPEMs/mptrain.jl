@@ -165,7 +165,55 @@ function accumulate_M(A::MatrixProductTrain)
     return M
 end
 
-# compute normalization of an MPEM1 efficiently
+# p(xᵗ) for each t
+function marginals(A::MatrixProductTrain{F,N};
+        L = accumulate_L(A), R = accumulate_R(A)) where {F,N}
+    
+    A⁰ = _reshape1(A[begin]); R¹ = R[2]
+    @reduce p⁰[x] := sum(a¹) A⁰[1,a¹,x] * R¹[a¹]
+    p⁰ ./= sum(p⁰)
+    p⁰ = reshape(p⁰, size(A[begin])[3:end])
+
+    Aᵀ = _reshape1(A[end]); Lᵀ⁻¹ = L[end-1]
+    @reduce pᵀ[x] := sum(aᵀ) Lᵀ⁻¹[aᵀ] * Aᵀ[aᵀ,1,x]
+    pᵀ ./= sum(pᵀ)
+    pᵀ = reshape(pᵀ, size(A[end])[3:end])
+
+    p = map(2:getT(A)) do t 
+        Lᵗ⁻¹ = L[t-1]
+        Aᵗ = _reshape1(A[t])
+        Rᵗ⁺¹ = R[t+1]
+        @reduce pᵗ[x] := sum(aᵗ,aᵗ⁺¹) Lᵗ⁻¹[aᵗ] * Aᵗ[aᵗ,aᵗ⁺¹,x] * Rᵗ⁺¹[aᵗ⁺¹]  
+        pᵗ ./= sum(pᵗ)
+        reshape(pᵗ, size(A[t])[3:end])
+    end
+
+    return append!([p⁰], p, [pᵀ])
+end
+
+# p(xᵗ,xᵘ) for all (t,u)
+function marginals_tu(A::MatrixProductTrain;
+    L = accumulate_L(A), R = accumulate_R(A), M = accumulate_M(A))
+    T = getT(A)
+    qs = reduce(vcat, [x,x] for x in size(A[begin])[3:end])
+    b = [zeros(qs...) for _ in 0:T, _ in 0:T]
+    for t in 1:T
+        Lᵗ⁻¹ = t == 1 ? [1.0;] : L[t-1]
+        Aᵗ = _reshape1(A[t])
+        for u in t+1:T+1
+            Rᵘ⁺¹ = u == T + 1 ? [1.0;] : R[u+1]
+            Aᵘ = _reshape1(A[u])
+            Mᵗᵘ = M[t, u]
+            @tullio bᵗᵘ[xᵗ, xᵘ] :=
+                Lᵗ⁻¹[aᵗ] * Aᵗ[aᵗ, aᵗ⁺¹, xᵗ] * Mᵗᵘ[aᵗ⁺¹, aᵘ] * 
+                Aᵘ[aᵘ, aᵘ⁺¹, xᵘ] * Rᵘ⁺¹[aᵘ⁺¹]
+            bᵗᵘ ./= sum(bᵗᵘ)
+            b[t,u] = reshape(bᵗᵘ, qs...)
+        end
+    end
+    b
+end
+
 function normalization(A::MatrixProductTrain; l = accumulate_L(A), r = accumulate_R(A))
     z = only(l[end])
     @assert only(r[begin]) ≈ z "z=$z, got $(only(r[begin])), A=$A"  # sanity check
