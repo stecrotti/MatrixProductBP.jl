@@ -188,25 +188,40 @@ end
 # return also logzᵢⱼ contributions to logzᵢ
 function pair_beliefs(bp::MPBP{G,F}) where {G,F}
     b = [[zeros(nstates(bp,i),nstates(bp,j)) for _ in 0:getT(bp)] for (i,j) in edges(bp.g)]
+    return _pair_beliefs!(b, pair_belief, bp)
+end
+
+# return pair beliefs in MPEM form
+function pair_beliefs_as_mpem(bp::MPBP{G,F}) where {G,F}
+    b = [mpem2(nstates(bp,i),nstates(bp,j), getT(bp)) for (i,j) in edges(bp.g)]
+    function f(A, B, ψ) 
+        C = pair_belief_as_mpem(A, B, ψ)
+        C, normalization(C)
+    end
+    return _pair_beliefs!(b, f, bp)
+end
+
+function _pair_beliefs!(b, f, bp::MPBP{G,F}) where {G,F}
     logz = zeros(nv(bp.g))
     X = bp.g.X
     N = nv(bp.g)
-    rows = rowvals(X)
     vals = nonzeros(X)
     for j in 1:N
         dⱼ = length(nzrange(X, j))
         for k in nzrange(X, j)
-            i = rows[k]
             ji = k          # idx of message i→j
             ij = vals[k]    # idx of message j→i
             μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
-            bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ, bp.ψ[ij])
+            bᵢⱼ, zᵢⱼ = f(μᵢⱼ, μⱼᵢ, bp.ψ[ij])
             logz[j] += (1/dⱼ- 1/2) * log(zᵢⱼ)
-            b[ij] .= bᵢⱼ
+            b[ij] = bᵢⱼ
         end
     end
     b, logz
 end
+
+
+
 
 beliefs(bp::MPBP{G,F}) where {G,F} = marginals.(bp.b)
 
