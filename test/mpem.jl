@@ -38,7 +38,7 @@ end
     e3 = evaluate(C, x)
     @test e3 ≈ e1
 
-    @test [sum(x,dims=2) for x in pair_marginal(C)] ≈ firstvar_marginal(C)
+    @test [sum(x,dims=2) for x in marginals(C)] ≈ firstvar_marginal(C)
 end
 
 @testset "MPEM2 random" begin
@@ -56,7 +56,7 @@ end
     e3 = evaluate(C, x)
     @test e3 ≈ e1
 
-    @test [sum(x,dims=2) for x in pair_marginal(C)] ≈ firstvar_marginal(C)
+    @test [sum(x,dims=2) for x in marginals(C)] ≈ firstvar_marginal(C)
 end
 
 @testset "MPEM3" begin
@@ -90,6 +90,19 @@ end
             B = MatrixProductBP.MPEMs.rand_mpem( [1; rand(1:7, T-2); 1], qs... )
             x = [rand(1:q[1],N) for t in 0:T]
             @test evaluate(A, x) + evaluate(B, x) ≈ evaluate(A+B, x)
+        end
+    end
+end
+
+@testset "Difference of MPEMs" begin
+    for N in 1:3
+        for q in 1:3
+            qs = fill(q, N)
+            T = 5
+            A = MatrixProductBP.MPEMs.rand_mpem( [1; rand(1:7, T-2); 1], qs... )
+            B = MatrixProductBP.MPEMs.rand_mpem( [1; rand(1:7, T-2); 1], qs... )
+            x = [rand(1:q[1],N) for t in 0:T]
+            @test evaluate(A, x) - evaluate(B, x) ≈ evaluate(A - B, x)
         end
     end
 end
