@@ -24,7 +24,7 @@ import CavityTools: cavity
 export
     BPFactor, nstates, MPBP, mpbp, reset_messages!, reset_beliefs!, reset_observations!,
     reset!, onebpiter!, CB_BP, iterate!, 
-    pair_beliefs, pair_beliefs_tu, beliefs_tu, autocorrelations,
+    pair_beliefs, pair_beliefs_as_mpem, pair_beliefs_tu, beliefs_tu, autocorrelations,
     autocovariances, means, beliefs, bethe_free_energy, 
     logprob, expectation, pair_observations_directed, 
     pair_observations_nondirected, pair_obs_undirected_to_directed,
