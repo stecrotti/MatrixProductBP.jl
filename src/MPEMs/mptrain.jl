@@ -157,8 +157,9 @@ function accumulate_M(A::MatrixProductTrain)
         Mᵗᵘ⁻¹ = M[t, t+1]
         for u in t+2:T+1
             Aᵘ⁻¹ = _reshape1(A[u-1])
-            @reduce Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ] |= sum(aᵘ⁻¹, x) Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ⁻¹] * Aᵘ⁻¹[aᵘ⁻¹, aᵘ, x]
-            M[t, u] = Mᵗᵘ⁻¹
+            @tullio Mᵗᵘ[aᵗ⁺¹, aᵘ] := Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ⁻¹] * Aᵘ⁻¹[aᵘ⁻¹, aᵘ, x]
+            M[t, u] = Mᵗᵘ
+            Mᵗᵘ⁻¹, Mᵗᵘ = Mᵗᵘ, Mᵗᵘ⁻¹
         end
     end
 
@@ -192,15 +193,16 @@ function marginals(A::MatrixProductTrain{F,N};
 end
 
 # p(xᵗ,xᵘ) for all (t,u)
-function marginals_tu(A::MatrixProductTrain;
-    L = accumulate_L(A), R = accumulate_R(A), M = accumulate_M(A))
+function marginals_tu(A::MatrixProductTrain{F,N};
+        L = accumulate_L(A), R = accumulate_R(A), M = accumulate_M(A),
+        Δtmax = getT(A)) where {F,N}
     T = getT(A)
-    qs = reduce(vcat, [x,x] for x in size(A[begin])[3:end])
-    b = [zeros(qs...) for _ in 0:T, _ in 0:T]
+    qs = tuple(reduce(vcat, [x,x] for x in size(A[begin])[3:end])...)
+    b = Array{F,2*(N-2)}[fill(-Inf, fill(0, 2*(N-2))...) for _ in 0:T, _ in 0:T]
     for t in 1:T
         Lᵗ⁻¹ = t == 1 ? [1.0;] : L[t-1]
         Aᵗ = _reshape1(A[t])
-        for u in t+1:T+1
+        for u in t+1:min(T+1,t+Δtmax)
             Rᵘ⁺¹ = u == T + 1 ? [1.0;] : R[u+1]
             Aᵘ = _reshape1(A[u])
             Mᵗᵘ = M[t, u]
@@ -208,7 +210,7 @@ function marginals_tu(A::MatrixProductTrain;
                 Lᵗ⁻¹[aᵗ] * Aᵗ[aᵗ, aᵗ⁺¹, xᵗ] * Mᵗᵘ[aᵗ⁺¹, aᵘ] * 
                 Aᵘ[aᵘ, aᵘ⁺¹, xᵘ] * Rᵘ⁺¹[aᵘ⁺¹]
             bᵗᵘ ./= sum(bᵗᵘ)
-            b[t,u] = reshape(bᵗᵘ, qs...)
+            b[t,u] = reshape(bᵗᵘ, qs)
         end
     end
     b
