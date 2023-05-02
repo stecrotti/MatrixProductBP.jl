@@ -198,7 +198,7 @@ function marginals_tu(A::MatrixProductTrain{F,N};
         Δtmax = getT(A)) where {F,N}
     T = getT(A)
     qs = tuple(reduce(vcat, [x,x] for x in size(A[begin])[3:end])...)
-    b = Array{F,2*(N-2)}[fill(-Inf, fill(0, 2*(N-2))...) for _ in 0:T, _ in 0:T]
+    b = Array{F,2*(N-2)}[zeros(ones(Int, 2*(N-2))...) for _ in 0:T, _ in 0:T]
     for t in 1:T
         Lᵗ⁻¹ = t == 1 ? [1.0;] : L[t-1]
         Aᵗ = _reshape1(A[t])
