@@ -23,9 +23,7 @@ import Random: GLOBAL_RNG, shuffle!
 import Lazy: @forward
 
 export 
-    RecursiveBPFactor, DampedFactor, beliefs, beliefs_tu,
-    mpbp_infinite_graph, pair_beliefs,
-    Ising, Glauber, 
+    RecursiveBPFactor, DampedFactor, Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
     equilibrium_magnetization, RandomRegular, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
@@ -35,7 +33,6 @@ export
 
 include("recursive_bp_factor.jl")
 include("test_factors.jl")
-include("infinite_graph.jl")
 
 include("glauber/glauber.jl")
 include("glauber/glauber_bp.jl")

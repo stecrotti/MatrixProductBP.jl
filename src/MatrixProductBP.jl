@@ -6,7 +6,7 @@ import TensorCast: @reduce, @cast, TensorCast
 import LoopVectorization
 import Tullio: @tullio
 import IndexedGraphs: nv, ne, edges, vertices, AbstractIndexedDiGraph, IndexedGraph,
-    IndexedBiDiGraph, inedges, outedges, src, dst, idx, neighbors
+    IndexedBiDiGraph, inedges, outedges, src, dst, idx, neighbors, IndexedEdge
 import UnPack: @unpack
 import Random: shuffle!, AbstractRNG, GLOBAL_RNG
 import SparseArrays: rowvals, nonzeros, nzrange
@@ -26,6 +26,7 @@ export
     reset!, onebpiter!, CB_BP, iterate!, 
     pair_beliefs, pair_beliefs_as_mpem, pair_beliefs_tu, beliefs_tu, autocorrelations,
     autocovariances, means, beliefs, bethe_free_energy, 
+    mpbp_infinite_graph,
     logprob, expectation, pair_observations_directed, 
     pair_observations_nondirected, pair_obs_undirected_to_directed,
     exact_prob, exact_marginals, site_marginals, exact_autocorrelations,
@@ -48,6 +49,7 @@ using .MPEMs, Reexport
 
 include("bp_core.jl")
 include("mpbp.jl")
+include("infinite_graph.jl")
 include("exact.jl")
 include("sampling.jl")
 
