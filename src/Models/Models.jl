@@ -25,7 +25,7 @@ import Lazy: @forward
 export 
     RecursiveBPFactor, DampedFactor, Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
-    equilibrium_magnetization, RandomRegular, ErdosRenyi, CB_Pop,
+    equilibrium_magnetization, equilibrium_observables, RandomRegular, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
     kl_marginals, l1_marginals, roc, auc,
     RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor
