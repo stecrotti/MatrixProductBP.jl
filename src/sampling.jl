@@ -148,8 +148,8 @@ end
 
 function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true)
     @unpack bp, X, w = sms
-    N = nv(bp.g); T = getT(bp); qs = [nstates(bp, i) for i in vertices(bp.g)]
-    r = [fill(zero(Measurement), T+1, T+1) for i in 1:N]
+    N = nv(bp.g); T = getT(bp)
+    r = [fill(zero(Measurement), T+1, T+1) for _ in 1:N]
     @assert all(>=(0), w)
     wv = weights(w)
     nsamples = length(X)
@@ -158,7 +158,7 @@ function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true)
 
     for i in 1:N
         for u in axes(r[i], 2), t in 1:u-1
-            q = qs[i]
+            q = nstates(bp, i)
             mtu_avg = zeros(q, q)
             for (n, x) in enumerate(X)
                 mtu_avg[x[i,t], x[i,u]] += wv[n]
