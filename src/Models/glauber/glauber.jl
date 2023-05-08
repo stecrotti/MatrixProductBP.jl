@@ -8,11 +8,18 @@ struct Ising{F<:AbstractFloat}
     J :: Vector{F}
     h :: Vector{F}
     β :: F
+
+    function Ising(g::IndexedGraph{Int}, J::Vector{F}, h::Vector{F}, β::F) where {F<:AbstractFloat}
+        N = nv(g); E = ne(g)
+        @assert length(J) == E
+        @assert length(h) == N
+        new{F}(g, J, h, β)
+    end
 end
 
 function Ising(J::AbstractMatrix{F}, h::Vector{F}, β::F) where {F<:AbstractFloat}
     Jvec = [J[i,j] for j in axes(J,2) for i in axes(J,1) if i < j && J[i,j]!=0]
-    g = IndexedGraph(J)
+    g = IndexedGraph(Symmetric(J, :L))
     Ising(g, Jvec, h, β)
 end
 
