@@ -27,7 +27,7 @@ function equilibrium_observables(g::RandomRegular, J::Real; β::Real=1.0, h::Rea
     k = g.k
     f(u) = (k-1)/β *atanh(tanh(β*u)*tanh(β*J)) + h
     ustar = iterate_fixedpoint(f, init; maxiter, tol, damp)
-    m = tanh(β*(k*ustar-h)/(k-1))
+    m = tanh(β*(h + (ustar-h)*k/(k-1)))
     r = (1 + tanh(β*ustar)^2/tanh(β*J)) / (1/tanh(β*J) + tanh(β*ustar)^2)
     e = -k/2*J*r - m*h
     return (; m=m, r=r, e=e)
