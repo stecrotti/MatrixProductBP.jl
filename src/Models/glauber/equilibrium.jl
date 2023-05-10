@@ -22,22 +22,20 @@ function iterate_fixedpoint(f, init; maxiter=10^3, tol=1e-16, damp=0.0)
     error("Fixed point iterations did not converge. err=$err")
 end
 
-function equilibrium_magnetization(g::RandomRegular, J::Real; β::Real=1.0, h::Real=0.0,
+function equilibrium_observables(g::RandomRegular, J::Real; β::Real=1.0, h::Real=0.0,
         maxiter=10^3, tol=1e-16, init=100.0*(sign(h)+rand()), damp=0.0)
     k = g.k
     f(u) = (k-1)/β *atanh(tanh(β*u)*tanh(β*J)) + h
     ustar = iterate_fixedpoint(f, init; maxiter, tol, damp)
-    return abs( tanh(β*(k*ustar-h)/(k-1)) )
+    m = tanh(β*(h + (ustar-h)*k/(k-1)))
+    r = (1 + tanh(β*ustar)^2/tanh(β*J)) / (1/tanh(β*J) + tanh(β*ustar)^2)
+    e = -k/2*J*r - m*h
+    return (; m=m, r=r, e=e)
 end
 
-function equilibrium_energy(g::RandomRegular, J::Real; β::Real=1.0, h::Real=0.0,
-        maxiter=10^3, tol=1e-16, init=100.0*(sign(h)+rand()), damp=0.0)
-    k = g.k
-    f(u) = (k-1)/β *atanh(tanh(β*u)*tanh(β*J)) + h
-    ustar = iterate_fixedpoint(f, init; maxiter, tol, damp)
-    m = tanh(β*(k*ustar-h)/(k-1))
-    e = (1 + tanh(β*ustar)^2/tanh(β*J)) / (1/tanh(β*J) + tanh(β*ustar)^2)
-    return -k/2*J*e - m*h
+function equilibrium_energy(g::RandomRegular, J::Real; kw...)
+    r = equilibrium_correlation(g, J; kw...)
+    return -k/2*J*r - m*h
 end
 
 # A callback to print info and save stuff during the iterations 
