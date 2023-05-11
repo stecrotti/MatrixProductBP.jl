@@ -27,7 +27,7 @@ export
     mpbp_infinite_graph, pair_beliefs,
     Ising, Glauber, 
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
-    equilibrium_magnetization, equilibrium_energy, RandomRegular, ErdosRenyi, CB_Pop,
+    equilibrium_observables, equilibrium_energy, RandomRegular, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
     kl_marginals, l1_marginals, roc, auc,
     RecursiveTraceFactor, GenericFactor, RestrictedRecursiveBPFactor
