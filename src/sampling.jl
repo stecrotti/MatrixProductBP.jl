@@ -3,7 +3,7 @@ import CavityTools: ExponentialQueue
 
 # as in https://doi.org/10.1103/PhysRevLett.114.248701
 # draw samples from the prior and weight them with their likelihood
-struct SoftMarginSampler{B<:MPBP, F<:AbstractFloat}
+struct SoftMarginSampler{B<:MPBP, F<:Real}
     bp :: B
     X  :: Vector{Matrix{Int}}
     w  :: Vector{F}
@@ -22,7 +22,7 @@ end
 
 function SoftMarginSampler(bp::MPBP)
     X = Matrix{Int}[]
-    w = zeros(0)
+    w = zeros(ULogarithmic, 0)
     SoftMarginSampler(bp, X, w)
 end
 
@@ -71,7 +71,7 @@ function sample!(sms::SoftMarginSampler, nsamples::Integer;
     T = getT(sms.bp); N = getN(sms.bp)
     X = [zeros(Int, N, T+1) for _ in 1:nsamples]
     p⁰ = [ϕᵢ[1] ./ sum(ϕᵢ[1]) for ϕᵢ in sms.bp.ϕ]
-    w = zeros(nsamples)
+    w = zeros(ULogarithmic, nsamples)
     for n in 1:nsamples
         _, w[n] = onesample!(X[n], sms.bp; p⁰, rng)
         next!(prog)
@@ -101,8 +101,6 @@ function marginals(sms::SoftMarginSampler; showprogress::Bool=true, sites=vertic
         for t in 1:T+1
             x = [xx[i, t] for xx in X]
             mit_avg = proportions(x, nstates(bp,i), wv)
-            # avoid numerical errors yielding probabilities > 1
-            mit_avg = map(x -> x≥1 ? 1 : x, mit_avg)
             mit_var = mit_avg .* (1 .- mit_avg) ./ nsamples
             marg[a][t] .= mit_avg .± sqrt.( mit_var )
         end
@@ -137,8 +135,6 @@ function pair_marginals(sms::SoftMarginSampler; showprogress::Bool=true)
             x .= [linear[xx[i, t],xx[j,t]] for xx in X]
             mijt_avg_linear = proportions(x, nstates(bp,i)*nstates(bp,j), wv)
             mijt_avg = reshape(mijt_avg_linear, linear.indices...)
-            # avoid numerical errors yielding probabilities > 1
-            mijt_avg = map(x -> x≥1 ? 1 : x, mijt_avg)
             mijt_var = mijt_avg .* (1 .- mijt_avg) ./ nsamples
             marg[id][t] .= mijt_avg .± sqrt.( mijt_var )
         end
