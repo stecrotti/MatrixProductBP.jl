@@ -19,6 +19,7 @@ import LogExpFunctions: logistic, logsumexp
 import .Threads: SpinLock, lock, unlock
 import Lazy: @forward
 import CavityTools: cavity
+import LogarithmicNumbers: ULogarithmic
 
 
 export

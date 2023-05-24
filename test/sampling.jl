@@ -13,9 +13,9 @@ sis = SIS(g, λ, ρ, T; γ)
 bp = mpbp(sis)
 rng = MersenneTwister(111)
 
-draw_node_observations!(bp, N, last_time=true; rng)
+draw_node_observations!(bp, N, last_time=true; rng, softinf=1e2)
 
-sms = sample(bp, 10; showprogress=false)
+sms = sample(bp, 10; showprogress=false, rng)
 m = marginals(sms)
 pb = pair_marginals(sms)
 
