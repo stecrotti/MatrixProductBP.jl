@@ -231,10 +231,10 @@ expectation(f, p::Matrix{<:Real}) = sum(f(xi) * f(xj) * p[xi, xj] for xi in axes
 
 expectation(f, p::Vector{<:Real}) = sum(f(xi) * p[xi] for xi in eachindex(p))
 
-function autocorrelations(f, bp::MPBP; showprogress::Bool=false)
+function autocorrelations(f, bp::MPBP; showprogress::Bool=false, sites=vertices(bp.g))
     dt = showprogress ? 0.1 : Inf
     prog = Progress(nv(bp.g); dt, desc="Computing autocorrelations")
-    map(vertices(bp.g)) do i
+    map(sites) do i
         next!(prog)
         expectation.(x->f(x, i), marginals_tu(bp.b[i]))
     end
@@ -242,18 +242,17 @@ end
 
 autocorrelations(bp::MPBP; kw...) = autocorrelations((x,i)->x, bp; kw...)
 
-function means(f, bp::MPBP)
-    map(vertices(bp.g)) do i
+function means(f, bp::MPBP; sites=vertices(bp.g))
+    map(sites) do i
         expectation.(x->f(x, i), marginals(bp.b[i]))
     end
 end
 
-
 covariance(r::Matrix{<:Real}, μ::Vector{<:Real}) = r .- μ*μ'
 
-function autocovariances(f, bp::MPBP; kw...)
-    μ = means(f, bp)
-    r = autocorrelations(f, bp; kw...) 
+function autocovariances(f, bp::MPBP; sites=vertices(bp.g), kw...)
+    μ = means(f, bp; sites)
+    r = autocorrelations(f, bp; sites, kw...) 
     covariance.(r, μ)
 end
 
