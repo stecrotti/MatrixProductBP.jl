@@ -88,23 +88,23 @@ function sample(bp::MPBP, nsamples::Integer; kw...)
 end
 
 # return a (T+1) by N matrix, with uncertainty estimates
-function marginals(sms::SoftMarginSampler; showprogress::Bool=true) 
+function marginals(sms::SoftMarginSampler; showprogress::Bool=true, sites=vertices(sms.bp.g)) 
     @unpack bp, X, w = sms
-    N = nv(bp.g); T = getT(bp);
-    marg = [[zeros(Measurement, nstates(bp,i)) for t in 0:T] for i in 1:N]
+    N = length(sites); T = getT(bp);
+    marg = [[zeros(Measurement, nstates(bp,i)) for t in 0:T] for i in sites]
     @assert all(>=(0), w)
     wv = weights(w)
     nsamples = length(X)
     prog = Progress(N, desc="Marginals from Soft Margin"; dt=showprogress ? 0.1 : Inf)
 
-    for i in 1:N
+    for (a,i) in pairs(sites)
         for t in 1:T+1
             x = [xx[i, t] for xx in X]
             mit_avg = proportions(x, nstates(bp,i), wv)
             # avoid numerical errors yielding probabilities > 1
             mit_avg = map(x -> x≥1 ? 1 : x, mit_avg)
             mit_var = mit_avg .* (1 .- mit_avg) ./ nsamples
-            marg[i][t] .= mit_avg .± sqrt.( mit_var )
+            marg[a][t] .= mit_avg .± sqrt.( mit_var )
         end
         next!(prog)
     end
@@ -112,8 +112,8 @@ function marginals(sms::SoftMarginSampler; showprogress::Bool=true)
    return marg
 end
 
-function means(f, sms::SoftMarginSampler)
-    b_mc = marginals(sms)
+function means(f, sms::SoftMarginSampler; sites=vertices(bp.g))
+    b_mc = marginals(sms; sites)
     return [[expectation(f, bb) for bb in b] for b in b_mc]
 end
 
@@ -146,9 +146,10 @@ function pair_marginals(sms::SoftMarginSampler; showprogress::Bool=true)
    return marg
 end
 
-function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true)
+function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true, 
+        sites=vertices(sms.bp.g))
     @unpack bp, X, w = sms
-    N = nv(bp.g); T = getT(bp)
+    N = length(sites); T = getT(bp)
     r = [fill(zero(Measurement), T+1, T+1) for _ in 1:N]
     @assert all(>=(0), w)
     wv = weights(w)
@@ -156,8 +157,8 @@ function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true)
     dt = showprogress ? 0.1 : Inf
     prog = Progress(N, desc="Autocorrelations from Soft Margin"; dt)
 
-    for i in 1:N
-        for u in axes(r[i], 2), t in 1:u-1
+    for (a,i) in pairs(sites)
+        for u in axes(r[a], 2), t in 1:u-1
             q = nstates(bp, i)
             mtu_avg = zeros(q, q)
             for (n, x) in enumerate(X)
@@ -165,7 +166,7 @@ function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true)
             end
             mtu_avg ./= wv.sum
             mtu_var = mtu_avg .* (1 .- mtu_avg) ./ nsamples
-            r[i][t,u] = expectation(x->f(x, 0), mtu_avg .± sqrt.( mtu_var ))  
+            r[a][t,u] = expectation(x->f(x, 0), mtu_avg .± sqrt.( mtu_var ))  
         end
         next!(prog)
     end
@@ -173,9 +174,10 @@ function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true)
 end
 
 function autocovariances(f, sms::SoftMarginSampler; showprogress::Bool=true,
-        r = autocorrelations(f, sms; showprogress), m = marginals(sms))
-    μ = [expectation.(x->f(x, i), m[i]) for i in eachindex(m)] 
-    covariance.(r, μ)
+        sites=vertices(sms.bp.g), r = autocorrelations(f, sms; showprogress, sites), 
+        μ = means(f, sms; sites))
+    @assert length(μ) == size(r, 1)
+    return covariance.(r, μ)
 end
 
 
