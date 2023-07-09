@@ -22,7 +22,7 @@ end
 # sample an index `i` of `w` with probability prop to `w[i]`
 # copied from StatsBase but avoids creating a `Weight` object
 function sample_noalloc(rng::AbstractRNG, w) 
-    t = rand(rng) * sum(w)
+    t = rand(rng)# * sum(w)
     i = 0
     cw = 0.0
     for p in w
