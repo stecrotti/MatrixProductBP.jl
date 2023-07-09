@@ -260,22 +260,21 @@ function _compose(f, A::MatrixProductTrain{F,NA}, B::MatrixProductTrain{F,NB}) w
     MatrixProductTrain(tensors)
 end
 
-# hierarchical sampling p(x) = p(x⁰)p(x¹|x⁰) ...
-# returns probability of the sampled sequence
+# hierarchical sampling p(x) = p(x⁰)p(x¹|x⁰)p(x²|x¹,x⁰) ...
+# returns `x,p`, the sampled sequence and its probability
 function sample!(rng::AbstractRNG, x, A::MatrixProductTrain{F,N};
         R = accumulate_R(A)) where {F,N}
     T = getT(A)
     @assert length(x) == T + 1
     @assert all(length(xᵗ) == N-2 for xᵗ in x)
 
-    Q = ones(F, 1)
+    Q = ones(F, 1)  # stores product of the first `t` matrices, evaluated at the sampled `x⁰,x¹,...,xᵗ`
     for t in eachindex(A)
         Rᵗ⁺¹ = t == T+1 ? ones(F,1) : R[t+1]
         # collapse multivariate xᵗ into 1D vector, sample from it
         Aᵗ = _reshape1(A[t])
         @tullio p[x] := Q[m] * Aᵗ[m,n,x] * Rᵗ⁺¹[n]
         p ./= sum(p)
-        # sample new value
         xᵗ = sample_noalloc(rng, p)
         x[t] .= CartesianIndices(size(A[t])[3:end])[xᵗ] |> Tuple
         # update prob
