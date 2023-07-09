@@ -106,3 +106,17 @@ end
         end
     end
 end
+
+@testset "Sample MPS - probability value" begin
+    rng = MersenneTwister(0)
+    for N in 1:3
+        for q in 1:3
+            qs = fill(q, N)
+            T = 5
+            A = MatrixProductBP.MPEMs.rand_mpem( [1; rand(rng, 1:7, T-2); 1], qs... )
+            x, p = sample(rng, A)
+            normalize!(A)
+            @test evaluate(A, x) ≈ p
+        end
+    end
+end
