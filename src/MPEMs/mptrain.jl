@@ -268,7 +268,7 @@ function sample!(rng::AbstractRNG, x, A::MatrixProductTrain{F,N};
     @assert length(x) == T + 1
     @assert all(length(xᵗ) == N-2 for xᵗ in x)
 
-    Q = ones(F, 1)  # stores product of the first `t` matrices, evaluated at the sampled `x⁰,x¹,...,xᵗ`
+    Q = ones(F, 1, 1)  # stores product of the first `t` matrices, evaluated at the sampled `x⁰,x¹,...,xᵗ`
     for t in eachindex(A)
         Rᵗ⁺¹ = t == T+1 ? ones(F,1) : R[t+1]
         # collapse multivariate xᵗ into 1D vector, sample from it
