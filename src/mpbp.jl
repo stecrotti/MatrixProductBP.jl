@@ -23,15 +23,15 @@ struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
         @assert check_ψs(ψ, g)
         @assert all( length(ϕᵢ) == T + 1 for ϕᵢ in ϕ )
         @assert all( length(ψᵢ) == T + 1 for ψᵢ in ψ )
-        @assert all( getT(μᵢⱼ) == T for μᵢⱼ in μ)
-        @assert all( getT(bᵢ) == T for bᵢ in b )
+        @assert all( length(μᵢⱼ) == T + 1 for μᵢⱼ in μ)
+        @assert all( length(bᵢ) == T + 1 for bᵢ in b )
         @assert length(μ) == ne(g)
         normalize!.(μ)
         return new{G,F,V}(g, w, ϕ, ψ, AtomicVector(μ), b, f)
     end
 end
 
-getT(bp::MPBP) = getT(bp.b[1])
+getT(bp::MPBP) = length(bp.b[1]) - 1
 getN(bp::MPBP) = nv(bp.g)
 nstates(bp::MPBP, i) = nstates(bp.b[i])
 
