@@ -22,10 +22,16 @@ pb = pair_marginals(sms)
 f(x,i) = x-1
 c = autocovariances(f, sms)
 
+@testset "sampling - SoftMargin" begin
+    @test all(all(all(0 ≤ x.val ≤ 1 for x in mit) for mit in mi) for mi in m)
+    @test all(all(all(0 ≤ x.val ≤ 1 for x in pbit) for pbit in pbi) for pbi in pb)
+    @test all(all(all(-1 ≤ x.val ≤ 1 for x in cit) for cit in ci) for ci in c)
+end
+
 av, va = continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^4, sites=1,
     discard_dead_epidemics=true)
 
 # just check that it runs without errors
-@testset "sampling" begin
+@testset "sampling - Gillespie" begin
     @test true
 end
