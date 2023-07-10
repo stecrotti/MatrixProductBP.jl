@@ -18,8 +18,8 @@ Base.broadcastable(b::BPFactor) = Ref(b)
 function f_bp(A::Vector{MPEM2{F}}, wᵢ::Vector{U}, 
         ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}}, j_index::Integer;
         showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {F,U<:BPFactor}
-    T = getT(A[1])
-    @assert all(getT(a) == T for a in A)
+    T = length(A[1]) - 1
+    @assert all(length(a) == T + 1 for a in A)
     @assert length(wᵢ) == T + 1
     @assert length(ϕᵢ) == T + 1
     q = length(ϕᵢ[1])
@@ -63,8 +63,8 @@ end
 function f_bp_dummy_neighbor(A::Vector{MPEM2{F}}, 
         wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
         showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0)) where {F,U<:BPFactor}
-    T = getT(A[1])
-    @assert all(getT(a) == T for a in A)
+    T = length(A[1]) - 1
+    @assert all(length(a) == T + 1 for a in A)
     q = length(ϕᵢ[1])
     @assert length(wᵢ) == T + 1
     @assert length(ϕᵢ) == T + 1
@@ -95,102 +95,6 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
 
     return MPEM3(B), 0.0
 end
-
-# function accumulate_L(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
-#     T = getT(Aᵢⱼ)
-#     @assert getT(Aⱼᵢ) == T
-#     L = [zeros(0, 0) for _ in 0:T]
-#     Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]; ψᵢⱼ⁰ = ψᵢⱼ[begin] 
-#     @tullio L⁰[a¹, b¹] := Aᵢⱼ⁰[1, a¹, xᵢ⁰, xⱼ⁰] * ψᵢⱼ⁰[xᵢ⁰, xⱼ⁰] * Aⱼᵢ⁰[1, b¹, xⱼ⁰, xᵢ⁰]
-#     L[1] = L⁰
-
-#     for t in 1:T
-#         Aᵢⱼᵗ = Aᵢⱼ[t+1]; Aⱼᵢᵗ = Aⱼᵢ[t+1]; ψᵢⱼᵗ = ψᵢⱼ[t+1]; Lᵗ = L[t]
-#         @tullio Lᵗ⁺¹[aᵗ⁺¹, bᵗ⁺¹] := Lᵗ[aᵗ, bᵗ] * Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ]
-#         L[t+1] = Lᵗ⁺¹
-#     end
-#     return L
-# end
-
-# function accumulate_R(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
-#     T = getT(Aᵢⱼ)
-#     @assert getT(Aⱼᵢ) == T
-#     R = [zeros(0, 0) for _ in 0:T]
-#     Aᵢⱼᵀ = Aᵢⱼ[end]; Aⱼᵢᵀ = Aⱼᵢ[end]; ψᵢⱼᵀ = ψᵢⱼ[end]
-#     @tullio Rᵀ[aᵀ, bᵀ] := Aᵢⱼᵀ[aᵀ, 1, xᵢᵀ, xⱼᵀ] * ψᵢⱼᵀ[xᵢᵀ, xⱼᵀ] * Aⱼᵢᵀ[bᵀ, 1, xⱼᵀ, xᵢᵀ]
-#     R[end] = Rᵀ
-
-#     for t in T:-1:1
-#         Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; ψᵢⱼᵗ = ψᵢⱼ[t]; Rᵗ⁺¹ = R[t+1]
-#         @tullio Rᵗ[aᵗ, bᵗ] := Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] * Rᵗ⁺¹[aᵗ⁺¹, bᵗ⁺¹]
-#         R[t] = Rᵗ
-#     end
-#     return R
-# end
-
-# function accumulate_M(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
-#     T = getT(Aᵢⱼ)
-#     @assert getT(Aⱼᵢ) == T
-#     M = [zeros(0, 0, 0, 0) for _ in 0:T, _ in 0:T]
-
-#     # initial condition
-#     for t in 1:T
-#         range_aᵗ⁺¹ = axes(Aᵢⱼ[t+1], 1)
-#         range_bᵗ⁺¹ = axes(Aⱼᵢ[t+1], 1)
-#         Mᵗᵗ⁺¹ = [float((a == c) * (b == d)) for a in range_aᵗ⁺¹, c in range_aᵗ⁺¹, b in range_bᵗ⁺¹, d in range_bᵗ⁺¹]
-#         M[t, t+1] = Mᵗᵗ⁺¹
-#     end
-
-#     for t in 1:T
-#         Mᵗᵘ⁻¹ = M[t, t+1]
-#         for u in t+2:T+1
-#             Aᵢⱼᵘ⁻¹ = Aᵢⱼ[u-1]; Aⱼᵢᵘ⁻¹ = Aⱼᵢ[u-1]; ψᵢⱼᵘ⁻¹ = ψᵢⱼ[u-1]
-#             @reduce Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ, bᵗ⁺¹, bᵘ] |= sum(aᵘ⁻¹, bᵘ⁻¹, xᵢᵘ⁻¹, xⱼᵘ⁻¹) Mᵗᵘ⁻¹[aᵗ⁺¹, aᵘ⁻¹, bᵗ⁺¹, bᵘ⁻¹] * 
-#                 Aᵢⱼᵘ⁻¹[aᵘ⁻¹, aᵘ, xᵢᵘ⁻¹, xⱼᵘ⁻¹] * ψᵢⱼᵘ⁻¹[xᵢᵘ⁻¹, xⱼᵘ⁻¹] * Aⱼᵢᵘ⁻¹[bᵘ⁻¹, bᵘ, xⱼᵘ⁻¹, xᵢᵘ⁻¹]
-#             M[t, u] = Mᵗᵘ⁻¹
-#         end
-#     end
-
-#     return M
-# end
-
-# compute bᵢⱼᵗ(xᵢᵗ,xⱼᵗ) from μᵢⱼ and μⱼᵢ
-# also return normalization zᵢⱼ
-# function pair_belief(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
-
-#     L = accumulate_L(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
-#     R = accumulate_R(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
-#     z = only(L[end])
-#     @assert only(R[begin]) ≈ z
-#     z ≥ 0 || @warn "z=$z"
-
-#     T = getT(Aᵢⱼ)
-#     @assert getT(Aⱼᵢ) == T
-
-#     Aᵢⱼ⁰ = Aᵢⱼ[begin]; Aⱼᵢ⁰ = Aⱼᵢ[begin]; ψᵢⱼ⁰ = ψᵢⱼ[begin]
-#     R¹ = R[2]
-#     @reduce b⁰[xᵢ⁰, xⱼ⁰] := sum(a¹, b¹) Aᵢⱼ⁰[1, a¹, xᵢ⁰, xⱼ⁰] * ψᵢⱼ⁰[xᵢ⁰, xⱼ⁰] *
-#         Aⱼᵢ⁰[1, b¹, xⱼ⁰, xᵢ⁰] * R¹[a¹, b¹]
-#     b⁰ ./= sum(b⁰)
-
-#     Aᵢⱼᵀ = Aᵢⱼ[end]; Aⱼᵢᵀ = Aⱼᵢ[end]; ψᵢⱼᵀ = ψᵢⱼ[end]
-#     Lᵀ⁻¹ = L[end-1]
-#     @reduce bᵀ[xᵢᵀ, xⱼᵀ] := sum(aᵀ, bᵀ) Lᵀ⁻¹[aᵀ, bᵀ] * Aᵢⱼᵀ[aᵀ, 1, xᵢᵀ, xⱼᵀ] *
-#         ψᵢⱼᵀ[xᵢᵀ, xⱼᵀ] * Aⱼᵢᵀ[bᵀ, 1, xⱼᵀ, xᵢᵀ]
-#     bᵀ ./= sum(bᵀ)
-
-#     b = map(2:T) do t
-#         Lᵗ⁻¹ = L[t-1]
-#         Aᵢⱼᵗ = Aᵢⱼ[t]; Aⱼᵢᵗ = Aⱼᵢ[t]; ψᵢⱼᵗ = ψᵢⱼ[t]
-#         Rᵗ⁺¹ = R[t+1]
-#         @reduce bᵗ[xᵢᵗ, xⱼᵗ] := sum(aᵗ, aᵗ⁺¹, bᵗ, bᵗ⁺¹) Lᵗ⁻¹[aᵗ, bᵗ] *
-#                                 Aᵢⱼᵗ[aᵗ, aᵗ⁺¹, xᵢᵗ, xⱼᵗ] * Aⱼᵢᵗ[bᵗ, bᵗ⁺¹, xⱼᵗ, xᵢᵗ] * 
-#                                 ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ] * Rᵗ⁺¹[aᵗ⁺¹, bᵗ⁺¹]
-#         bᵗ ./= sum(bᵗ)
-#     end
-
-#     return [b⁰, b..., bᵀ], z
-# end
 
 function pair_belief_as_mpem(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
     A = map(zip(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)) do (Aᵢⱼᵗ, Aⱼᵢᵗ, ψᵢⱼᵗ)
