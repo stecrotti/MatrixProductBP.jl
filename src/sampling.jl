@@ -114,7 +114,9 @@ end
 
 function means(f, sms::SoftMarginSampler; sites=vertices(bp.g))
     b_mc = marginals(sms; sites)
-    return [[expectation(f, bb) for bb in b] for b in b_mc]
+    map(zip(sites, b_mc)) do (i, bᵢ)
+        expectation.(x->f(x, i), bᵢ)
+    end
 end
 
 # return a (T+1) by |E| matrix, with uncertainty estimates
@@ -166,7 +168,7 @@ function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true,
             end
             mtu_avg ./= wv.sum
             mtu_var = mtu_avg .* (1 .- mtu_avg) ./ nsamples
-            r[a][t,u] = expectation(x->f(x, 0), mtu_avg .± sqrt.( mtu_var ))  
+            r[a][t,u] = expectation(x->f(x, i), mtu_avg .± sqrt.( mtu_var ))  
         end
         next!(prog)
     end
