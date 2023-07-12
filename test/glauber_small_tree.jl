@@ -2,7 +2,7 @@
 
 rng = MersenneTwister(111)
 
-T = 3
+T = 2
 J = [0 1 0 0 0;
      1 0 1 1 0;
      0 1 0 0 0;

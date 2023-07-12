@@ -21,8 +21,19 @@ import Lazy: @forward
 import CavityTools: cavity
 import LogarithmicNumbers: ULogarithmic
 
+import TensorTrains:
+    getindex, iterate, firstindex, lastindex, setindex!, length, eachindex, +, -, isapprox,
+    SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh, summary_compact,
+    TensorTrain, normalize_eachmatrix!, check_bond_dims,
+    bond_dims, uniform_tt, rand_tt, orthogonalize_right!, orthogonalize_left!, compress!,
+    marginals, twovar_marginals, normalization, normalize!,
+    svd, _compose, accumulate_L, accumulate_R
 
-export
+
+export 
+    SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh,
+    MPEM1, MPEM2, MPEM3, mpem2, normalization, normalize!, orthogonalize_right!, 
+    orthogonalize_left!,
     BPFactor, nstates, MPBP, mpbp, reset_messages!, reset_beliefs!, reset_observations!,
     reset!, is_free_dynamics, onebpiter!, CB_BP, iterate!, 
     pair_beliefs, pair_beliefs_as_mpem, pair_beliefs_tu, beliefs_tu, autocorrelations,
@@ -39,15 +50,7 @@ export
 
 include("utils.jl")
 include("atomic_vector.jl")
-include("MPEMs/MPEMs.jl")
-using .MPEMs, Reexport
-@reexport import .MPEMs: SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh, 
-    summary_compact, normalize_eachmatrix!, -, isapprox, evaluate, bond_dims,
-    MPEM, MPEM2, MPEM3, MatrixProductTrain, mpem2, rand_mpem2, sweep_RtoL!, sweep_LtoR!,
-    compress!, accumulate_L, accumulate_R, accumulate_M, firstvar_marginal,
-    marginals, marginals_tu, mpem1,
-    normalization, normalize!,  nstates, marginalize
-
+include("mpems.jl")
 include("bp_core.jl")
 include("mpbp.jl")
 include("infinite_graph.jl")

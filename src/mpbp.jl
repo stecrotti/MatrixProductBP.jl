@@ -62,8 +62,8 @@ function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}},
         bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(q[i]) for t in 0:T] for i in vertices(g)],
         ψ = [[ones(q[i],q[j]) for t in 0:T] for (i,j) in edges(g)],
-        μ = [mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
-        b = [mpem1(q[i], T; d, bondsizes) for i in vertices(g)],
+        μ = [uniform_mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
+        b = [uniform_mpem1(q[i], T; d, bondsizes) for i in vertices(g)],
         f = zeros(nv(g)))
     return MPBP(g, w, ϕ, ψ, μ, b, f)
 end
@@ -118,7 +118,7 @@ function onebpiter!(bp::MPBP, i::Integer, ::Type{U};
         B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
         sumlogzᵢ₂ⱼ += logzᵢ₂ⱼ
         C = mpem2(B)
-        μj = sweep_RtoL!(C; svd_trunc)
+        μj = orthogonalize_right!(C; svd_trunc)
         sumlogzᵢ₂ⱼ += normalize!(μj)
         μ[idx(e_out)] = μj
     end
@@ -142,7 +142,7 @@ function onebpiter_dummy_neighbor(bp::MPBP, i::Integer;
     A = μ[ein.|>idx]
     B, _ = f_bp_dummy_neighbor(A, w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc)
     C = mpem2(B)
-    A = sweep_RtoL!(C; svd_trunc)
+    A = orthogonalize_right!(C; svd_trunc)
 end
 
 # A callback to print info and save stuff during the iterations 
@@ -198,7 +198,7 @@ end
 
 # return pair beliefs in MPEM form
 function pair_beliefs_as_mpem(bp::MPBP{G,F}) where {G,F}
-    b = [mpem2(nstates(bp,i),nstates(bp,j), getT(bp)) for (i,j) in edges(bp.g)]
+    b = [uniform_mpem2(nstates(bp,i),nstates(bp,j), getT(bp)) for (i,j) in edges(bp.g)]
     function f(A, B, ψ) 
         C = pair_belief_as_mpem(A, B, ψ)
         C, normalization(C)
@@ -232,16 +232,16 @@ beliefs(bp::MPBP{G,F}) where {G,F} = marginals.(bp.b)
 
 beliefs_tu(bp::MPBP{G,F}) where {G,F} = marginals_tu.(bp.b)
 
-expectation(f, p::Matrix{<:Real}) = sum(f(xi) * f(xj) * p[xi, xj] for xi in axes(p,1), xj in axes(p,2))
+expectation(f, p::Matrix{<:Real}) = sum(f(xi) * f(xj) * p[xi, xj] for xi in axes(p,1), xj in axes(p,2); init=0.0)
 
-expectation(f, p::Vector{<:Real}) = sum(f(xi) * p[xi] for xi in eachindex(p))
+expectation(f, p::Vector{<:Real}) = sum(f(xi) * p[xi] for xi in eachindex(p); init=0.0)
 
 function autocorrelations(f, bp::MPBP; showprogress::Bool=false, sites=vertices(bp.g))
     dt = showprogress ? 0.1 : Inf
     prog = Progress(nv(bp.g); dt, desc="Computing autocorrelations")
     map(sites) do i
         next!(prog)
-        expectation.(x->f(x, i), marginals_tu(bp.b[i]))
+        expectation.(x->f(x, i), twovar_marginals(bp.b[i]))
     end
 end
 

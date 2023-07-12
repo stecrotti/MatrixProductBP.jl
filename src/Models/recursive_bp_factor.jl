@@ -119,7 +119,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     C, full, logzᵢ, sumlogzᵢ₂ⱼ = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
-        μj = sweep_RtoL!(mpem2(B); svd_trunc)
+        μj = orthogonalize_right!(mpem2(B); svd_trunc)
         sumlogzᵢ₂ⱼ += set_msg!(bp, μj, idx(e), damp, svd_trunc)
     end
     B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
@@ -135,7 +135,7 @@ function set_msg!(bp::MPBP, μj, edge_id, damp, svd_trunc)
     μ_old = bp.μ[edge_id]
     logzᵢ₂ⱼ = normalize!(μj)
     if damp > 0 
-        μj = MatrixProductBP.MPEMs._compose(x->x*damp/(1-damp), μj, μ_old)
+        μj = _compose(x->x*damp/(1-damp), μj, μ_old)
         compress!(μj; svd_trunc)
         normalize!(μj)
     end

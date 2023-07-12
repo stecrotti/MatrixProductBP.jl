@@ -1,6 +1,45 @@
+const MPEM1{F} = TensorTrain{F, 3}
+
+MPEM1(tensors::Vector{Array{Float64,3}}) = TensorTrain(tensors)
+
+# can evaluate a MPEM1 with a vector of integers instead of a vector whose elements are 
+#  1-element vectors of integers as expected by the MatrixProductTrain interface
+function evaluate(A::MPEM1, x::Vector{U}) where {U<:Integer}
+    only(prod(@view a[:, :, xx...] for (a,xx) in zip(A, x)))
+end
+
+# construct a uniform mpem with given bond dimensions
+uniform_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = uniform_tt(bondsizes, q)
+
+# construct a uniform mpem with given bond dimensions
+rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_tt(bondsizes, q)
+
+nstates(A::MPEM1) = size(A[1],3)
+
+const MPEM2{F} = TensorTrain{F, 4}
+
+MPEM2(tensors::Vector{Array{Float64,4}}) = TensorTrain(tensors)
+
+# construct a uniform mpem with given bond dimensions
+uniform_mpem2(q1::Int, q2, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = uniform_tt(bondsizes, q1, q2)
+
+# construct a uniform mpem with given bond dimensions
+rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_tt(bondsizes, q1, q2)
+
+function firstvar_marginal(A::MPEM2; p = marginals(A))
+    map(p) do pₜ
+        pᵢᵗ = sum(pₜ, dims=2) |> vec
+        pᵢᵗ ./= sum(pᵢᵗ)
+    end
+end
+
+function marginalize(A::MPEM2)
+    MPEM1([@tullio b[m, n, xi] := a[m, n, xi, xj] for a in A])
+end
+
 # Matrix [Bᵗᵢⱼ(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 5-array B[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹]
 # The last matrix should have the same values no matter what xᵢᵀ⁺¹ is
-struct MPEM3{F<:Real} <: MPEM
+struct MPEM3{F<:Real}
     tensors::Vector{Array{F,5}}
     function MPEM3(tensors::Vector{Array{F,5}}) where {F<:Real}
         size(tensors[1],1) == size(tensors[end],2) == 1 ||
@@ -12,7 +51,7 @@ struct MPEM3{F<:Real} <: MPEM
 end
 
 @forward MPEM3.tensors getindex, iterate, firstindex, lastindex, setindex!, 
-    check_bond_dims, length, eachindex
+    length, eachindex
     
 getT(B::MPEM3) = length(B.tensors) - 1
 

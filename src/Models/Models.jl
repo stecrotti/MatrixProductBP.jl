@@ -3,7 +3,7 @@ module Models
 import MatrixProductBP: exact_prob, getT, nstates, mpbp, compress!,
     kron2, f_bp, f_bp_dummy_neighbor, onebpiter_dummy_neighbor,
     beliefs, beliefs_tu, marginals, pair_belief, pair_beliefs,
-    marginalize, cavity, onebpiter!, check_ψs
+    marginalize, cavity, onebpiter!, check_ψs, _compose
 using MatrixProductBP
 
 import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, AbstractIndexedDiGraph, ne, nv, 
