@@ -19,7 +19,7 @@ Base.show(io::IO, g::InfiniteRegularGraph) = println(io, "Infinite regular graph
 check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::InfiniteRegularGraph) = true
 
 function mpbp_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
-    ϕᵢ = fill(ones(qi, qi));
+    ϕᵢ = fill(ones(qi), length(wᵢ));
     ψₖᵢ = fill(ones(qi, qi), length(wᵢ)),
     d::Int=1, bondsizes=[1; fill(d, length(wᵢ)-1); 1]) where {U<:BPFactor}
 
@@ -32,13 +32,6 @@ function mpbp_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
     b = mpem1(qi, T; d, bondsizes)
     MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [0.0])
 end
-
-# function pair_beliefs(bp::MPBP{G,F}) where {G<:InfiniteRegularGraph,F}
-#     μᵢⱼ = μⱼᵢ = bp.μ[1]
-#     bᵢⱼ, zᵢⱼ = pair_belief(μᵢⱼ, μⱼᵢ, only(bp.ψ))
-#     logz = [(1/(bp.g.k-1)- 1/2) * log(zᵢⱼ)]
-#     [bᵢⱼ], logz
-# end
 
 function _pair_beliefs!(b, f, bp::MPBP{G,F}) where {G<:InfiniteRegularGraph,F}
     μᵢⱼ = μⱼᵢ = only(bp.μ)
