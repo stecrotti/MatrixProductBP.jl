@@ -24,7 +24,7 @@ import LogarithmicNumbers: ULogarithmic
 import TensorTrains:
     getindex, iterate, firstindex, lastindex, setindex!, length, eachindex, +, -, isapprox,
     SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh, summary_compact,
-    TensorTrain, normalize_eachmatrix!, check_bond_dims,
+    TensorTrain, normalize_eachmatrix!, check_bond_dims, evaluate,
     bond_dims, uniform_tt, rand_tt, orthogonalize_right!, orthogonalize_left!, compress!,
     marginals, twovar_marginals, normalization, normalize!,
     svd, _compose, accumulate_L, accumulate_R
@@ -33,7 +33,7 @@ import TensorTrains:
 export 
     SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh,
     MPEM1, MPEM2, MPEM3, mpem2, normalization, normalize!, orthogonalize_right!, 
-    orthogonalize_left!, compress!, twovar_marginals,
+    orthogonalize_left!, compress!, twovar_marginals, evaluate,
     BPFactor, nstates, MPBP, mpbp, reset_messages!, reset_beliefs!, reset_observations!,
     reset!, is_free_dynamics, onebpiter!, CB_BP, iterate!, 
     pair_beliefs, pair_beliefs_as_mpem, pair_beliefs_tu, beliefs_tu, autocorrelations,
