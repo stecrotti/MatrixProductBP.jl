@@ -6,14 +6,16 @@ lattice(L, bc=trues(length(L))) = mapreduce(chain, cartesian, reverse(L), revers
 
 function wolff(βJ::SparseMatrixCSC, βh::AbstractVector, nsteps, 
         statistics = (t, σ)->nothing; ntherm::Integer=0)
-    βJh = [ spzeros(1,1)  βh';
-            βh            βJ ]
+    # βJh = [ spzeros(1,1)  βh';
+    #         βh            βJ ]
+    βJh = [ βJ  βh;
+            βh'  spzeros(1,1) ]
     @assert length(βh) == size(βJ, 1)
-    return wolff(βJh, nsteps, (t, σ) -> statistics(t, σ[2:end]*σ[1]); ntherm)
+    return wolff(βJh, nsteps, (t, σ, βJ) -> statistics(t, σ[1:end-1]*σ[end], βJ); ntherm)
 end
 
 function wolff(βJ::SparseMatrixCSC, nsteps, 
-        statistics = (t, σ)->nothing; ntherm::Integer=0)
+        statistics = (t, σ, βJ)->nothing; ntherm::Integer=0)
     n = size(βJ, 1)
     @assert issymmetric(βJ)
     σ = rand((-1,1), n)
@@ -46,7 +48,7 @@ function wolff(βJ::SparseMatrixCSC, nsteps,
     @showprogress for t=1:nsteps
         growregion()
         σ[Q] .*= -1
-        statistics(t, σ)
+        statistics(t, σ, βJ)
     end
 end
 
@@ -54,14 +56,28 @@ mutable struct Stats
     s :: Vector{Float64}
     m :: Vector{Float64}
     n :: Int64
-    Stats(N::Integer) = new(zeros(N), zeros(0), 0) 
+    c :: Matrix{Float64}
+    Stats(N::Integer) = new(zeros(N), zeros(0), 0, zeros(N,N)) 
 end
 
 magnetizations(stats::Stats) = stats.s ./ stats.n
 magnetization(stats::Stats) = stats.m
+correlations(stats::Stats) = stats.c ./ stats.n
 
-function (stats::Stats)(t, σ) 
+function _correlations!(c, σ, βJ)
+    rows = rowvals(βJ)
+    for j in axes(βJ, 2)
+        for k in nzrange(βJ, j)
+            i = rows[k]
+            (j > length(σ) || i > length(σ)) && continue
+            c[i,j] += σ[i] * σ[j]
+        end
+    end
+end
+
+function (stats::Stats)(t, σ, βJ) 
     stats.s .+= σ
+    _correlations!(stats.c, σ, βJ)
     push!(stats.m, mean(σ))
     stats.n += 1
     nothing
