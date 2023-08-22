@@ -34,9 +34,10 @@ function mpbp_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
 end
 
 function _pair_beliefs!(b, f, bp::MPBP{G,F}) where {G<:InfiniteRegularGraph,F}
+    @assert length(b) == 2
     μᵢⱼ = μⱼᵢ = only(bp.μ)
     bᵢⱼ, zᵢⱼ = f(μᵢⱼ, μⱼᵢ, only(bp.ψ))
     logz = [(1/(bp.g.k-1)- 1/2) * log(zᵢⱼ)]
-    b[1] = bᵢⱼ
+    b[1] = b[2] = bᵢⱼ
     b, logz
 end
