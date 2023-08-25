@@ -101,6 +101,8 @@ function marginals(sms::SoftMarginSampler; showprogress::Bool=true, sites=vertic
         for t in 1:T+1
             x = [xx[i, t] for xx in X]
             mit_avg = proportions(x, nstates(bp,i), wv)
+            # avoid numerical errors yielding probabilities > 1
+            mit_avg = map(x -> x≥1 ? 1 : x, mit_avg)
             mit_var = mit_avg .* (1 .- mit_avg) ./ nsamples
             marg[a][t] .= mit_avg .± sqrt.( mit_var )
         end
