@@ -5,17 +5,18 @@ cartesian(A,B) = kron(A,I(size(B,1))) .| kron(I(size(A,1)),B)
 lattice(L, bc=trues(length(L))) = mapreduce(chain, cartesian, reverse(L), reverse(bc), init=spzeros(Bool,1,1))
 
 function wolff(βJ::SparseMatrixCSC, βh::AbstractVector, nsteps, 
-        statistics = (t, σ)->nothing; ntherm::Integer=0)
+        statistics = (t, σ)->nothing; ntherm::Integer=0, showprogress=false)
     # βJh = [ spzeros(1,1)  βh';
     #         βh            βJ ]
     βJh = [ βJ  βh;
             βh'  spzeros(1,1) ]
     @assert length(βh) == size(βJ, 1)
-    return wolff(βJh, nsteps, (t, σ, βJ) -> statistics(t, σ[1:end-1]*σ[end], βJ); ntherm)
+    return wolff(βJh, nsteps, (t, σ, βJ) -> statistics(t, σ[1:end-1]*σ[end], βJ); 
+        ntherm, showprogress)
 end
 
 function wolff(βJ::SparseMatrixCSC, nsteps, 
-        statistics = (t, σ, βJ)->nothing; ntherm::Integer=0)
+        statistics = (t, σ, βJ)->nothing; ntherm::Integer=0, showprogress=true)
     n = size(βJ, 1)
     @assert issymmetric(βJ)
     σ = rand((-1,1), n)
@@ -45,10 +46,12 @@ function wolff(βJ::SparseMatrixCSC, nsteps,
         growregion()
         σ[Q] .*= -1
     end
-    @showprogress for t=1:nsteps
+    prog = Progress(nsteps, desc = "Running MH with Wolff proposals", dt = showprogress ? 0.1 : Inf)
+    for t=1:nsteps
         growregion()
         σ[Q] .*= -1
         statistics(t, σ, βJ)
+        next!(prog)
     end
 end
 
