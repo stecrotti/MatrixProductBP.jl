@@ -96,19 +96,17 @@ function marginals(sms::SoftMarginSampler; showprogress::Bool=true, sites=vertic
     wv = weights(w)
     nsamples = length(X)
     prog = Progress(N, desc="Marginals from Soft Margin"; dt=showprogress ? 0.1 : Inf)
+    is_free = is_free_dynamics(sms.bp)
 
     for (a,i) in pairs(sites)
         for t in 1:T+1
             x = [xx[i, t] for xx in X]
-            mit_avg = proportions(x, nstates(bp,i), wv)
-            # avoid numerical errors yielding probabilities > 1
-            mit_avg = map(x -> x≥1 ? 1 : x, mit_avg)
+            mit_avg = is_free ? proportions(x, nstates(bp,i)) : proportions(x, nstates(bp,i))
             mit_var = mit_avg .* (1 .- mit_avg) ./ nsamples
             marg[a][t] .= mit_avg .± sqrt.( mit_var )
         end
         next!(prog)
     end
-
    return marg
 end
 
