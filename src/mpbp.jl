@@ -100,6 +100,10 @@ function reset!(bp::MPBP; messages=true, beliefs=true, observations=false)
     nothing
 end
 
+function is_free_dynamics(bp::MPBP)
+    return all(all(isequal(first(ϕᵢ)), ϕᵢ) for ϕᵢ in bp.ϕ)
+end
+
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP, i::Integer, ::Type{U}; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6), damp=0.0) where {U<:BPFactor}

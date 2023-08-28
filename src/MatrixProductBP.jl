@@ -24,7 +24,7 @@ import LogarithmicNumbers: ULogarithmic
 
 export
     BPFactor, nstates, MPBP, mpbp, reset_messages!, reset_beliefs!, reset_observations!,
-    reset!, onebpiter!, CB_BP, iterate!, 
+    reset!, is_free_dynamics, onebpiter!, CB_BP, iterate!, 
     pair_beliefs, pair_beliefs_as_mpem, pair_beliefs_tu, beliefs_tu, autocorrelations,
     autocovariances, means, beliefs, bethe_free_energy, 
     mpbp_infinite_graph, InfiniteRegularGraph,
