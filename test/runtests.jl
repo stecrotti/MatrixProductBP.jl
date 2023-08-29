@@ -1,6 +1,7 @@
 using Test, MatrixProductBP
 using MatrixProductBP.Models
 using Graphs, IndexedGraphs, Random, Distributions
+using TensorTrains
 
 include("equilibrium.jl")
 include("glauber_infinite_graph.jl")
