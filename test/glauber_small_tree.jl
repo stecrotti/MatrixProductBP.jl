@@ -22,7 +22,8 @@ for i in 1:N
     gl.ϕ[i][1] .*= [r, 1-r]
 end
 
-bp = mpbp(gl)
+# bp = mpbp(gl)
+bp = periodic_mpbp(gl)
 
 X, observed = draw_node_observations!(bp, N; rng)
 
@@ -49,7 +50,6 @@ r_exact = exact_autocorrelations(f, bp; p_exact)
 c_bp = autocovariances(f, bp)
 c_exact = exact_autocovariances(f, bp; r = r_exact)
 
-b_bp = beliefs(bp)
 pb_bp = pair_beliefs(bp)[1]
 p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 pb_bp2 = marginals.(pair_beliefs_as_mpem(bp)[1])

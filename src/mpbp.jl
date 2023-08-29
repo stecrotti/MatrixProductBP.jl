@@ -1,18 +1,19 @@
-struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
+struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}, M2<:AbstractMPEM2, M1<:AbstractMPEM1}
     g     :: G                              # graph
     w     :: Vector{V}                      # factors, one per variable
     ϕ     :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
     ψ     :: Vector{Vector{Matrix{F}}}      # edge-dependent factors
-    μ     :: AtomicVector{MPEM2{F}}         # messages, two per edge
-    b     :: Vector{MPEM1{F}}               # beliefs in matrix product form
+    μ     :: AtomicVector{M2}               # messages, two per edge
+    b     :: Vector{M1}                     # beliefs in matrix product form
     f     :: Vector{F}                      # free energy contributions
     
     function MPBP(g::G, w::Vector{V}, 
             ϕ::Vector{Vector{Vector{F}}},
             ψ::Vector{Vector{Matrix{F}}},
-            μ::Vector{MPEM2{F}},
-            b::Vector{MPEM1{F}},
-            f::Vector{F}) where {G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
+            μ::Vector{M2},
+            b::Vector{M1},
+            f::Vector{F}) where {G<:AbstractIndexedDiGraph, F<:Real, 
+            V<:AbstractVector{<:BPFactor}, M2<:AbstractMPEM2, M1<:AbstractMPEM1}
     
         T = length(w[1]) - 1
         @assert length(w) == length(ϕ) == length(b) == length(f) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
@@ -27,7 +28,7 @@ struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}}
         @assert all( length(bᵢ) == T + 1 for bᵢ in b )
         @assert length(μ) == ne(g)
         normalize!.(μ)
-        return new{G,F,V}(g, w, ϕ, ψ, AtomicVector(μ), b, f)
+        return new{G,F,V,M2,M1}(g, w, ϕ, ψ, AtomicVector(μ), b, f)
     end
 end
 
@@ -104,6 +105,9 @@ end
 function is_free_dynamics(bp::MPBP)
     return all(all(all(isequal(first(ϕᵢᵗ)), ϕᵢᵗ) for ϕᵢᵗ in Iterators.drop(ϕᵢ, 1)) for ϕᵢ in bp.ϕ)
 end
+
+is_periodic(bp::MPBP{G,F,V,MPEM2,MPEM1}) where {G,F,V,MPEM2,MPEM1}  = false
+is_periodic(bp::MPBP{G,F,V,PeriodicMPEM2,PeriodicMPEM1}) where {G,F,V,PeriodicMPEM2,PeriodicMPEM1} = true
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP, i::Integer, ::Type{U}; 
@@ -197,8 +201,9 @@ function pair_beliefs(bp::MPBP{G,F}) where {G,F}
 end
 
 # return pair beliefs in MPEM form
-function pair_beliefs_as_mpem(bp::MPBP{G,F}) where {G,F}
-    b = [uniform_mpem2(nstates(bp,i),nstates(bp,j), getT(bp)) for (i,j) in edges(bp.g)]
+function pair_beliefs_as_mpem(bp::MPBP{G,F,V,M2}) where {G,F,V,M2}
+    # b = [uniform_mpem2(nstates(bp,i),nstates(bp,j), getT(bp)) for (i,j) in edges(bp.g)]
+    b = Vector{M2}(undef, ne(bp.g))
     function f(A, B, ψ) 
         C = pair_belief_as_mpem(A, B, ψ)
         C, normalization(C)
@@ -224,9 +229,6 @@ function _pair_beliefs!(b, f, bp::MPBP{G,F}) where {G,F}
     end
     b, logz
 end
-
-
-
 
 beliefs(bp::MPBP{G,F}) where {G,F} = marginals.(bp.b)
 
@@ -361,4 +363,17 @@ function pair_obs_undirected_to_directed(ψ_undirected::Vector{<:F},
     end
 
     ψ_directed
+end
+
+#### Periodic in time
+function periodic_mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}},
+        q::AbstractVector{Int}, T::Int; 
+        d::Int=1,
+        bondsizes=fill(d, T+1),
+        ϕ = [[ones(q[i]) for t in 0:T] for i in vertices(g)],
+        ψ = [[ones(q[i],q[j]) for t in 0:T] for (i,j) in edges(g)],
+        μ = [uniform_periodic_mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
+        b = [uniform_periodic_mpem1(q[i], T; d, bondsizes) for i in vertices(g)],
+        f = zeros(nv(g)))
+    return MPBP(g, w, ϕ, ψ, μ, b, f)
 end
