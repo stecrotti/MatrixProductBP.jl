@@ -21,6 +21,9 @@ function exact_prob(bp::MPBP{G,F}) where {G,F}
                 logp[x] += log( w[i][t](X[t+1,i], X[t,∂i], X[t,i]) )
                 logp[x] += log( ϕ[i][t+1][X[t+1,i]] )
             end
+            if is_periodic(bp)
+                logp[x] += log( w[i][end](X[1,i], X[end,∂i], X[end,i]) )
+            end 
         end
         for (i, j, ij) in edges(g)
             for t in 1:T+1

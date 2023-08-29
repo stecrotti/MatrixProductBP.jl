@@ -96,19 +96,19 @@ function f_bp_dummy_neighbor(A::Vector{MPEM2{F}},
     return MPEM3(B), 0.0
 end
 
-function pair_belief_as_mpem(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
+function pair_belief_as_mpem(Aᵢⱼ::M2, Aⱼᵢ::M2, ψᵢⱼ) where {M2<:AbstractMPEM2}
     A = map(zip(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)) do (Aᵢⱼᵗ, Aⱼᵢᵗ, ψᵢⱼᵗ)
         @cast Aᵗ[(aᵗ,bᵗ),(aᵗ⁺¹,bᵗ⁺¹),xᵢᵗ,xⱼᵗ] := Aᵢⱼᵗ[aᵗ,aᵗ⁺¹,xᵢᵗ, xⱼᵗ] * 
             Aⱼᵢᵗ[bᵗ,bᵗ⁺¹,xⱼᵗ,xᵢᵗ] * ψᵢⱼᵗ[xᵢᵗ, xⱼᵗ]
     end
-    return MPEM2(A)
+    return M2(A)
 end
 
 # compute bᵢⱼᵗ(xᵢᵗ,xⱼᵗ) from μᵢⱼ, μⱼᵢ, ψᵢⱼ
 # also return normalization zᵢⱼ
-function pair_belief(Aᵢⱼ::MPEM2, Aⱼᵢ::MPEM2, ψᵢⱼ)
+function pair_belief(Aᵢⱼ::AbstractMPEM2, Aⱼᵢ::AbstractMPEM2, ψᵢⱼ)
     A = pair_belief_as_mpem(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
     l = accumulate_L(A); r = accumulate_R(A)
-    z = only(l[end])
+    z = tr(l[end])
     marginals(A; l, r), z
 end

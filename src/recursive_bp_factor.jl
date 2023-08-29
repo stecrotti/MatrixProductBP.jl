@@ -56,17 +56,17 @@ end
 prob_y_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, j) where U = prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, y1, d) 
 
 # compute matrix B for mᵢⱼ
-function f_bp_partial_ij(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer, qj, j) where {U<:RecursiveBPFactor}
+function f_bp_partial_ij(A::AbstractMPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer, qj, j) where {U<:RecursiveBPFactor}
     _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_partial, qj, j)
 end
 
 # compute matrix B for bᵢ
-function f_bp_partial_i(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
+function f_bp_partial_i(A::AbstractMPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer) where {U<:RecursiveBPFactor}
     _f_bp_partial(A, wᵢ, ϕᵢ, d, prob_y_dummy, 1, 1)
 end
 
 function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
-    d::Integer, prob::Function, qj, j) where {U<:RecursiveBPFactor}
+        d::Integer, prob::Function, qj, j) where {U<:RecursiveBPFactor}
     q = length(ϕᵢ[1])
     B = [zeros(size(a,1), size(a,2), q, qj, q) for a in A]
     for t in 1:length(A)-1
@@ -79,14 +79,26 @@ function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
     return MPEM3(B)
 end
 
+function _f_bp_partial(A::PeriodicMPEM2, wᵢ::Vector{U}, ϕᵢ, 
+        d::Integer, prob::Function, qj, j) where {U<:RecursiveBPFactor}
+    q = length(ϕᵢ[1])
+    B = [zeros(size(a,1), size(a,2), q, qj, q) for a in A]
+    for t in eachindex(A)
+        Aᵗ,Bᵗ = A[t], B[t]
+        @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d,j)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
+    end
+    any(any(isnan, b) for b in B) && @error "NaN in tensor train"
+    return PeriodicMPEM3(B)
+end
+
 # compute ̃m{∂i∖j→i}(̅y_{∂i∖j},̅xᵢ)
-function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor}
+function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor, M2<:AbstractMPEM2}
     @assert all(normalization(a) ≈ 1 for a in μin)
     yrange = Base.OneTo(nstates(U, 1))
     B = map(eachindex(ψout)) do k
         Bk = map(zip(wᵢ, μin[k], ψout[k])) do (wᵢᵗ, μₖᵢᵗ, ψᵢₖᵗ)
             @tullio _[m,n,yₖ,xᵢ] := prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * μₖᵢᵗ[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ] (yₖ in yrange)
-        end |> MPEM2
+        end |> M2
         Bk, 0.0, 1
     end
 
@@ -95,14 +107,14 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout,
         B = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
             @tullio B3[m1,m2,n1,n2,y,xᵢ] := prob_yy(wᵢᵗ,y,y1,y2,xᵢ,d1,d2) * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ] (y in yrange)
             @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
-        end |> MPEM2
+        end |> M2
         lz = normalize!(B)
         compress!(B; svd_trunc)
         B, lz + lz1 + lz2, d1 + d2
     end
 
     Minit = fill(1.0, 1, 1, 1, qi)
-    init = (MPEM2(fill(Minit, T + 1)), 0.0, 0)
+    init = (M2(fill(Minit, T + 1)), 0.0, 0)
     dest, (full, logzᵢ,)  = cavity(B, op, init)
     (C, logzs) = unzip(dest)
     sumlogzᵢ₂ⱼ = sum(logzs)
@@ -130,7 +142,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
 end
 
 # write message to destination after applying damping
-function set_msg!(bp::MPBP, μj, edge_id, damp, svd_trunc)
+function set_msg!(bp::MPBP{G,F,V,M2}, μj::M2, edge_id, damp, svd_trunc) where {G,F,V,M2}
     @assert 0 ≤ damp < 1
     μ_old = bp.μ[edge_id]
     logzᵢ₂ⱼ = normalize!(μj)
