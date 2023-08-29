@@ -100,8 +100,9 @@ function reset!(bp::MPBP; messages=true, beliefs=true, observations=false)
     nothing
 end
 
+# dynamics is free if there is no reweighting <-> all ϕ's (but the one at time zero) are constant
 function is_free_dynamics(bp::MPBP)
-    return all(all(isequal(first(ϕᵢ)), ϕᵢ) for ϕᵢ in bp.ϕ)
+    return all(all(all(isequal(first(ϕᵢᵗ)), ϕᵢᵗ) for ϕᵢᵗ in Iterators.drop(ϕᵢ, 1)) for ϕᵢ in bp.ϕ)
 end
 
 # compute outgoing messages from node `i`

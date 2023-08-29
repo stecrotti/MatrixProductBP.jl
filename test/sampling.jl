@@ -13,6 +13,8 @@ sis = SIS(g, λ, ρ, T; γ)
 bp = mpbp(sis)
 rng = MersenneTwister(111)
 
+@test is_free_dynamics(bp)
+
 draw_node_observations!(bp, N, last_time=true; rng, softinf=1e2)
 
 sms = sample(bp, 10; showprogress=false, rng)
@@ -28,10 +30,9 @@ c = autocovariances(f, sms)
     @test all(all(all(-1 ≤ x.val ≤ 1 for x in cit) for cit in ci) for ci in c)
 end
 
-av, va = continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^4, sites=1,
-    discard_dead_epidemics=true)
-
 # just check that it runs without errors
 @testset "sampling - Gillespie" begin
+    av, va = continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^4, sites=1,
+    discard_dead_epidemics=true)
     @test true
 end
