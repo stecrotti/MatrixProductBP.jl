@@ -43,7 +43,7 @@ export
     pair_beliefs, pair_beliefs_as_mpem, pair_beliefs_tu, beliefs_tu, autocorrelations,
     autocovariances, means, beliefs, bethe_free_energy, 
     periodic_mpbp, is_periodic,
-    mpbp_infinite_graph, InfiniteRegularGraph,
+    mpbp_infinite_graph, InfiniteRegularGraph, periodic_mpbp_infinite_graph,
     logprob, expectation, pair_observations_directed, 
     pair_observations_nondirected, pair_obs_undirected_to_directed,
     exact_prob, exact_marginals, site_marginals, exact_autocorrelations,
