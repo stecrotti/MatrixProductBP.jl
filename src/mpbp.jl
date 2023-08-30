@@ -106,8 +106,8 @@ function is_free_dynamics(bp::MPBP)
     return all(all(all(isequal(first(ϕᵢᵗ)), ϕᵢᵗ) for ϕᵢᵗ in Iterators.drop(ϕᵢ, 1)) for ϕᵢ in bp.ϕ)
 end
 
-is_periodic(bp::MPBP{G,F,V,MPEM2,MPEM1}) where {G,F,V,MPEM2,MPEM1}  = false
-is_periodic(bp::MPBP{G,F,V,PeriodicMPEM2,PeriodicMPEM1}) where {G,F,V,PeriodicMPEM2,PeriodicMPEM1} = true
+is_periodic(bp::MPBP{G,F,V,<:MPEM2,<:MPEM1}) where {G,F,V}  = false
+is_periodic(bp::MPBP{G,F,V,<:PeriodicMPEM2,<:PeriodicMPEM1}) where {G,F,V} = true
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP, i::Integer, ::Type{U}; 
@@ -119,7 +119,7 @@ function onebpiter!(bp::MPBP, i::Integer, ::Type{U};
     @assert all(normalization(a) ≈ 1 for a in A)
     sumlogzᵢ₂ⱼ = 0.0
     for (j_ind, e_out) in enumerate(eout)
-        B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc)
+        B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc, periodic=is_periodic(bp))
         sumlogzᵢ₂ⱼ += logzᵢ₂ⱼ
         C = mpem2(B)
         μj = orthogonalize_right!(C; svd_trunc)
@@ -144,9 +144,9 @@ function onebpiter_dummy_neighbor(bp::MPBP, i::Integer;
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
-    B, _ = f_bp_dummy_neighbor(A, w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc)
+    B, _ = f_bp_dummy_neighbor(A, w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc, periodic=is_periodic(bp))
     C = mpem2(B)
-    A = orthogonalize_right!(C; svd_trunc)
+    return orthogonalize_right!(C; svd_trunc)
 end
 
 # A callback to print info and save stuff during the iterations 

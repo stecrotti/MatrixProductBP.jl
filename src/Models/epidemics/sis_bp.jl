@@ -43,6 +43,13 @@ function mpbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
     return mpbp(g, w, fill(2, nv(g)), T, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
 end
 
+function periodic_mpbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
+    sis_ = deepcopy(sis)
+    g = IndexedBiDiGraph(sis_.g.A)
+    w = sis_factors(sis_)
+    return periodic_mpbp(g, w, fill(2, nv(g)), T, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
+end
+
 # neighbor j is susceptible -> does nothing
 function prob_y(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
     @unpack λ, ρ = wᵢ
