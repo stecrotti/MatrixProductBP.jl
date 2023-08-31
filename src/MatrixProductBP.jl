@@ -45,7 +45,9 @@ export
     exact_autocovariances, exact_marginal_expectations, 
     SoftMarginSampler, onesample!, onesample, sample!, sample, marginals, pair_marginals,
     continuous_sis_sampler, simulate_queue_sis!,
-    draw_node_observations!, AtomicVector
+    draw_node_observations!, AtomicVector,
+    RecursiveBPFactor, DampedFactor, RecursiveTraceFactor, GenericFactor,
+    RestrictedRecursiveBPFactor
 
 
 include("utils.jl")
@@ -53,6 +55,8 @@ include("atomic_vector.jl")
 include("mpems.jl")
 include("bp_core.jl")
 include("mpbp.jl")
+include("recursive_bp_factor.jl")
+include("test_factors.jl")
 include("infinite_graph.jl")
 include("exact.jl")
 include("sampling.jl")
