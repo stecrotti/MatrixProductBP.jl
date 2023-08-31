@@ -103,7 +103,11 @@ end
 
 # dynamics is free if there is no reweighting <-> all ϕ's (but the one at time zero) are constant
 function is_free_dynamics(bp::MPBP)
-    return all(all(all(isequal(first(ϕᵢᵗ)), ϕᵢᵗ) for ϕᵢᵗ in Iterators.drop(ϕᵢ, 1)) for ϕᵢ in bp.ϕ)
+    if is_periodic(bp)
+        return all(all(all(isequal(first(ϕᵢᵗ)), ϕᵢᵗ) for ϕᵢᵗ in ϕᵢ) for ϕᵢ in bp.ϕ)
+    else
+        return all(all(all(isequal(first(ϕᵢᵗ)), ϕᵢᵗ) for ϕᵢᵗ in Iterators.drop(ϕᵢ, 1)) for ϕᵢ in bp.ϕ)
+    end
 end
 
 is_periodic(bp::MPBP{G,F,V,<:MPEM2,<:MPEM1}) where {G,F,V}  = false
