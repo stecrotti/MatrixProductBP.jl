@@ -51,7 +51,7 @@ function periodic_mpbp_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
     @assert length(ψₖᵢ) == T + 1
     
     g = InfiniteRegularGraph(k)
-    μ = uniform_periodic_mpem2(qi, qi, T; d, bondsizes)
-    b = uniform_periodic_mpem1(qi, T; d, bondsizes)
+    μ = rand_periodic_mpem2(qi, qi, T; d, bondsizes)
+    b = rand_periodic_mpem1(qi, T; d, bondsizes)
     MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [0.0])
 end
