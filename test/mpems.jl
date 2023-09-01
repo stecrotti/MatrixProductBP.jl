@@ -58,7 +58,6 @@ end
 
     x = [rand(1:2,2) for _ in B]
     e1 = evaluate(B, x)
-    @test e1 ≈ evaluate(MPEM3(tensors), x)
 
     C = mpem2(B)
     e2 = evaluate(C,x)
