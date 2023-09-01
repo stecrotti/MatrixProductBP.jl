@@ -8,7 +8,8 @@ import MatrixProductBP: rand_mpem1, rand_mpem2
     x = [rand(1:q,1) for _ in A]
     e1 = evaluate(A, x)
 
-    e2 = evaluate(A, only.(x))
+    orthogonalize_left!(A)
+    e2 = evaluate(A, x)
     @test e2 ≈ e1
 end
 

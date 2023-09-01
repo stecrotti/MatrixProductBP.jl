@@ -2,14 +2,8 @@ const AbstractMPEM1{F} = AbstractTensorTrain{F, 3}
 const MPEM1{F} = TensorTrain{F, 3}
 const PeriodicMPEM1{F} = PeriodicTensorTrain{F, 3}
 
-MPEM1(tensors::Vector{Array{Float64,3}}) = TensorTrain(tensors)
-PeriodicMPEM1(tensors::Vector{Array{Float64,3}}) = PeriodicTensorTrain(tensors)
-
-# can evaluate a MPEM1 with a vector of integers instead of a vector whose elements are 
-#  1-element vectors of integers as expected by the MatrixProductTrain interface
-function evaluate(A::MPEM1, x::Vector{U}) where {U<:Integer}
-    only(prod(@view a[:, :, xx...] for (a,xx) in zip(A, x)))
-end
+# MPEM1(tensors::Vector{Array{Float64,3}}) = TensorTrain(tensors)
+# PeriodicMPEM1(tensors::Vector{Array{Float64,3}}) = PeriodicTensorTrain(tensors)
 
 # construct a uniform mpem with given bond dimensions
 uniform_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = uniform_tt(bondsizes, q)
@@ -27,8 +21,8 @@ const AbstractMPEM2{F} = AbstractTensorTrain{F, 4}
 const MPEM2{F} = TensorTrain{F, 4}
 const PeriodicMPEM2{F} = PeriodicTensorTrain{F, 4}
 
-MPEM2(tensors::Vector{Array{Float64,4}}) = TensorTrain(tensors)
-PeriodicMPEM2(tensors::Vector{Array{Float64,4}}) = PeriodicTensorTrain(tensors)
+# MPEM2(tensors::Vector{Array{Float64,4}}) = TensorTrain(tensors)
+# PeriodicMPEM2(tensors::Vector{Array{Float64,4}}) = PeriodicTensorTrain(tensors)
 
 # construct a uniform mpem with given bond dimensions
 uniform_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = uniform_tt(bondsizes, q1, q2)
@@ -39,11 +33,11 @@ rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = r
 rand_periodic_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = rand_periodic_tt(bondsizes, q1, q2)
 
 
-function marginalize(A::MPEM2)
-    MPEM1([@tullio b[m, n, xi] := a[m, n, xi, xj] for a in A])
+function marginalize(A::MPEM2{F}) where F
+    MPEM1{F}([@tullio b[m, n, xi] := a[m, n, xi, xj] for a in A])
 end
-function marginalize(A::PeriodicMPEM2)
-    PeriodicMPEM1([@tullio b[m, n, xi] := a[m, n, xi, xj] for a in A])
+function marginalize(A::PeriodicMPEM2{F}) where F
+    PeriodicMPEM1{F}([@tullio b[m, n, xi] := a[m, n, xi, xj] for a in A])
 end
 
 # Matrix [Bᵗᵢⱼ(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 5-array B[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹]
@@ -96,7 +90,7 @@ function mpem2(B::MPEM3{F}) where {F}
     end
     @cast Cᵀ[m,n,xᵢ,xⱼ] := Bᵗ⁺¹_new[m,n,xᵢ,xⱼ,1]
     C[end] = Cᵀ
-    return MPEM2(C)
+    return MPEM2{F}(C)
 end
 
 struct PeriodicMPEM3{F<:Real}
@@ -148,5 +142,5 @@ function mpem2(B::PeriodicMPEM3{F}) where {F}
             C[begin] = C⁰_
         end
     end
-    return PeriodicTensorTrain(C)
+    return PeriodicMPEM2{F}(C)
 end

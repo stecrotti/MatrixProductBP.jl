@@ -5,7 +5,7 @@ import MatrixProductBP: exact_prob, getT, nstates, mpbp, compress!,
     beliefs, beliefs_tu, marginals, pair_belief, pair_beliefs,
     marginalize, cavity, onebpiter!, check_ψs, _compose,
     RecursiveBPFactor, nstates, prob_y, prob_xy, prob_yy, prob_y_partial,
-    prob_y_dummy
+    prob_y_dummy, periodic_mpbp
 using MatrixProductBP
 
 import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, AbstractIndexedDiGraph, ne, nv, 
