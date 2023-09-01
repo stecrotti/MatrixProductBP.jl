@@ -239,7 +239,7 @@ end
 
 beliefs(bp::MPBP{G,F}) where {G,F} = marginals.(bp.b)
 
-beliefs_tu(bp::MPBP{G,F}) where {G,F} = marginals_tu.(bp.b)
+beliefs_tu(bp::MPBP{G,F}) where {G,F} = twovar_marginals.(bp.b)
 
 expectation(f, p::Matrix{<:Real}) = sum(f(xi) * f(xj) * p[xi, xj] for xi in axes(p,1), xj in axes(p,2); init=0.0)
 

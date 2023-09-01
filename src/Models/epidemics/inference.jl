@@ -37,7 +37,7 @@ function auc(guess_zp::Vector{Int}, true_zp::Vector{Int})
     Z = maximum(x) * maximum(y)
     Z == 0 && return 1.0
     a = 0
-    for i in 2:length(y)
+    for i in Iterators.drop(eachindex(y), 1)
         if y[i] == y[i-1]
             a += y[i]
         end  
