@@ -2,27 +2,19 @@ const AbstractMPEM1{F} = AbstractTensorTrain{F, 3}
 const MPEM1{F} = TensorTrain{F, 3}
 const PeriodicMPEM1{F} = PeriodicTensorTrain{F, 3}
 
-# MPEM1(tensors::Vector{Array{Float64,3}}) = TensorTrain(tensors)
-# PeriodicMPEM1(tensors::Vector{Array{Float64,3}}) = PeriodicTensorTrain(tensors)
-
 # construct a uniform mpem with given bond dimensions
 uniform_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = uniform_tt(bondsizes, q)
 uniform_periodic_mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = uniform_periodic_tt(bondsizes, q)
-
 
 # construct a uniform mpem with given bond dimensions
 rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_tt(bondsizes, q)
 rand_periodic_mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = rand_periodic_tt(bondsizes, q)
 
-
-nstates(A::AbstractMPEM1) = size(A[1],3)
+nstates(A::AbstractMPEM1) = size(A[1], 3)
 
 const AbstractMPEM2{F} = AbstractTensorTrain{F, 4}
 const MPEM2{F} = TensorTrain{F, 4}
 const PeriodicMPEM2{F} = PeriodicTensorTrain{F, 4}
-
-# MPEM2(tensors::Vector{Array{Float64,4}}) = TensorTrain(tensors)
-# PeriodicMPEM2(tensors::Vector{Array{Float64,4}}) = PeriodicTensorTrain(tensors)
 
 # construct a uniform mpem with given bond dimensions
 uniform_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = uniform_tt(bondsizes, q1, q2)
@@ -31,7 +23,6 @@ uniform_periodic_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1
 # construct a uniform mpem with given bond dimensions
 rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_tt(bondsizes, q1, q2)
 rand_periodic_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = rand_periodic_tt(bondsizes, q1, q2)
-
 
 function marginalize(A::MPEM2{F}) where F
     MPEM1{F}([@tullio b[m, n, xi] := a[m, n, xi, xj] for a in A])
