@@ -69,7 +69,7 @@ function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
         d::Integer, prob::Function, qj, j) where {U<:RecursiveBPFactor}
     q = length(ϕᵢ[1])
     B = [zeros(size(a,1), size(a,2), q, qj, q) for a in A]
-    for t in 1:length(A)-1
+    for t in Iterators.take(eachindex(A), length(A)-1)
         Aᵗ,Bᵗ = A[t], B[t]
         @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d,j)*Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
     end
