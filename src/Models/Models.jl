@@ -25,7 +25,7 @@ import Random: GLOBAL_RNG, shuffle!
 import Lazy: @forward
 
 export 
-    Ising, Glauber, 
+    Ising, Glauber, energy,
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
     equilibrium_magnetization, equilibrium_observables, RandomRegular, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
