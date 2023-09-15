@@ -14,6 +14,7 @@ h = randn(rng, N)
 
 β = 2.0
 ising = Ising(J, h, β)
+e = energy(ising, rand(1:2, N))
 
 gl = Glauber(ising, T)
 

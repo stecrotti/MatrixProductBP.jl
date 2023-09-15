@@ -27,6 +27,17 @@ function Ising(g::IndexedGraph; J = ones(ne(g)), h = zeros(nv(g)), β = 1.0)
     Ising(g, J, h, β)
 end
 
+function energy(ising::Ising, x::AbstractVector{<:Integer})
+    s = 0.0
+    for (i, j, id) in edges(ising.g)
+        s -= potts2spin(x[i])*potts2spin(x[j])*ising.J[id]
+    end
+    for (xi, hi) in zip(x, ising.h)
+        s -= potts2spin(xi)*hi
+    end
+    return s
+end
+
 is_absJ_const(ising::Ising) = all(J->abs(J)==abs(ising.J[1]), ising.J)
 is_homogeneous(ising::Ising) = all(isequal(ising.J[1]), ising.J)
 struct Glauber{T, N, F<:AbstractFloat}
