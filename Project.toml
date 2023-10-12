@@ -4,7 +4,6 @@ authors = ["stecrotti <stefano.crotti@polito.it>"]
 version = "0.1.0"
 
 [deps]
-BeliefPropagation = "f47dce41-c8ad-4b69-b8b4-f2a36c7ebdf8"
 CavityTools = "217fe2f1-7e3d-419f-9934-cd6900c2759a"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 IndexedGraphs = "8a731c18-cfb7-4915-927e-cc26b56b67cd"
