@@ -97,7 +97,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
     yrange = Base.OneTo(nstates(U, 1))
     B = map(eachindex(ψout)) do k
         Bk = map(zip(wᵢ, μin[k], ψout[k])) do (wᵢᵗ, μₖᵢᵗ, ψᵢₖᵗ)
-            @tullio _[m,n,yₖ,xᵢ] := prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * μₖᵢᵗ[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ] (yₖ in yrange)
+            @tullio avx=false _[m,n,yₖ,xᵢ] := prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * μₖᵢᵗ[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ] (yₖ in yrange)
         end |> M2
         Bk, 0.0, 1
     end
@@ -105,7 +105,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
     function op((B1, lz1, d1), (B2, lz2, d2))
         yrange = Base.OneTo(nstates(U,d1+d2))
         B = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
-            @tullio B3[m1,m2,n1,n2,y,xᵢ] := prob_yy(wᵢᵗ,y,y1,y2,xᵢ,d1,d2) * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ] (y in yrange)
+            @tullio avx=false B3[m1,m2,n1,n2,y,xᵢ] := prob_yy(wᵢᵗ,y,y1,y2,xᵢ,d1,d2) * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ] (y in yrange)
             @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
         end |> M2
         lz = normalize!(B)
