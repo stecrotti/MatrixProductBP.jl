@@ -121,7 +121,7 @@ X, _ = onesample(bp; rng)
 
 draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
-svd_trunc = TruncBondMax(6)
+svd_trunc = TruncBondMax(10)
 iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
 
 b_bp = beliefs(bp)
