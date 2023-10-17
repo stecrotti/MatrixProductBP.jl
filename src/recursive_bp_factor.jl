@@ -85,13 +85,8 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{<:MPEM2}, ψout,
     yrange = Base.OneTo(nstates(U, 1))
     B = map(eachindex(ψout)) do k
         Bk = map(zip(wᵢ, μin[k], ψout[k])) do (wᵢᵗ, μₖᵢᵗ, ψᵢₖᵗ)
-<<<<<<< Updated upstream
-            @tullio _[m,n,yₖ,xᵢ] := prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * μₖᵢᵗ[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ] (yₖ in yrange)
-        end |> MPEM2
-=======
             @tullio avx=false _[m,n,yₖ,xᵢ] := prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * μₖᵢᵗ[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ] (yₖ in yrange)
-        end |> M2
->>>>>>> Stashed changes
+        end |> MPEM2
         Bk, 0.0, 1
     end
 
