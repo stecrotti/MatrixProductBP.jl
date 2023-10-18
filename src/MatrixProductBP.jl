@@ -36,8 +36,8 @@ import TensorTrains:
 export 
     SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh,
     PeriodicMPEM2, PeriodicMPEM3, PeriodicMPEM1,
-    MPEM1, MPEM2, MPEM3, mpem2, normalization, normalize!, orthogonalize_right!, 
-    orthogonalize_left!, compress!, twovar_marginals, evaluate,
+    MPEM1, MPEM2, MPEM3, mpem2, rand_mpem1, rand_mpem2, normalization, normalize!, marginalize,
+    orthogonalize_right!, orthogonalize_left!, compress!, twovar_marginals, evaluate,
     BPFactor, nstates, MPBP, mpbp, reset_messages!, reset_beliefs!, reset_observations!,
     reset!, is_free_dynamics, onebpiter!, CB_BP, iterate!, 
     pair_beliefs, pair_beliefs_as_mpem, beliefs_tu, autocorrelations,
