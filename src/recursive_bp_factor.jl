@@ -72,7 +72,7 @@ function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
     for t in Iterators.take(eachindex(A), length(A)-1)
         Aᵗ,Bᵗ = A[t], B[t]
         W = zeros(q,q,qj,size(Aᵗ,3))
-        @tullio W[xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d,j)*ϕᵢ[$t][xᵢᵗ]
+        @tullio avx=false W[xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d,j)*ϕᵢ[$t][xᵢᵗ]
         @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = W[xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ]*Aᵗ[m,n,yᵗ,xᵢᵗ]
     end
     Aᵀ,Bᵀ = A[end], B[end]
@@ -88,8 +88,8 @@ function _f_bp_partial(A::PeriodicMPEM2, wᵢ::Vector{U}, ϕᵢ,
     for t in eachindex(A)
         Aᵗ,Bᵗ = A[t], B[t]
         W = zeros(q,q,qj,size(Aᵗ,3))
-        @tullio W[xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d,j)
-        @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = W[xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ] * Aᵗ[m,n,yᵗ,xᵢᵗ]*ϕᵢ[$t][xᵢᵗ]
+        @tullio avx=false W[xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ] = prob(wᵢ[$t],xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ,d,j) * ϕᵢ[$t][xᵢᵗ]
+        @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = W[xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ] * Aᵗ[m,n,yᵗ,xᵢᵗ]
     end
     any(any(isnan, b) for b in B) && @error "NaN in tensor train"
     return PeriodicMPEM3(B)
@@ -98,21 +98,19 @@ end
 # compute ̃m{∂i∖j→i}(̅y_{∂i∖j},̅xᵢ)
 function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor, M2<:AbstractMPEM2}
     @assert all(normalization(a) ≈ 1 for a in μin)
-    yrange = Base.OneTo(nstates(U, 1))
     B = map(eachindex(ψout)) do k
         Bk = map(zip(wᵢ, μin[k], ψout[k])) do (wᵢᵗ, μₖᵢᵗ, ψᵢₖᵗ)
             Pxy = zeros(nstates(U,1), size(μₖᵢᵗ, 3), qi)
-            @tullio Pxy[yₖ,xₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k)
-            @tullio _[m,n,yₖ,xᵢ] := Pxy[yₖ,xₖ,xᵢ] * μₖᵢᵗ[m,n,xₖ,xᵢ] * ψᵢₖᵗ[xᵢ,xₖ]
+            @tullio avx=false Pxy[yₖ,xₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * ψᵢₖᵗ[xᵢ,xₖ]
+            @tullio _[m,n,yₖ,xᵢ] := Pxy[yₖ,xₖ,xᵢ] * μₖᵢᵗ[m,n,xₖ,xᵢ] 
         end |> M2
         Bk, 0.0, 1
     end
 
     function op((B1, lz1, d1), (B2, lz2, d2))
-        yrange = Base.OneTo(nstates(U,d1+d2))
         B = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
             Pyy = zeros(nstates(U,d1+d2), size(B₁ᵗ,3), size(B₂ᵗ,3), size(B₁ᵗ,4))
-            @tullio Pyy[y,y1,y2,xᵢ] = prob_yy(wᵢᵗ,y,y1,y2,xᵢ,d1,d2) 
+            @tullio avx=false Pyy[y,y1,y2,xᵢ] = prob_yy(wᵢᵗ,y,y1,y2,xᵢ,d1,d2) 
             @tullio B3[m1,m2,n1,n2,y,xᵢ] := Pyy[y,y1,y2,xᵢ] * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ]
             @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
         end |> M2
