@@ -20,25 +20,30 @@ import .Threads: SpinLock, lock, unlock
 import Lazy: @forward
 import CavityTools: cavity
 import LogarithmicNumbers: ULogarithmic
+import LinearAlgebra: I, tr
 
 import TensorTrains:
     getindex, iterate, firstindex, lastindex, setindex!, length, eachindex, +, -, isapprox,
     SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh, summary_compact,
-    TensorTrain, normalize_eachmatrix!, check_bond_dims, evaluate,
-    bond_dims, uniform_tt, rand_tt, orthogonalize_right!, orthogonalize_left!, compress!,
+    AbstractTensorTrain, PeriodicTensorTrain, TensorTrain, normalize_eachmatrix!,
+    check_bond_dims, evaluate,
+    bond_dims, uniform_tt, rand_tt, uniform_periodic_tt, rand_periodic_tt, 
+    orthogonalize_right!, orthogonalize_left!, compress!,
     marginals, twovar_marginals, normalization, normalize!,
     svd, _compose, accumulate_L, accumulate_R
 
 
 export 
     SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh,
+    PeriodicMPEM2, PeriodicMPEM3, PeriodicMPEM1,
     MPEM1, MPEM2, MPEM3, mpem2, normalization, normalize!, orthogonalize_right!, 
     orthogonalize_left!, compress!, twovar_marginals, evaluate,
     BPFactor, nstates, MPBP, mpbp, reset_messages!, reset_beliefs!, reset_observations!,
     reset!, is_free_dynamics, onebpiter!, CB_BP, iterate!, 
-    pair_beliefs, pair_beliefs_as_mpem, pair_beliefs_tu, beliefs_tu, autocorrelations,
+    pair_beliefs, pair_beliefs_as_mpem, beliefs_tu, autocorrelations,
     autocovariances, means, beliefs, bethe_free_energy, 
-    mpbp_infinite_graph, InfiniteRegularGraph,
+    periodic_mpbp, is_periodic,
+    mpbp_infinite_graph, InfiniteRegularGraph, periodic_mpbp_infinite_graph,
     logprob, expectation, pair_observations_directed, 
     pair_observations_nondirected, pair_obs_undirected_to_directed,
     exact_prob, exact_marginals, site_marginals, exact_autocorrelations,

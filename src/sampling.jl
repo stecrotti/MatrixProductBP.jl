@@ -110,7 +110,7 @@ function marginals(sms::SoftMarginSampler; showprogress::Bool=true, sites=vertic
    return marg
 end
 
-function means(f, sms::SoftMarginSampler; sites=vertices(bp.g))
+function means(f, sms::SoftMarginSampler; sites=vertices(sms.bp.g))
     b_mc = marginals(sms; sites)
     map(zip(sites, b_mc)) do (i, bᵢ)
         expectation.(x->f(x, i), bᵢ)

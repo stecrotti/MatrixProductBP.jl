@@ -99,6 +99,14 @@ function mpbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
     return mpbp(g, w, fill(2, nv(g)), T; ϕ, ψ, kw...)
 end
 
+function periodic_mpbp(gl::Glauber{T,N,F}; kw...) where {T,N,F<:AbstractFloat}
+    g = IndexedBiDiGraph(gl.ising.g.A)
+    w = glauber_factors(gl.ising, T)
+    ϕ = gl.ϕ
+    ψ = pair_obs_undirected_to_directed(gl.ψ, gl.ising.g)
+    return periodic_mpbp(g, w, fill(2, nv(g)), T; ϕ, ψ, kw...)
+end
+
 
 # construct an array of GlauberFactors corresponding to gl
 # seems to be type stable

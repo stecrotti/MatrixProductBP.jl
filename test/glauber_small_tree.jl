@@ -22,8 +22,7 @@ for i in 1:N
     gl.ϕ[i][1] .*= [r, 1-r]
 end
 
-bp = mpbp(gl)
-
+bp = mpbp(deepcopy(gl))
 X, observed = draw_node_observations!(bp, N; rng)
 
 svd_trunc = TruncThresh(0.0)
@@ -49,9 +48,7 @@ r_exact = exact_autocorrelations(f, bp; p_exact)
 c_bp = autocovariances(f, bp)
 c_exact = exact_autocovariances(f, bp; r = r_exact)
 
-b_bp = beliefs(bp)
 pb_bp = pair_beliefs(bp)[1]
-p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 pb_bp2 = marginals.(pair_beliefs_as_mpem(bp)[1])
 
 @testset "Glauber small tree" begin
@@ -110,4 +107,42 @@ c_exact = exact_autocovariances(f, bp2; r = r_exact)
     @test p_ex ≈ p_bp
     @test r_bp ≈ r_exact
     @test c_bp ≈ c_exact
+end
+
+## Generic Factor
+
+bp = mpbp(deepcopy(gl))
+X, observed = draw_node_observations!(bp, N; rng)
+bpslow = MPBP(bp.g, [GenericFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
+                    deepcopy(collect(bp.μ)), deepcopy(bp.b), collect(bp.f))
+svd_trunc = TruncThresh(0.0)
+# svd_trunc = TruncBondThresh(10)
+cb = CB_BP(bpslow; showprogress=false, info="Glauber")
+iterate!(bpslow; maxiter=20, svd_trunc, cb)
+
+b_bp = beliefs(bpslow)
+p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
+
+p_exact, Z_exact = exact_prob(bpslow)
+b_exact = exact_marginals(bpslow; p_exact)
+p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
+
+f_bethe = bethe_free_energy(bpslow)
+Z_bp = exp(-f_bethe)
+
+r_bp = autocorrelations(f, bpslow)
+r_exact = exact_autocorrelations(f, bpslow; p_exact)
+
+c_bp = autocovariances(f, bpslow)
+c_exact = exact_autocovariances(f, bpslow; r = r_exact)
+
+pb_bp = pair_beliefs(bpslow)[1]
+pb_bp2 = marginals.(pair_beliefs_as_mpem(bpslow)[1])
+
+@testset "Glauber small tree - GenericFactor" begin
+    @test Z_exact ≈ Z_bp
+    @test p_ex ≈ p_bp
+    @test r_bp ≈ r_exact
+    @test c_bp ≈ c_exact
+    @test pb_bp ≈ pb_bp2
 end
