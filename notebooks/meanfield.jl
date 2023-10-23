@@ -86,7 +86,6 @@ end
 # dynamic message passing
 function dmp(T, Δt, g, λ_rate, ρ_rate, γ)
     Tdisc, λ, ρ, prog, r, ϕ = initialize(T, Δt, g, λ_rate, ρ_rate, γ)
-    @show λ
     for t in 2:Tdisc+1
         for i in vertices(g)
             r[i][t] = (1-ρ)*r[i][t-1] + λ*(1-r[i][t-1])*sum(ϕ[idx(e)][t-1] for e in inedges(g, i); init=0.0)
