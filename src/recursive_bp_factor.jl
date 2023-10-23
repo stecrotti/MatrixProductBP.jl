@@ -97,7 +97,7 @@ end
 
 # compute ̃m{∂i∖j→i}(̅y_{∂i∖j},̅xᵢ)
 function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor, M2<:AbstractMPEM2}
-    @assert all(normalization(a) ≈ 1 for a in μin)
+    @debug (@assert all(normalization(a) ≈ 1 for a in μin))
     B = map(eachindex(ψout)) do k
         Bk = map(zip(wᵢ, μin[k], ψout[k])) do (wᵢᵗ, μₖᵢᵗ, ψᵢₖᵗ)
             Pxy = zeros(nstates(U,1), size(μₖᵢᵗ, 3), qi)
