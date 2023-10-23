@@ -51,7 +51,6 @@
     end
 
     @testset "RestrictedRecursiveBPFactor - RecursiveBPFactor generic methods" begin
-        rng2 = MersenneTwister(111)
         bpfake = MPBP(bp.g, [RestrictedRecursiveBPFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
                         deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
 
@@ -67,7 +66,6 @@
     end
 
     @testset "GenericFactor - extensive trace update test" begin
-        rng2 = MersenneTwister(111)
         bpfake = MPBP(bp.g, [GenericFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
                         deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
 
@@ -85,7 +83,6 @@
     end
 
     @testset "RecursiveTraceFactor" begin
-        rng2 = MersenneTwister(111)
         bpfake = MPBP(bp.g, [RecursiveTraceFactor.(w,2) for w in bp.w], bp.ϕ, bp.ψ, 
                         deepcopy(collect(bp.μ)), collect(bp.b), collect(bp.f))
 

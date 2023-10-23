@@ -14,9 +14,10 @@
     sirs = SIRS(g, λ, ρ, σ, T; γ)
     bp = mpbp(sirs)
 
+    rng = MersenneTwister(111)
+    X, _ = onesample(bp; rng)
+
     @testset "SIRS small tree" begin
-        rng = MersenneTwister(111)
-        X, _ = onesample(bp; rng)
 
         @testset "logprob" begin
             @test logprob(bp, X) ≈ -3.912023005428146
@@ -53,7 +54,6 @@
 
 
     @testset "FakeSIRS - RecursiveBPFactor generic methods" begin
-        rng2 = MersenneTwister(111)
         bpfake = MPBP(bp.g, [RecursiveTraceFactor.(w,3) for w in bp.w], bp.ϕ, bp.ψ, 
                         deepcopy(collect(bp.μ)), deepcopy(bp.b), collect(bp.f))
         bpslow = MPBP(bp.g, [GenericFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
@@ -64,6 +64,7 @@
             @test logprob(bp, X) ≈ logprob(bpfake, X) ≈ logprob(bpslow, X)
         end
 
+        svd_trunc = TruncThresh(0.0)
         iterate!(bpfake, maxiter=10; svd_trunc, showprogress=false)
         iterate!(bpslow, maxiter=10; svd_trunc, showprogress=false)
 
@@ -77,6 +78,7 @@
         sirs = SIRS(g, λ, ρ, σ, T; γ)
         reset!(bp; observations=true)
         draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
+        svd_trunc = TruncThresh(0.0)
         iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
         f_bethe = bethe_free_energy(bp)
         logl_bp = - f_bethe
