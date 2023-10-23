@@ -1,4 +1,4 @@
-
+@testset "SIS infinite graph" begin
 
 T = 6         # final time
 k = 3          # degree
@@ -17,7 +17,6 @@ maxiter = 200
 tol = 1e-14
 iters = iterate!(bp; maxiter, svd_trunc, tol);
 
-@testset "SIS infinite graph" begin
 
 @test beliefs(bp)[1] ≈ [
     [0.9000000001671186, 0.0999999998328814],
@@ -26,5 +25,7 @@ iters = iterate!(bp; maxiter, svd_trunc, tol);
     [0.8884643888492034, 0.11153561115079656],
     [0.8880305235706524, 0.1119694764293476],
     [0.8882121515614524, 0.11178784843854758],
-    [0.8887717202217936, 0.1112282797782064]]
+    [0.8887717202217936, 0.1112282797782064]
+    ]
+
 end

@@ -1,9 +1,3 @@
-using MatrixProductBP, MatrixProductBP.Models, IndexedGraphs, Test, Random
-import MatrixProductBP: nstates
-import MatrixProductBP.Models: prob_xy, prob_yy, prob_y
-
-
-
 T = 2
 
 A = [0 1 1; 1 0 0; 1 0 0]
