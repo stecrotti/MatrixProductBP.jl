@@ -1,111 +1,115 @@
 ```Glauber on a small tree with pair observations, comparison with exact solution```
 
-T = 2
-J = [0 1 0 0 0;
-     1 0 1 0 0;
-     0 1 0 1 1;
-     0 0 1 0 0;
-     0 0 1 0 0] .|> float
+@testset "Pair observations" begin
 
-N = size(J, 1)
-h = randn(N)
+    T = 2
+    J = [0 1 0 0 0;
+        1 0 1 0 0;
+        0 1 0 1 1;
+        0 0 1 0 0;
+        0 0 1 0 0] .|> float
 
-β = 1.0
-ising = Ising(J, h, β)
+    N = size(J, 1)
+    h = randn(N)
 
-O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
-      (3, 4, 2, [0.4 0.6; 0.5 0.9]),
-      (3, 5, 2, rand(2,2)) ,
-      (2, 3, T, rand(2,2))          ]
+    β = 1.0
+    ising = Ising(J, h, β)
 
-ψ = pair_observations_nondirected(O, ising.g, T, 2)
+    O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
+        (3, 4, 2, [0.4 0.6; 0.5 0.9]),
+        (3, 5, 2, rand(2,2)) ,
+        (2, 3, T, rand(2,2))          ]
 
-gl = Glauber(ising, T; ψ)
+    ψ = pair_observations_nondirected(O, ising.g, T, 2)
 
-for i in 1:N
-    r = 0.15
-    gl.ϕ[i][1] .* [r, 1-r]
-end
+    gl = Glauber(ising, T; ψ)
 
-bp = mpbp(gl)
-rng = MersenneTwister(111)
-draw_node_observations!(bp, N; rng)
-
-cb = CB_BP(bp; showprogress=false)
-svd_trunc = TruncThresh(0.0)
-iterate!(bp, maxiter=10; svd_trunc, cb, showprogress=false)
-
-b_bp = beliefs(bp)
-p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
-
-p_exact, Z_exact = exact_prob(bp)
-b_exact = exact_marginals(bp)
-p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
-
-f_bethe = bethe_free_energy(bp)
-Z_bp = exp(-f_bethe)
-
-r_bp = autocorrelations(bp)
-r_exact = exact_autocorrelations(bp)
-
-@testset "Pair observations - RecursiveBPFactor" begin
-    @test Z_exact ≈ Z_bp
-    @test p_ex ≈ p_bp
-    @test r_bp ≈ r_exact
-end
-
-###################
-# Now check generic BP
-for ij in eachindex(J)
-    if J[ij] !=0 
-        J[ij] = randn()
+    for i in 1:N
+        r = 0.15
+        gl.ϕ[i][1] .* [r, 1-r]
     end
-end
-J = J + J'
 
-N = size(J, 1)
-h = randn(N)
+    bp = mpbp(gl)
+    rng = MersenneTwister(111)
+    draw_node_observations!(bp, N; rng)
 
-β = 1.0
-ising = Ising(J, h, β)
+    cb = CB_BP(bp; showprogress=false)
+    svd_trunc = TruncThresh(0.0)
+    iterate!(bp, maxiter=10; svd_trunc, cb, showprogress=false)
 
-O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
-      (3, 4, 2, [0.4 0.6; 0.5 0.9]),
-      (3, 5, 2, rand(2,2)) ,
-      (2, 3, T, rand(2,2))          ]
+    b_bp = beliefs(bp)
+    p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
-ψ = pair_observations_nondirected(O, ising.g, T, 2)
+    p_exact, Z_exact = exact_prob(bp)
+    b_exact = exact_marginals(bp)
+    p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
 
-gl = Glauber(ising, T; ψ)
+    f_bethe = bethe_free_energy(bp)
+    Z_bp = exp(-f_bethe)
 
-for i in 1:N
-    r = 0.15
-    gl.ϕ[i][1] .* [r, 1-r]
-end
+    r_bp = autocorrelations(bp)
+    r_exact = exact_autocorrelations(bp)
 
-bp = mpbp(gl)
+    @testset "Pair observations - RecursiveBPFactor" begin
+        @test Z_exact ≈ Z_bp
+        @test p_ex ≈ p_bp
+        @test r_bp ≈ r_exact
+    end
 
-draw_node_observations!(bp, N; rng)
+    ###################
+    # Now check generic BP
+    for ij in eachindex(J)
+        if J[ij] !=0 
+            J[ij] = randn()
+        end
+    end
+    J = J + J'
 
-cb = CB_BP(bp; showprogress=false)
-svd_trunc = TruncThresh(0.0)
-iterate!(bp, maxiter=10; svd_trunc, cb, showprogress=false)
+    N = size(J, 1)
+    h = randn(N)
 
-b_bp = beliefs(bp)
-p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
+    β = 1.0
+    ising = Ising(J, h, β)
 
-p_exact, Z_exact = exact_prob(bp)
-b_exact = exact_marginals(bp)
-p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
+    O = [ (1, 2, 1, [0.1 0.9; 0.3 0.4]),
+        (3, 4, 2, [0.4 0.6; 0.5 0.9]),
+        (3, 5, 2, rand(2,2)) ,
+        (2, 3, T, rand(2,2))          ]
 
-f_bethe = bethe_free_energy(bp)
-Z_bp = exp(-f_bethe)
+    ψ = pair_observations_nondirected(O, ising.g, T, 2)
 
-r_bp = autocorrelations(bp)
-r_exact = exact_autocorrelations(bp)
+    gl = Glauber(ising, T; ψ)
 
-@testset "Pair observations - generic BP" begin
-    @test Z_exact ≈ Z_bp
-    @test p_ex ≈ p_bp
-    @test r_bp ≈ r_exact
+    for i in 1:N
+        r = 0.15
+        gl.ϕ[i][1] .* [r, 1-r]
+    end
+
+    bp = mpbp(gl)
+
+    draw_node_observations!(bp, N; rng)
+
+    cb = CB_BP(bp; showprogress=false)
+    svd_trunc = TruncThresh(0.0)
+    iterate!(bp, maxiter=10; svd_trunc, cb, showprogress=false)
+
+    b_bp = beliefs(bp)
+    p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
+
+    p_exact, Z_exact = exact_prob(bp)
+    b_exact = exact_marginals(bp)
+    p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
+
+    f_bethe = bethe_free_energy(bp)
+    Z_bp = exp(-f_bethe)
+
+    r_bp = autocorrelations(bp)
+    r_exact = exact_autocorrelations(bp)
+
+    @testset "Pair observations - generic BP" begin
+        @test Z_exact ≈ Z_bp
+        @test p_ex ≈ p_bp
+        @test r_bp ≈ r_exact
+    end
+
 end
