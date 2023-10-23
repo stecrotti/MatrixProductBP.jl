@@ -191,6 +191,7 @@ function draw_node_observations!(ϕ::Vector{Vector{Vector{F}}},
     softone = logistic(log(softinf)); softzero = logistic(-log(softinf))
     for (i,t) in observed
         ϕ[i][t] .*= [x==X[i,t] ? softone : softzero for x in eachindex(ϕ[i][t])]
+        all(isequal(0), ϕ[i][t]) && @warn "Reweighting is giving zero probability to all values of variable $i at time $t."
     end
     ϕ, observed
 end
