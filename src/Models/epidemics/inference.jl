@@ -81,7 +81,7 @@ function l1_marginals(b_guess::U, b_true::U) where {U<:Vector{Vector{Vector{Floa
 
     map(1:T+1) do t 
         map(1:N) do i
-            abs(b_guess[i][t][INFECTED] - b_true[i][t][INFECTED])
+            abs(b_guess[i][t][INFECTIOUS] - b_true[i][t][INFECTIOUS])
         end |> mean
     end
 end
