@@ -1,5 +1,3 @@
-const SUSCEPTIBLE = 1 
-const INFECTED = 2
 const RECOVERED = 3
 
 struct SIRSFactor{T<:AbstractFloat} <: RecursiveBPFactor
@@ -28,18 +26,18 @@ end
 function prob_y(wᵢ::SIRSFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
     @unpack λ, ρ, σ = wᵢ
     w = (yᵗ == SUSCEPTIBLE)
-    if xᵢᵗ⁺¹ == INFECTED
-        return (xᵢᵗ == INFECTED) * (1 - ρ) + (xᵢᵗ == SUSCEPTIBLE) * (1 - w) 
+    if xᵢᵗ⁺¹ == INFECTIOUS
+        return (xᵢᵗ == INFECTIOUS) * (1 - ρ) + (xᵢᵗ == SUSCEPTIBLE) * (1 - w) 
     elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
         return (xᵢᵗ == RECOVERED) * σ + (xᵢᵗ == SUSCEPTIBLE) * w
     else #if xᵢᵗ⁺¹ == RECOVERED
-        return (xᵢᵗ == INFECTED) * ρ  + (xᵢᵗ == RECOVERED) * (1 - σ)
+        return (xᵢᵗ == INFECTIOUS) * ρ  + (xᵢᵗ == RECOVERED) * (1 - σ)
     end
 end
 
 function prob_xy(wᵢ::SIRSFactor, yₖ, xₖ, xᵢ)
     @unpack λ = wᵢ
-    (yₖ == INFECTED)*λ*(xₖ==INFECTED) + (yₖ == SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
+    (yₖ == INFECTIOUS)*λ*(xₖ==INFECTIOUS) + (yₖ == SUSCEPTIBLE)*(1-λ*(xₖ==INFECTIOUS))
 end
 
-prob_yy(wᵢ::SIRSFactor, y, y1, y2, xᵢ) = 1.0*((y == INFECTED) == ((y1 == INFECTED) || (y2 == INFECTED)))
+prob_yy(wᵢ::SIRSFactor, y, y1, y2, xᵢ) = 1.0*((y == INFECTIOUS) == ((y1 == INFECTIOUS) || (y2 == INFECTIOUS)))

@@ -1,5 +1,5 @@
 const SUSCEPTIBLE = 1 
-const INFECTED = 2
+const INFECTIOUS = 2
 
 struct SISFactor{T<:AbstractFloat} <: RecursiveBPFactor
     λ :: T  # infection rate
@@ -20,17 +20,17 @@ function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:I
 
     @unpack λ, ρ = fᵢ
 
-    if xᵢᵗ == INFECTED
+    if xᵢᵗ == INFECTIOUS
         if xᵢᵗ⁺¹ == SUSCEPTIBLE
             return ρ
         else
             return 1 - ρ 
         end
     else
-        p = (1-λ)^sum(xⱼᵗ == INFECTED for xⱼᵗ in xₙᵢᵗ; init=0.0)
+        p = (1-λ)^sum(xⱼᵗ == INFECTIOUS for xⱼᵗ in xₙᵢᵗ; init=0.0)
         if xᵢᵗ⁺¹ == SUSCEPTIBLE
             return p
-        elseif xᵢᵗ⁺¹ == INFECTED
+        elseif xᵢᵗ⁺¹ == INFECTIOUS
             return 1 - p
         end
     end
@@ -54,18 +54,18 @@ end
 function prob_y(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
     @unpack λ, ρ = wᵢ
     xⱼᵗ = SUSCEPTIBLE
-    z = 1 - λ*(xⱼᵗ == INFECTED)
+    z = 1 - λ*(xⱼᵗ == INFECTIOUS)
     w = (yᵗ == SUSCEPTIBLE)
-    if xᵢᵗ⁺¹ == INFECTED
-        return (xᵢᵗ==INFECTED) * (1 - ρ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - z * w) 
+    if xᵢᵗ⁺¹ == INFECTIOUS
+        return (xᵢᵗ==INFECTIOUS) * (1 - ρ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - z * w) 
     elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
-        return (xᵢᵗ==INFECTED) * ρ + (xᵢᵗ==SUSCEPTIBLE) * z * w
+        return (xᵢᵗ==INFECTIOUS) * ρ + (xᵢᵗ==SUSCEPTIBLE) * z * w
     end
 end
 
 function prob_xy(wᵢ::SISFactor, yₖ, xₖ, xᵢ)
     @unpack λ = wᵢ
-    (yₖ == INFECTED)*λ*(xₖ==INFECTED) + (yₖ == SUSCEPTIBLE)*(1-λ*(xₖ==INFECTED))
+    (yₖ == INFECTIOUS)*λ*(xₖ==INFECTIOUS) + (yₖ == SUSCEPTIBLE)*(1-λ*(xₖ==INFECTIOUS))
 end
 
-prob_yy(wᵢ::SISFactor, y, y1, y2, xᵢ) = 1.0*((y == INFECTED) == ((y1 == INFECTED) || (y2 == INFECTED)))
+prob_yy(wᵢ::SISFactor, y, y1, y2, xᵢ) = 1.0*((y == INFECTIOUS) == ((y1 == INFECTIOUS) || (y2 == INFECTIOUS)))

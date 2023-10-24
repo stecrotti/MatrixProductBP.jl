@@ -28,7 +28,7 @@ export
     Ising, Glauber, energy,
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
     equilibrium_magnetization, equilibrium_observables, RandomRegular, ErdosRenyi, CB_Pop,
-    SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTED, RECOVERED,
+    SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTIOUS, RECOVERED,
     kl_marginals, l1_marginals, roc, auc
 
 include("glauber/glauber.jl")
