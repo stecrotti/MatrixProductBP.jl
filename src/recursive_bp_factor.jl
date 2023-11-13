@@ -115,7 +115,9 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
             @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
         end |> M2
         lz = normalize!(B)
+        any(any(isnan, b) for b in B) && @error "NaN in tensor train"
         compress!(B; svd_trunc)
+        any(any(isnan, b) for b in B) && @error "NaN in tensor train"
         B, lz + lz1 + lz2, d1 + d2
     end
 
