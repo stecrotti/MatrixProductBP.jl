@@ -186,9 +186,6 @@ function iterate!(bp::MPBP; maxiter::Integer=5,
         svd_trunc::SVDTrunc=TruncThresh(1e-6),
         showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
         nodes = collect(vertices(bp.g)), shuffle_nodes::Bool=true, damp=0.0)
-    # if is_periodic(bp) && !isa(eltype(eltype(bp.w)), RecursiveBPFactor)
-    #     @warn "MPBP with generic factors + PBCs is not guaranteed to give correct results"
-    # end
     for it in 1:maxiter
         Threads.@threads for i in nodes
             onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc, damp)

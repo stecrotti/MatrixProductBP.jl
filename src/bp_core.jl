@@ -44,7 +44,7 @@ function f_bp(A::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}},
                 for xₙᵢᵗ in x_neigs
                     xⱼᵗ = xₙᵢᵗ[j_index]
                     xₙᵢ₋ⱼᵗ = xₙᵢᵗ[Not(j_index)]
-                    Bᵗ[:, :, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹] .+= (t == T + 1 ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)) *
+                    Bᵗ[:, :, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹] .+= ((t == T + 1) && !periodic ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)) *
                         Aᵗ[:, :, xᵢᵗ, xₙᵢ₋ⱼᵗ...] *
                         prod(ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ) if k != j_index; init=1.0)
                 end
@@ -97,10 +97,10 @@ function f_bp_dummy_neighbor(A::Vector{<:AbstractMPEM2},
         for xᵢᵗ in 1:q
             for xᵢᵗ⁺¹ in 1:q
                 if isempty(A)
-                    Bᵗ[:, :, xᵢᵗ, 1, xᵢᵗ⁺¹] .+= (t == T + 1 ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, Int[], xᵢᵗ)) * ϕᵢ[t][xᵢᵗ]
+                    Bᵗ[:, :, xᵢᵗ, 1, xᵢᵗ⁺¹] .+= ((t == T + 1) && !periodic ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, Int[], xᵢᵗ)) * ϕᵢ[t][xᵢᵗ]
                 else
                     for xₙᵢᵗ in xₙᵢ
-                        Bᵗ[:, :, xᵢᵗ, 1, xᵢᵗ⁺¹] .+= (t == T + 1 ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)) .*
+                        Bᵗ[:, :, xᵢᵗ, 1, xᵢᵗ⁺¹] .+= ((t == T + 1) && !periodic ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)) .*
                                                         Aᵗ[:, :, xᵢᵗ, xₙᵢᵗ...] .* ϕᵢ[t][xᵢᵗ] .*
                                                         prod(ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ))
                     end
