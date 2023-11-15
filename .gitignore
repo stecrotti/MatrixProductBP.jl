@@ -34,5 +34,7 @@ Manifest.toml
 notebooks/svd_log.txt
 
 # PDF and SVG files, should be plots
-*.pdf
+notebooks/*.pdf
+notebooks/plot_data/*.pdf
+notebooks/plot_outputs/*.pdf
 *.svg
