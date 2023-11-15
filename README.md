@@ -3,8 +3,9 @@
 [![CI](https://github.com/stecrotti/MatrixProductBP/actions/workflows/ci.yml/badge.svg)](https://github.com/stecrotti/MatrixProductBP/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/stecrotti/MatrixProductBP/branch/main/graph/badge.svg?token=X30C323BYT)](https://codecov.io/gh/stecrotti/MatrixProductBP)
 
-This repository contains the code relative to the paper _Large deviations in stochastic dynamics over graphs through Matrix Product Belief Propagation_ (https://arxiv.org/abs/2303.17403). 
-When possible, variable names match the notation used there.
+This repository contains the code relative to the paper _Matrix Product Belief Propagation for reweighted stochastic dynamics over graphs_ ([PNAS](https://www.pnas.org/doi/10.1073/pnas.2307935120), [arxiv](https://arxiv.org/abs/2303.17403)). 
+When possible, variable names match the notation used there. 
+An [errata](errata.pdf) file is also found here.
 
 ### Installation
 Usage requires Julia version >= 1.8, although 1.9 is recommended. You can download Julia [here](https://julialang.org/downloads/).
