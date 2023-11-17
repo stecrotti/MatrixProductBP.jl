@@ -21,5 +21,6 @@ include("sampling.jl")
 include("sirs_small_tree.jl")
 include("sis_infinite_graph.jl")
 include("sis_small_tree.jl")
+include("exact_msg.jl")
 
 nothing
