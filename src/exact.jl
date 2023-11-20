@@ -133,15 +133,15 @@ struct ExactMsg{Periodic,U<:AbstractArray,S,TI<:Integer}
 end
 is_periodic(::Type{<:ExactMsg{Periodic}}) where {Periodic} = Periodic
 
-function uniform_exact_msg(states, T)
+function uniform_exact_msg(states, T; periodic=false)
     n = prod(states) ^ (T+1)
     x = log(1 / n)
     logm = fill(x, reduce(vcat, (fill(s, T+1) for s in states))...)
-    return ExactMsg(logm, states, T)
+    return ExactMsg(logm, states, T; periodic)
 end
-function zero_exact_msg(states, T)
+function zero_exact_msg(states, T; periodic=false)
     logm = fill(-Inf, reduce(vcat, (fill(s, T+1) for s in states))...)
-    return ExactMsg(logm, states, T)
+    return ExactMsg(logm, states, T; periodic)
 end
 
 nstates(m::ExactMsg) = prod(m.states)
@@ -164,10 +164,11 @@ const MPBPExact = MPBP{<:AbstractIndexedDiGraph, <:Real, <:AbstractVector{<:BPFa
 
 function mpbp_exact(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}},
         q::AbstractVector{Int}, T::Int; 
+        periodic = false,
         ϕ = [[ones(q[i]) for t in 0:T] for i in vertices(g)],
         ψ = [[ones(q[i],q[j]) for t in 0:T] for (i,j) in edges(g)],
-        μ = [uniform_exact_msg((q[i],q[j]), T) for (i,j) in edges(g)],
-        b = [uniform_exact_msg((q[i],), T) for i in vertices(g)],
+        μ = [uniform_exact_msg((q[i],q[j]), T; periodic) for (i,j) in edges(g)],
+        b = [uniform_exact_msg((q[i],), T; periodic) for i in vertices(g)],
         f = zeros(nv(g)))
     return MPBP(g, w, ϕ, ψ, μ, b, f)
 end
@@ -183,7 +184,7 @@ function f_bp(m_in::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}},
     dt = showprogress ? 1.0 : Inf
     prog = Progress(prod(nstates, m_in; init=1), dt=dt, desc="Computing outgoing message")
     mⱼᵢ = m_in[j_index]
-    m_out = zero_exact_msg(reverse(mⱼᵢ.states), mⱼᵢ.T)
+    m_out = zero_exact_msg(reverse(mⱼᵢ.states), mⱼᵢ.T; periodic)
     for xᵢ in eachstate(m_out, 1)
         for xₐ in Iterators.product((eachstate(m, 1) for (k,m) in enumerate(m_in))...)
             # compute weight
@@ -217,7 +218,7 @@ function f_bp_dummy_neighbor(m_in::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Ve
 
     dt = showprogress ? 1.0 : Inf
     prog = Progress(prod(nstates, m_in; init=1), dt=dt, desc="Computing outgoing message")
-    m_out = zero_exact_msg((length(ϕᵢ[1]),), T)
+    m_out = zero_exact_msg((length(ϕᵢ[1]),), T; periodic)
     for xᵢ in eachstate(m_out, 1)
         for xₐ in Iterators.product((eachstate(m, 1) for (k,m) in enumerate(m_in))...)
             # compute weight
