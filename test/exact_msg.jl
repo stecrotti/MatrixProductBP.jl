@@ -1,4 +1,8 @@
-@testset "Exact messages" begin
+using MatrixProductBP, Test
+import MatrixProductBP: f_bp, eachstate, zero_exact_msg
+using Random, MatrixProductBP.Models, Graphs, IndexedGraphs
+
+# @testset "Exact messages" begin
     rng = MersenneTwister(111)
 
     T = 2
@@ -22,8 +26,15 @@
     end
 
     bp = mpbp(deepcopy(gl))
-    bp_ex = mpbp_exact(bp.g, bp.w, fill(2, nv(bp.g)), T)
+    bp_ex = mpbp_exact(bp.g, bp.w, fill(2, nv(bp.g)), T; ϕ = bp.ϕ, ψ = bp.ψ)
     @test bp_ex isa MatrixProductBP.MPBPExact
 
+    iterate!(bp_ex; maxiter=20)
+    svd_trunc = TruncThresh(0.0)
+    iterate!(bp; maxiter=20, svd_trunc)
+    @test beliefs(bp) ≈ beliefs(bp_ex)
+    @test bethe_free_energy(bp) ≈ bethe_free_energy(bp)
 
-end
+    f(x,i) = 2x-3
+    autocorrelations(f, bp_ex)
+# end

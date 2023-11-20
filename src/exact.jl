@@ -121,22 +121,27 @@ function exact_autocovariances(bp::MPBP; r = exact_autocorrelations(bp), μ = ex
     covariance.(r, μ)
 end
 
-struct ExactMsg{F<:Real,S,TI<:Integer}
-    logm       :: Vector{F}
+struct ExactMsg{Periodic,U<:AbstractArray,S,TI<:Integer}
+    logm    :: U
     states  :: S
     T       :: TI
 
-    function ExactMsg(logm::Vector{F}, states::S, T::TI) where {F<:Real,S,TI<:Integer}
+    function ExactMsg(logm::U, states::S, T::TI; periodic::Bool=false) where {U<:AbstractArray,S,TI<:Integer}
         @assert length(logm) == prod(states) ^ (T+1)
-        new{F,S,TI}(logm, states, T)
+        new{periodic,U,S,TI}(logm, states, T)
     end
 end
+is_periodic(::Type{<:ExactMsg{Periodic}}) where {Periodic} = Periodic
 
 function uniform_exact_msg(states, T)
     n = prod(states) ^ (T+1)
     x = log(1 / n)
-    m = fill(x, n)
-    return ExactMsg(m, states, T)
+    logm = fill(x, reduce(vcat, (fill(s, T+1) for s in states))...)
+    return ExactMsg(logm, states, T)
+end
+function zero_exact_msg(states, T)
+    logm = fill(-Inf, reduce(vcat, (fill(s, T+1) for s in states))...)
+    return ExactMsg(logm, states, T)
 end
 
 nstates(m::ExactMsg) = prod(m.states)
@@ -148,8 +153,11 @@ function normalize!(m::ExactMsg)
 end
 normalization(m::ExactMsg) = exp(logsumexp(m.logm))
 
-function eachstate(m::ExactMsg, args...)
-    return zip(eachindex(m.logm), Iterators.product(fill(Iterators.product([1:s for s in m.states]...), m.T+1)...))
+function eachstate(m::ExactMsg)
+    return Iterators.product(fill(Iterators.product((1:s for s in m.states)...), m.T+1)...)
+end
+function eachstate(m::ExactMsg, i::Integer)
+    return Iterators.product(fill(1:m.states[i], m.T+1)...)
 end
 
 const MPBPExact = MPBP{<:AbstractIndexedDiGraph, <:Real, <:AbstractVector{<:BPFactor}, <:ExactMsg, <:ExactMsg}
@@ -166,42 +174,77 @@ end
 
 function f_bp(m_in::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, 
         ψₙᵢ::Vector{Vector{Matrix{F}}}, j_index::Integer; showprogress=false, 
-        periodic=false) where {F,U<:BPFactor,M2<:ExactMsg}
-    T = length(m_in[1]) - 1
+        periodic=is_periodic(M2)) where {F,U<:BPFactor,M2<:ExactMsg}
+    T = length(ϕᵢ) - 1
     @assert all(length(a) == T + 1 for a in m_in)
     @assert length(wᵢ) == T + 1
     @assert length(ϕᵢ) == T + 1
 
     dt = showprogress ? 1.0 : Inf
-    prog = Progress(prod(nstates, m_in), dt=dt, desc="Computing outgoing message")
-    # m_in[j_index].logm .= -Inf
-    m_out = deepcopy(m_in[j_index])
-    m_out.logm .= -Inf
-    for xₐ in Iterators.product((eachstate(m) for m in m_in)...)
-        # compute weight
-        y = prod(1:(T+1)) do t
-            xᵢᵗ⁺¹ = xₐ[j_index][2][mod1(t+1,T+1)][1]
-            xₙᵢᵗ = [xₐ[k][2][mod1(t,T+1)][2] for k in eachindex(xₐ) if k != j_index]
-            xᵢᵗ = xₐ[j_index][2][mod1(t,T+1)][1]
-            w = (t!=T+1 || periodic) ? wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) : 1
-            ϕ = ϕᵢ[t][xᵢᵗ]
-            ψ = prod(ψₖᵢ[t][xₖᵗ,xᵢᵗ] for (xₖᵗ, ψₖᵢ) in zip(xₙᵢᵗ,ψₙᵢ); init=1)
-            w * ϕ * ψ
+    prog = Progress(prod(nstates, m_in; init=1), dt=dt, desc="Computing outgoing message")
+    mⱼᵢ = m_in[j_index]
+    m_out = zero_exact_msg(reverse(mⱼᵢ.states), mⱼᵢ.T)
+    for xᵢ in eachstate(m_out, 1)
+        for xₐ in Iterators.product((eachstate(m, 1) for (k,m) in enumerate(m_in))...)
+            # compute weight
+            y = prod(1:(T+1)) do t
+                xᵢᵗ⁺¹ = xᵢ[mod1(t+1,T+1)][1]
+                xₙᵢᵗ = [xₐ[k][mod1(t,T+1)] for k in eachindex(xₐ)]
+                xᵢᵗ = xᵢ[mod1(t,T+1)][1]
+                w = (t!=T+1 || periodic) ? wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) : 1
+                ϕ = ϕᵢ[t][xᵢᵗ]
+                ψ = prod(ψₖᵢ[t][xₖᵗ,xᵢᵗ] for (k,xₖᵗ,ψₖᵢ) in zip(eachindex(xₙᵢᵗ),xₙᵢᵗ,ψₙᵢ) if k != j_index; init=1)
+                w * ϕ * ψ
+            end
+            # compute (log of) product of incoming messages
+            z = sum(m_in[k].logm[xₖ..., xᵢ...] for (k,xₖ) in enumerate(xₐ) if k != j_index; init=0)
+            # sum
+            m_out.logm[xᵢ..., xₐ[j_index]...] = logaddexp(
+                m_out.logm[xᵢ..., xₐ[j_index]...], log(y) + z)
         end
-        # compute (log of) product of incoming messages
-        z = sum(m_in[k].logm[xₖᵢ[1]] for (xₖᵢ,k) in zip(xₐ, eachindex(xₐ)) if k != j_index; init=0)
-        # sum
-        m_out.logm[xₐ[j_index][1]] = logaddexp(
-            m_out.logm[xₐ[j_index][1]], log(y) + z)
+        next!(prog)
+    end
+    return m_out
+end
+
+function f_bp_dummy_neighbor(m_in::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, 
+        ψₙᵢ::Vector{Vector{Matrix{F}}}; showprogress=false, 
+        periodic=is_periodic(M2)) where {F,U<:BPFactor,M2<:ExactMsg}
+    T = length(ϕᵢ) - 1
+    @assert all(length(a) == T + 1 for a in m_in)
+    @assert length(wᵢ) == T + 1
+    @assert length(ϕᵢ) == T + 1
+
+    dt = showprogress ? 1.0 : Inf
+    prog = Progress(prod(nstates, m_in; init=1), dt=dt, desc="Computing outgoing message")
+    m_out = zero_exact_msg((length(ϕᵢ[1]),), T)
+    for xᵢ in eachstate(m_out, 1)
+        for xₐ in Iterators.product((eachstate(m, 1) for (k,m) in enumerate(m_in))...)
+            # compute weight
+            y = prod(1:(T+1)) do t
+                xᵢᵗ⁺¹ = xᵢ[mod1(t+1,T+1)][1]
+                xₙᵢᵗ = [xₐ[k][mod1(t,T+1)] for k in eachindex(xₐ)]
+                xᵢᵗ = xᵢ[mod1(t,T+1)][1]
+                w = (t!=T+1 || periodic) ? wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) : 1
+                ϕ = ϕᵢ[t][xᵢᵗ]
+                ψ = prod(ψₖᵢ[t][xₖᵗ,xᵢᵗ] for (k,xₖᵗ,ψₖᵢ) in zip(eachindex(xₙᵢᵗ),xₙᵢᵗ,ψₙᵢ); init=1)
+                w * ϕ * ψ
+            end
+            # compute (log of) product of incoming messages
+            z = sum(m_in[k].logm[xₖ..., xᵢ...] for (k,xₖ) in enumerate(xₐ); init=0)
+            # sum
+            m_out.logm[xᵢ...] = logaddexp(
+                m_out.logm[xᵢ...], log(y) + z)
+        end
         next!(prog)
     end
     return m_out
 end
 
 # compute outgoing messages from node `i`
-function onebpiter!(bp::MPBPExact, i::Integer, ::Type{U}; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp=0.0, periodic=false) where {U<:BPFactor}
-    (; g, w, ϕ, ψ, μ) = bp
+function onebpiter!(bp_ex::MPBPExact, i::Integer, ::Type{U}; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp=0.0, periodic=is_periodic(bp_ex)) where {U<:BPFactor}
+    (; g, w, ϕ, ψ, μ) = bp_ex
     ein = inedges(g, i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
@@ -213,8 +256,28 @@ function onebpiter!(bp::MPBPExact, i::Integer, ::Type{U};
         μ[idx(e_out)] = μj # damp?
     end
     dᵢ = length(ein)
-    bp.b[i] = onebpiter_dummy_neighbor(bp, i; svd_trunc) |> marginalize
-    logzᵢ = log(normalization(bp.b[i]))
-    bp.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
-    nothing
+    bp_ex.b[i] = onebpiter_dummy_neighbor(bp_ex, i)
+    logzᵢ = log(normalization(bp_ex.b[i]))
+    bp_ex.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
+    nothing    
 end
+
+function onebpiter_dummy_neighbor(bp::MPBPExact, i::Integer; periodic=is_periodic(bp))
+    (; g, w, ϕ, ψ, μ) = bp
+    ein = inedges(g,i)
+    eout = outedges(g, i)
+    A = μ[ein.|>idx]
+    return f_bp_dummy_neighbor(A, w[i], ϕ[i], ψ[eout.|>idx]; periodic)
+end
+
+function marginals(m::ExactMsg)
+    (; logm, T) = m
+    return map(1:T+1) do t
+        idx = t:T+1:ndims(logm)
+        p = exp.(dropdims(logsumexp(logm, dims=(1:ndims(logm))[Not(idx)]), dims=tuple((1:ndims(logm))[Not(idx)]...)))
+        p ./= sum(p)
+        p
+    end
+end
+
+is_periodic(bp::MPBP{G,F,V,<:ExactMsg{P},<:ExactMsg{P}}) where {G,F,V,P} = P

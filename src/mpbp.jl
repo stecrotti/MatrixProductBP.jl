@@ -117,7 +117,7 @@ is_periodic(bp::MPBP{G,F,V,<:PeriodicMPEM2,<:PeriodicMPEM1}) where {G,F,V} = tru
 function onebpiter!(bp::MPBP, i::Integer, ::Type{U}; 
         svd_trunc::SVDTrunc=TruncThresh(1e-6), damp=0.0,
         periodic=is_periodic(bp)) where {U<:BPFactor}
-    @unpack g, w, ϕ, ψ, μ = bp
+    (; g, w, ϕ, ψ, μ) = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
