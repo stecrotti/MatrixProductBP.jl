@@ -5,7 +5,7 @@
 
 This repository contains the code relative to the paper _Matrix Product Belief Propagation for reweighted stochastic dynamics over graphs_ ([PNAS](https://www.pnas.org/doi/10.1073/pnas.2307935120), [arxiv](https://arxiv.org/abs/2303.17403)). 
 When possible, variable names match the notation used there. 
-An [errata](errata.pdf) file is also found here.
+An [errata](errata.md) file is also found here.
 
 ### Installation
 Usage requires Julia version >= 1.8, although 1.9 is recommended. You can download Julia [here](https://julialang.org/downloads/).
