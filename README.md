@@ -12,7 +12,7 @@ Usage requires Julia version >= 1.8, although 1.9 is recommended. You can downlo
 
 To install the package:
 ```julia
-using Pkg; Pkg.add("https://github.com/stecrotti/MatrixProductBP.git")
+using Pkg; Pkg.add("MatrixProductBP")
 ```
 
 ## Overview
