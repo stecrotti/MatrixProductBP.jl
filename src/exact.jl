@@ -282,3 +282,18 @@ function marginals(m::ExactMsg)
 end
 
 is_periodic(bp::MPBP{G,F,V,<:ExactMsg{P},<:ExactMsg{P}}) where {G,F,V,P} = P
+
+function exact_mpbp_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
+    ϕᵢ = fill(ones(qi), length(wᵢ));
+    ψₖᵢ = fill(ones(qi, qi), length(wᵢ)),
+    periodic = false) where {U<:BPFactor}
+
+    T = length(wᵢ) - 1
+    @assert length(ϕᵢ) == T + 1
+    @assert length(ψₖᵢ) == T + 1
+    
+    g = InfiniteRegularGraph(k)
+    μ = uniform_exact_msg((qi, qi), T; periodic)
+    b = uniform_exact_msg((qi,), T; periodic)
+    MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [0.0])
+end
