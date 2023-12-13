@@ -71,9 +71,9 @@ function mpem2(B::MPEM3{F}) where {F}
     for t in Iterators.take(eachindex(B), length(B)-1)
         U, λ, V = svd(M)   
         m = length(λ)     
-        @cast Cᵗ[m, k, xᵢᵗ, xⱼᵗ] := U[(xᵢᵗ, xⱼᵗ, m), k] k:m, xᵢᵗ:qᵢᵗ, xⱼᵗ:qⱼᵗ
+        @cast Cᵗ[m, k, xᵢᵗ, xⱼᵗ] := U[(xᵢᵗ, xⱼᵗ, m), k] k∈1:m, xᵢᵗ∈1:qᵢᵗ, xⱼᵗ∈1:qⱼᵗ
         C[t] = Cᵗ
-        @cast Vt[m, n, xᵢᵗ⁺¹] := V'[m, (n, xᵢᵗ⁺¹)]  xᵢᵗ⁺¹:qᵢᵗ⁺¹
+        @cast Vt[m, n, xᵢᵗ⁺¹] := V'[m, (n, xᵢᵗ⁺¹)]  xᵢᵗ⁺¹∈1:qᵢᵗ⁺¹
         Bᵗ⁺¹ = B[t+1]
         @tullio Bᵗ⁺¹_new[m, n, xᵢᵗ⁺¹, xⱼᵗ⁺¹, xᵢᵗ⁺²] := λ[m] * 
             Vt[m, l, xᵢᵗ⁺¹] * Bᵗ⁺¹[l, n, xᵢᵗ⁺¹, xⱼᵗ⁺¹, xᵢᵗ⁺²] 
@@ -119,9 +119,9 @@ function mpem2(B::PeriodicMPEM3{F}) where {F}
     for t in eachindex(B)
         U, λ, V = svd(M)   
         m = length(λ)     
-        @cast Cᵗ[m, k, xᵢᵗ, xⱼᵗ] := U[(xᵢᵗ, xⱼᵗ, m), k] k:m, xᵢᵗ:qᵢᵗ, xⱼᵗ:qⱼᵗ
+        @cast Cᵗ[m, k, xᵢᵗ, xⱼᵗ] := U[(xᵢᵗ, xⱼᵗ, m), k] k∈1:m, xᵢᵗ∈1:qᵢᵗ, xⱼᵗ∈1:qⱼᵗ
         C[t] = Cᵗ
-        @cast Vt[m, n, xᵢᵗ⁺¹] := V'[m, (n, xᵢᵗ⁺¹)]  xᵢᵗ⁺¹:qᵢᵗ⁺¹
+        @cast Vt[m, n, xᵢᵗ⁺¹] := V'[m, (n, xᵢᵗ⁺¹)]  xᵢᵗ⁺¹∈1:qᵢᵗ⁺¹
         if t < length(B)
             Bᵗ⁺¹ = B[t+1]
             @tullio Bᵗ⁺¹_new[m, n, xᵢᵗ⁺¹, xⱼᵗ⁺¹, xᵢᵗ⁺²] := λ[m] * 
