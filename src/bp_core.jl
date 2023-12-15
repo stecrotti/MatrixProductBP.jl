@@ -26,35 +26,29 @@ function f_bp(A::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}},
     qj = size(ψₙᵢ[j_index][1],1)
     @assert all(length(ϕᵢᵗ) == q for ϕᵢᵗ in ϕᵢ)
     @assert j_index in eachindex(A)
-    z = length(A)      # z = |∂i|
-    x_neigs = (collect(x) for x in Iterators.product((1:size(ψₙᵢ[k][1],2) for k=1:z)...))
-
-    B = Vector{Array{F,5}}(undef, T + 1)
- 
     dt = showprogress ? 1.0 : Inf
     prog = Progress(T - 1, dt=dt, desc="Computing outgoing message")
-    for t in 1:T+1
-        ϕᵢᵗ = ϕᵢ[t]
-        # select incoming A's but not the j-th one
-        Aᵗ = kron2([A[k][t] for k in eachindex(A)[Not(j_index)]]...)
-        nrows, ncols = size(Aᵗ, 1), size(Aᵗ, 2)
-        Bᵗ = zeros(nrows, ncols, q, qj, q)
-
-        @inbounds for xᵢᵗ in 1:q
-            for xᵢᵗ⁺¹ in 1:q
-                for xₙᵢᵗ in x_neigs
-                    xⱼᵗ = xₙᵢᵗ[j_index]
-                    xₙᵢ₋ⱼᵗ = xₙᵢᵗ[Not(j_index)]
-                    @views Bᵗ[:, :, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹] .+= (t == T + 1 && !periodic ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)) .*
-                        Aᵗ[:, :, xᵢᵗ, xₙᵢ₋ⱼᵗ...] .* 
-                        ϕᵢᵗ[xᵢᵗ] .* 
-                        prod(ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ) if k != j_index; init=1.0)
+    notj = eachindex(A)[Not(j_index)]
+    xin = Iterators.product((axes(ψₙᵢ[k][1],2) for k in notj)...)
+    B = map(1:T+1) do t
+        Bᵗ = zeros(reduce(.*, (size(A[k][t])[1:2] for k in notj); init=(1,1))..., q, qj, q)
+        @inbounds for xᵢᵗ in 1:q 
+            for xₙᵢ₋ⱼᵗ in xin
+                Aᵗ = kronecker(ones(1,1),
+                    (A[k][t][:,:,xₖᵗ,xᵢᵗ] .* ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in zip(notj,xₙᵢ₋ⱼᵗ))...)
+                for xⱼᵗ in 1:qj, xᵢᵗ⁺¹ in 1:q
+                    w = ϕᵢ[t][xᵢᵗ]
+                    if t <= T || periodic
+                        xₙᵢᵗ = [xₙᵢ₋ⱼᵗ[1:j_index-1]..., xⱼᵗ, xₙᵢ₋ⱼᵗ[j_index:end]...]
+                        w *= wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)
+                    end
+                    Bᵗ[:, :, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹] .+= Aᵗ .* w
                 end
             end
         end
-        B[t] = Bᵗ
         any(isnan, Bᵗ) && @error "NaN in tensor at time $t"
         next!(prog, showvalues=[(:t, "$t/$T")])
+        Bᵗ
     end
 
     mpem3from2(eltype(A))(B), 0.0
@@ -73,29 +67,25 @@ function f_bp_dummy_neighbor(A::Vector{<:AbstractMPEM2},
     B = Vector{Array{F,5}}(undef, T + 1)
     dt = showprogress ? 1.0 : Inf
     prog = Progress(T - 1, dt=dt, desc="Computing outgoing message")
-    for t in 1:T+1
-        Aᵗ = kron2([A[k][t] for k in eachindex(A)]...)
-        nrows = size(Aᵗ, 1)
-        ncols = size(Aᵗ, 2)
-        Bᵗ = zeros(nrows, ncols, q, 1, q)
+    xin = Iterators.product((axes(ψₙᵢ[k][1],2) for k in eachindex(A))...)
+    B = map(1:T+1) do t
+        Bᵗ = zeros(reduce(.*, (size(A[k][t])[1:2] for k in eachindex(A)); init=(1,1))..., q, 1, q)
         @inbounds for xᵢᵗ in 1:q
-            for xᵢᵗ⁺¹ in 1:q
-                if isempty(A)
-                    Bᵗ[:, :, xᵢᵗ, 1, xᵢᵗ⁺¹] .+= (t == T + 1 && !periodic ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, Int[], xᵢᵗ)) * ϕᵢ[t][xᵢᵗ]
-                else
-                    for xₙᵢᵗ in xₙᵢ
-                        @views Bᵗ[:, :, xᵢᵗ, 1, xᵢᵗ⁺¹] .+= 
-                                (t == T + 1 && !periodic ? 1.0 : wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)) .*
-                                Aᵗ[:, :, xᵢᵗ, xₙᵢᵗ...] .*
-                                ϕᵢ[t][xᵢᵗ] .*
-                                prod(ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in enumerate(xₙᵢᵗ))   
+            for xₙᵢᵗ in xin
+                Aᵗ = kronecker(ones(1,1),
+                    (A[k][t][:,:,xₖᵗ,xᵢᵗ] .* ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in pairs(xₙᵢᵗ))...)
+                for xᵢᵗ⁺¹ in 1:q
+                    w = ϕᵢ[t][xᵢᵗ]
+                    if t <= T || periodic
+                        w *= wᵢ[t](xᵢᵗ⁺¹, collect(xₙᵢᵗ), xᵢᵗ)
                     end
+                    Bᵗ[:, :, xᵢᵗ, 1, xᵢᵗ⁺¹] .+= Aᵗ .* w
                 end
             end
         end
-        B[t] = Bᵗ
         any(isnan, Bᵗ) && println("NaN in tensor at time $t")
         next!(prog, showvalues=[(:t, "$t/$T")])
+        Bᵗ
     end
 
     return mpem3from2(eltype(A))(B), 0.0
