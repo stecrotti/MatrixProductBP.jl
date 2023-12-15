@@ -21,6 +21,7 @@ import Lazy: @forward
 import CavityTools: cavity
 import LogarithmicNumbers: ULogarithmic
 import LinearAlgebra: I, tr
+import Kronecker: kronecker
 
 import TensorTrains:
     getindex, iterate, firstindex, lastindex, setindex!, length, eachindex, +, -, isapprox,
