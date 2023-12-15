@@ -135,3 +135,7 @@ function mpem2(B::PeriodicMPEM3{F}) where {F}
     end
     return PeriodicMPEM2{F}(C)
 end
+
+
+mpem3from2(::Type{MPEM2{F}}) where F = MPEM3
+mpem3from2(::Type{PeriodicMPEM2{F}}) where F = PeriodicMPEM3
