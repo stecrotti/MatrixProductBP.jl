@@ -34,7 +34,7 @@ function f_bp(A::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}},
         Bᵗ = zeros(reduce(.*, (size(A[k][t])[1:2] for k in notj); init=(1,1))..., q, qj, q)
         @inbounds for xᵢᵗ in 1:q 
             for xₙᵢ₋ⱼᵗ in xin
-                Aᵗ = kronecker(ones(1,1),
+                @views Aᵗ = kronecker(ones(1,1),
                     (A[k][t][:,:,xₖᵗ,xᵢᵗ] .* ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in zip(notj,xₙᵢ₋ⱼᵗ))...)
                 for xⱼᵗ in 1:qj, xᵢᵗ⁺¹ in 1:q
                     w = ϕᵢ[t][xᵢᵗ]
@@ -62,9 +62,6 @@ function f_bp_dummy_neighbor(A::Vector{<:AbstractMPEM2},
     T = length(ϕᵢ) - 1
     @assert all(length(a) == T + 1 for a in A)
     @assert length(wᵢ) == T + 1
-    z = length(A)      # z = |∂i|
-    xₙᵢ = (collect(x) for x in Iterators.product((1:size(ψₙᵢ[k][1],2) for k=1:z)...))
-    B = Vector{Array{F,5}}(undef, T + 1)
     dt = showprogress ? 1.0 : Inf
     prog = Progress(T - 1, dt=dt, desc="Computing outgoing message")
     xin = Iterators.product((axes(ψₙᵢ[k][1],2) for k in eachindex(A))...)
@@ -72,7 +69,7 @@ function f_bp_dummy_neighbor(A::Vector{<:AbstractMPEM2},
         Bᵗ = zeros(reduce(.*, (size(A[k][t])[1:2] for k in eachindex(A)); init=(1,1))..., q, 1, q)
         @inbounds for xᵢᵗ in 1:q
             for xₙᵢᵗ in xin
-                Aᵗ = kronecker(ones(1,1),
+                @views Aᵗ = kronecker(ones(1,1),
                     (A[k][t][:,:,xₖᵗ,xᵢᵗ] .* ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in pairs(xₙᵢᵗ))...)
                 for xᵢᵗ⁺¹ in 1:q
                     w = ϕᵢ[t][xᵢᵗ]
@@ -88,7 +85,7 @@ function f_bp_dummy_neighbor(A::Vector{<:AbstractMPEM2},
         Bᵗ
     end
 
-    return mpem3from2(eltype(A))(B), 0.0
+    mpem3from2(eltype(A))(B), 0.0
 end
 
 function pair_belief_as_mpem(Aᵢⱼ::M2, Aⱼᵢ::M2, ψᵢⱼ) where {M2<:AbstractMPEM2}
