@@ -42,7 +42,9 @@ function f_bp(A::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}},
                         xₙᵢᵗ = [xₙᵢ₋ⱼᵗ[1:j_index-1]..., xⱼᵗ, xₙᵢ₋ⱼᵗ[j_index:end]...]
                         w *= wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ)
                     end
-                    Bᵗ[:, :, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹] .+= Aᵗ .* w
+                    if !iszero(w)
+                        Bᵗ[:, :, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹] .+= Aᵗ .* w
+                    end
                 end
             end
         end
@@ -76,7 +78,9 @@ function f_bp_dummy_neighbor(A::Vector{<:AbstractMPEM2},
                     if t <= T || periodic
                         w *= wᵢ[t](xᵢᵗ⁺¹, collect(xₙᵢᵗ), xᵢᵗ)
                     end
-                    Bᵗ[:, :, xᵢᵗ, 1, xᵢᵗ⁺¹] .+= Aᵗ .* w
+                    if !iszero(w)
+                        Bᵗ[:, :, xᵢᵗ, 1, xᵢᵗ⁺¹] .+= Aᵗ .* w
+                    end
                 end
             end
         end
