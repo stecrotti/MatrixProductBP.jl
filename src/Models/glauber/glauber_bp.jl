@@ -29,7 +29,7 @@ function HomogeneousGlauberFactor(J::T, h::T, β::T) where {T<:Real}
 end
 
 # the sum of `l` spins can assume `l+1` values
-nstates(::Type{<:HomogeneousGlauberFactor}, l::Integer) = l + 1
+nstates(::HomogeneousGlauberFactor, l::Integer) = l + 1
 
 # ignore neighbor because it doesn't exist
 function prob_y(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
@@ -65,7 +65,7 @@ function PMJGlauberFactor(signs::Vector{Int}, J::T, h::T, β::T) where {T<:Real}
     PMJGlauberFactor(signs, J*β, h*β)
 end
 
-nstates(::Type{<:PMJGlauberFactor}, d::Integer) = 2d + 1
+nstates(::PMJGlauberFactor, d::Integer) = 2d + 1
 
 function prob_y(wᵢ::PMJGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
     @unpack βJ, βh = wᵢ
@@ -130,3 +130,4 @@ function glauber_factors(ising::Ising, T::Integer)
         fill(wᵢᵗ, T + 1)
     end
 end
+

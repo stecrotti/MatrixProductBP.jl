@@ -8,7 +8,7 @@ abstract type RecursiveBPFactor <: BPFactor; end
 #### the next five methods are the minimal needed interface for a new <:RecursiveBPFactor
 
 "Number of states for aux variable which accumulates the first `l` neighbors"
-nstates(::Type{<:RecursiveBPFactor}, l::Integer) = error("Not implemented")
+nstates(w::RecursiveBPFactor, l::Integer) = error("Not implemented")
 
 "P(xᵢᵗ⁺¹|xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ)
 Might depend on the degree `dᵢ` because of a change of variable from 
@@ -36,8 +36,8 @@ function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVe
     Pyy = fill(1.0, 1)
     for k in 1:d
         Pyy = [sum(prob_yy(wᵢ, y, y1, y2, xᵢᵗ, 1, k-1)*prob_xy(wᵢ, y1, xₙᵢᵗ[k], xᵢᵗ,k)*Pyy[y2]
-                   for y1 in 1:nstates(U,1), y2 in 1:nstates(U,k-1)) 
-               for y in 1:nstates(U,k)]
+                   for y1 in 1:nstates(wᵢ,1), y2 in 1:nstates(wᵢ,k-1)) 
+               for y in 1:nstates(wᵢ,k)]
     end
     sum(Pyy[y] * prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, y, d) for y in eachindex(Pyy))
 end
@@ -47,7 +47,7 @@ function prob_y_partial(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, k) where
     sum(prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d + 1) * 
         prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ,k) * 
         prob_yy(wᵢ, yᵗ, y1, y2, xᵢᵗ, d, 1) 
-        for yᵗ in 1:nstates(U, d + 1), y2 in 1:nstates(U,1))
+        for yᵗ in 1:nstates(wᵢ, d + 1), y2 in 1:nstates(wᵢ,1))
 end
 
 
@@ -100,7 +100,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
     @debug @assert all(normalization(a) ≈ 1 for a in μin)
     B = map(eachindex(ψout)) do k
         Bk = map(zip(wᵢ, μin[k], ψout[k])) do (wᵢᵗ, μₖᵢᵗ, ψᵢₖᵗ)
-            Pxy = zeros(nstates(U,1), size(μₖᵢᵗ, 3), qi)
+            Pxy = zeros(nstates(wᵢᵗ,1), size(μₖᵢᵗ, 3), qi)
             @tullio avx=false Pxy[yₖ,xₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * ψᵢₖᵗ[xᵢ,xₖ]
             @tullio _[m,n,yₖ,xᵢ] := Pxy[yₖ,xₖ,xᵢ] * μₖᵢᵗ[m,n,xₖ,xᵢ] 
         end |> M2
@@ -109,7 +109,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
 
     function op((B1, lz1, d1), (B2, lz2, d2))
         B = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
-            Pyy = zeros(nstates(U,d1+d2), size(B₁ᵗ,3), size(B₂ᵗ,3), size(B₁ᵗ,4))
+            Pyy = zeros(nstates(wᵢᵗ,d1+d2), size(B₁ᵗ,3), size(B₂ᵗ,3), size(B₁ᵗ,4))
             @tullio avx=false Pyy[y,y1,y2,xᵢ] = prob_yy(wᵢᵗ,y,y1,y2,xᵢ,d1,d2) 
             @tullio B3[m1,m2,n1,n2,y,xᵢ] := Pyy[y,y1,y2,xᵢ] * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ]
             @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
@@ -174,7 +174,7 @@ struct DampedFactor{T<:RecursiveBPFactor,F<:Real} <: RecursiveBPFactor
     end
 end
 
-nstates(::Type{<:DampedFactor{T}}, l::Integer) where {T} = nstates(T, l)
+nstates(w::DampedFactor{T}, l::Integer) where {T} = nstates(w.w, l)
 
 @forward DampedFactor.w prob_xy, prob_yy
 
