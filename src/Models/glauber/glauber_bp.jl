@@ -160,3 +160,12 @@ end
 prob_xy(wᵢ::IntegerGlauberFactor, yₖ, xₖ, xᵢ, k) = (yₖ == potts2spin(xₖ)*wᵢ.J[k] + wᵢ.K)
 prob_yy(wᵢ::IntegerGlauberFactor, y, y1, y2, xᵢ) = (y + wᵢ.K == y1 + y2)
 prob_y0(wᵢ::IntegerGlauberFactor, y, xᵢ) = y == wᵢ.K
+
+function (wᵢ::IntegerGlauberFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
+    xᵢᵗ::Integer)
+    @unpack J, h, β, K = wᵢ
+    hᵗ = sum(Jk*potts2spin(xk) for (Jk,xk) in zip(J, xₙᵢᵗ); init=0.0)
+    βhⱼᵢ = β*(hᵗ + h)
+    E = - potts2spin(xᵢᵗ⁺¹) * βhⱼᵢ
+    return 1 / (1 + exp(2E))    
+end
