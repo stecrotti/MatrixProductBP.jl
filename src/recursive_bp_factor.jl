@@ -22,7 +22,7 @@ prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ, dᵢ) = prob_xy(wᵢ, yₖ, x
 "P(yₐᵦ|yₐ,yᵦ,xᵢᵗ)"
 prob_yy(wᵢ::RecursiveBPFactor, y, y1, y2, xᵢ, d1, d2) = prob_yy(wᵢ::RecursiveBPFactor, y, y1, y2, xᵢ)
 prob_yy(wᵢ::RecursiveBPFactor, y, y1, y2, xᵢ) = error("Not implemented")
-
+prob_y0(wᵢ::RecursiveBPFactor, y, xᵢᵗ) = y == 1
 
 ##############################################
 #### the next methods are optional
@@ -31,21 +31,22 @@ prob_yy(wᵢ::RecursiveBPFactor, y, y1, y2, xᵢ) = error("Not implemented")
 "P(xᵢᵗ⁺¹|xᵢᵗ, xₙᵢᵗ, d)"
 function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
     xᵢᵗ::Integer)
-    U = typeof(wᵢ)
     d = length(xₙᵢᵗ)
-    Pyy = fill(1.0, 1)
+    Pyy = [prob_y0(wᵢ, y, xᵢᵗ) for y in 1:nstates(wᵢ,0)]
     for k in 1:d
-        Pyy = [sum(prob_yy(wᵢ, y, y1, y2, xᵢᵗ, 1, k-1)*prob_xy(wᵢ, y1, xₙᵢᵗ[k], xᵢᵗ,k)*Pyy[y2]
-                   for y1 in 1:nstates(wᵢ,1), y2 in 1:nstates(wᵢ,k-1)) 
+        Pyy = [sum(prob_yy(wᵢ, y, y1, y2, xᵢᵗ, 1, k-1) *
+                   prob_xy(wᵢ, y1, xₙᵢᵗ[k], xᵢᵗ, k) *
+                   Pyy[y2]
+                   for y1 in 1:nstates(wᵢ,1), y2 in eachindex(Pyy)) 
                for y in 1:nstates(wᵢ,k)]
     end
     sum(Pyy[y] * prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, y, d) for y in eachindex(Pyy))
 end
 
 "P(xᵢᵗ⁺¹|xᵢᵗ, xₙᵢᵗ, d)"
-function prob_y_partial(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, k) where {U<:RecursiveBPFactor}
+function prob_y_partial(wᵢ::RecursiveBPFactor, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, k)
     sum(prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d + 1) * 
-        prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ,k) * 
+        prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ, k) * 
         prob_yy(wᵢ, yᵗ, y1, y2, xᵢᵗ, d, 1) 
         for yᵗ in 1:nstates(wᵢ, d + 1), y2 in 1:nstates(wᵢ,1))
 end
@@ -53,7 +54,9 @@ end
 
 #####################################################
 
-prob_y_dummy(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, j) where U = prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, y1, d) 
+function prob_y_dummy(wᵢ::RecursiveBPFactor, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, j)
+    prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, y1, d)
+end
 
 # compute matrix B for mᵢⱼ
 function f_bp_partial_ij(A::AbstractMPEM2, wᵢ::Vector{U}, ϕᵢ, d::Integer, qj, j) where {U<:RecursiveBPFactor}
@@ -121,8 +124,12 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
         B, lz + lz1 + lz2, d1 + d2
     end
 
-    Minit = fill(1.0, 1, 1, 1, qi)
-    init = (M2(fill(Minit, T + 1)), 0.0, 0)
+    Minit = [[float(prob_y0(wᵢ[t], y, xᵢ)) for _ in 1:1, 
+                _ in 1:1, 
+                y in 1:nstates(wᵢ[t],0),
+                xᵢ in 1:qi] 
+            for t=1:T+1]
+    init = (M2(Minit), 0.0, 0)
     dest, (full, logzᵢ,)  = cavity(B, op, init)
     (C, logzs) = unzip(dest)
     sumlogzᵢ₂ⱼ = sum(logzs)

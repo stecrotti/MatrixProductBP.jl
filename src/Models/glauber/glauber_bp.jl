@@ -124,10 +124,39 @@ function glauber_factors(ising::Ising, T::Integer)
             else
                 PMJGlauberFactor(Int.(sign.(J)), β*abs(Jᵢ), β*h)
             end
+        elseif all(isinteger, J)
+            IntegerGlauberFactor(Int.(J), h, β)
         else
-            GenericGlauberFactor(J, h, ising.β)
+            GenericGlauberFactor(J, h, β)
         end
         fill(wᵢᵗ, T + 1)
     end
 end
 
+struct IntegerGlauberFactor{T<:Real}  <: RecursiveBPFactor 
+    J :: Vector{Int}      
+    h :: T
+    β :: T
+    K :: Int
+end
+
+IntegerGlauberFactor(J,h,β) = IntegerGlauberFactor(J, h, β, sum(abs,J) + 1)
+
+
+nstates(w::IntegerGlauberFactor, l::Integer) = 2w.K-1
+
+"P(xᵢᵗ⁺¹|xᵢᵗ, xₖᵗ, yₙᵢᵗ, dᵢ)
+Might depend on the degree `dᵢ` because of a change of variable from 
+    y ∈ {1,2,...} to its physical value, e.g. {-dᵢ,...,dᵢ} for Ising"
+function prob_y(wᵢ::IntegerGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, yₙᵢᵗ, dᵢ) 
+    @unpack J, h, β, K = wᵢ
+    hᵗ = yₙᵢᵗ - K
+    βhⱼᵢ = β*(hᵗ + h)
+    E = - potts2spin(xᵢᵗ⁺¹) * βhⱼᵢ
+    return 1 / (1 + exp(2E))
+end
+
+"P(yₖᵗ| xₖᵗ, xᵢᵗ)"
+prob_xy(wᵢ::IntegerGlauberFactor, yₖ, xₖ, xᵢ, k) = (yₖ == potts2spin(xₖ)*wᵢ.J[k] + wᵢ.K)
+prob_yy(wᵢ::IntegerGlauberFactor, y, y1, y2, xᵢ) = (y + wᵢ.K == y1 + y2)
+prob_y0(wᵢ::IntegerGlauberFactor, y, xᵢ) = y == wᵢ.K
