@@ -13,7 +13,7 @@ struct SIRSFactor{T<:AbstractFloat} <: RecursiveBPFactor
 end
 
 # the accumulated variable is still binary
-nstates(::Type{<:SIRSFactor}, l::Integer) = l == 0 ? 1 : 2
+nstates(::SIRSFactor, l::Integer) = l == 0 ? 1 : 2
 
 
 function mpbp(sirs::SIRS{T,N,F}; kw...) where {T,N,F}

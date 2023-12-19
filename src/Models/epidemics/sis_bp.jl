@@ -12,7 +12,7 @@ struct SISFactor{T<:AbstractFloat} <: RecursiveBPFactor
 end
 
 # the accumulated variable is still binary
-nstates(::Type{<:SISFactor}, l::Integer) = l == 0 ? 1 : 2
+nstates(::SISFactor, l::Integer) = l == 0 ? 1 : 2
 
 function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:2
