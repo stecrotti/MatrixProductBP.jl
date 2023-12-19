@@ -34,7 +34,7 @@ function f_bp(A::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}},
         Bᵗ = zeros(reduce(.*, (size(A[k][t])[1:2] for k in notj); init=(1,1))..., q, qj, q)
         @inbounds for xᵢᵗ in 1:q 
             for xₙᵢ₋ⱼᵗ in xin
-                @views Aᵗ = kronecker(ones(1,1),
+                @views Aᵗ = kron(ones(1,1),ones(1,1),
                     (A[k][t][:,:,xₖᵗ,xᵢᵗ] .* ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in zip(notj,xₙᵢ₋ⱼᵗ))...)
                 for xⱼᵗ in 1:qj, xᵢᵗ⁺¹ in 1:q
                     w = ϕᵢ[t][xᵢᵗ]
@@ -71,7 +71,7 @@ function f_bp_dummy_neighbor(A::Vector{<:AbstractMPEM2},
         Bᵗ = zeros(reduce(.*, (size(A[k][t])[1:2] for k in eachindex(A)); init=(1,1))..., q, 1, q)
         @inbounds for xᵢᵗ in 1:q
             for xₙᵢᵗ in xin
-                @views Aᵗ = kronecker(ones(1,1),
+                @views Aᵗ = kron(ones(1,1),ones(1,1),
                     (A[k][t][:,:,xₖᵗ,xᵢᵗ] .* ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in pairs(xₙᵢᵗ))...)
                 for xᵢᵗ⁺¹ in 1:q
                     w = ϕᵢ[t][xᵢᵗ]
