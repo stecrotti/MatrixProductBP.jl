@@ -173,7 +173,7 @@ end
     end
 
     bp = mpbp(deepcopy(gl))
-    #X, observed = draw_node_observations!(bp, N; rng)
+    X, observed = draw_node_observations!(bp, N; rng)
 
     svd_trunc = TruncThresh(0.0)
     svd_trunc = TruncBondThresh(15)
@@ -219,7 +219,7 @@ end
     logl_bp = - f_bethe
     logp = logprob(bp, X)
 
-    @testset "Glauber small tree - observe everything" begin
+    @testset "Glauber small tree integer - observe everything" begin
         @test logl_bp ≈ logp
     end
 

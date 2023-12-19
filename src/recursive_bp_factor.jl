@@ -32,7 +32,7 @@ prob_y0(wᵢ::RecursiveBPFactor, y, xᵢᵗ) = y == 1
 function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
     xᵢᵗ::Integer)
     d = length(xₙᵢᵗ)
-    Pyy = [prob_y0(wᵢ, y, xᵢᵗ) for y in 1:nstates(wᵢ,0)]
+    Pyy = [float(prob_y0(wᵢ, y, xᵢᵗ)) for y in 1:nstates(wᵢ,0)]
     for k in 1:d
         Pyy = [sum(prob_yy(wᵢ, y, y1, y2, xᵢᵗ, 1, k-1) *
                    prob_xy(wᵢ, y1, xₙᵢᵗ[k], xᵢᵗ, k) *
@@ -124,10 +124,10 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
         B, lz + lz1 + lz2, d1 + d2
     end
 
-    Minit = [[float(prob_y0(wᵢ[t], y, xᵢ)) for _ in 1:1, 
-                _ in 1:1, 
+    Minit = [[float(prob_y0(wᵢ[t], y, xᵢ)) for _ in 1:1,
+                _ in 1:1,
                 y in 1:nstates(wᵢ[t],0),
-                xᵢ in 1:qi] 
+                xᵢ in 1:qi]
             for t=1:T+1]
     init = (M2(Minit), 0.0, 0)
     dest, (full, logzᵢ,)  = cavity(B, op, init)
@@ -194,3 +194,5 @@ end
 function prob_y(wᵢ::DampedFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
     return (1-wᵢ.p)*(prob_y(wᵢ.w, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)) + wᵢ.p*(xᵢᵗ⁺¹ == xᵢᵗ)
 end
+
+prob_y0(wᵢ::DampedFactor, y, xᵢᵗ) = prob_y0(wᵢ.w, y, xᵢᵗ)

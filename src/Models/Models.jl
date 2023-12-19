@@ -4,7 +4,7 @@ import MatrixProductBP: exact_prob, getT, nstates, mpbp, compress!,
     f_bp, f_bp_dummy_neighbor, onebpiter_dummy_neighbor,
     beliefs, beliefs_tu, marginals, pair_belief, pair_beliefs,
     marginalize, cavity, onebpiter!, check_ψs, _compose,
-    RecursiveBPFactor, nstates, prob_y, prob_xy, prob_yy, prob_y_partial,
+    RecursiveBPFactor, nstates, prob_y, prob_xy, prob_yy, prob_y0, prob_y_partial,
     prob_y_dummy, periodic_mpbp
 using MatrixProductBP
 
