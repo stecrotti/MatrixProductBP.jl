@@ -1,4 +1,4 @@
-struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}, M2<:AbstractMPEM2, M1<:AbstractMPEM1}
+struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}, M2, M1}
     g     :: G                              # graph
     w     :: Vector{V}                      # factors, one per variable
     ϕ     :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
@@ -13,7 +13,7 @@ struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}, M
             μ::Vector{M2},
             b::Vector{M1},
             f::Vector{F}) where {G<:AbstractIndexedDiGraph, F<:Real, 
-            V<:AbstractVector{<:BPFactor}, M2<:AbstractMPEM2, M1<:AbstractMPEM1}
+            V<:AbstractVector{<:BPFactor}, M2, M1}
     
         T = length(w[1]) - 1
         @assert length(w) == length(ϕ) == length(b) == length(f) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
@@ -110,20 +110,21 @@ function is_free_dynamics(bp::MPBP)
     end
 end
 
-is_periodic(bp::MPBP{G,F,V,<:MPEM2,<:MPEM1}) where {G,F,V}  = false
+is_periodic(bp::MPBP{G,F,V,M2,M1}) where {G,F,V,M2,M1}  = false
 is_periodic(bp::MPBP{G,F,V,<:PeriodicMPEM2,<:PeriodicMPEM1}) where {G,F,V} = true
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP, i::Integer, ::Type{U}; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp=0.0) where {U<:BPFactor}
-    @unpack g, w, ϕ, ψ, μ = bp
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp=0.0,
+        periodic=is_periodic(bp)) where {U<:BPFactor}
+    (; g, w, ϕ, ψ, μ) = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
     @assert all(normalization(a) ≈ 1 for a in A)
     sumlogzᵢ₂ⱼ = 0.0
     for (j_ind, e_out) in enumerate(eout)
-        B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc, periodic=is_periodic(bp))
+        B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc, periodic)
         sumlogzᵢ₂ⱼ += logzᵢ₂ⱼ
         C = mpem2(B)
         μj = orthogonalize_right!(C; svd_trunc)
@@ -143,12 +144,12 @@ end
 
 
 function onebpiter_dummy_neighbor(bp::MPBP, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6))
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), periodic=is_periodic(bp))
     @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
-    B, _ = f_bp_dummy_neighbor(A, w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc, periodic=is_periodic(bp))
+    B, _ = f_bp_dummy_neighbor(A, w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc, periodic)
     C = mpem2(B)
     return orthogonalize_right!(C; svd_trunc)
 end

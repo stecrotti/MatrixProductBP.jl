@@ -17,7 +17,7 @@ Base.broadcastable(b::BPFactor) = Ref(b)
 # ψᵢⱼ are the ones living on the outedges of node i
 function f_bp(A::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, 
         ψₙᵢ::Vector{Vector{Matrix{F}}}, j_index::Integer; showprogress=false, 
-        svd_trunc::SVDTrunc=TruncThresh(0.0), periodic=false) where {F,U<:BPFactor,M2<:AbstractMPEM2}
+        svd_trunc::SVDTrunc=TruncThresh(0.0), periodic=is_periodic(bp)) where {F,U<:BPFactor,M2<:AbstractMPEM2}
     T = length(A[1]) - 1
     @assert all(length(a) == T + 1 for a in A)
     @assert length(wᵢ) == T + 1

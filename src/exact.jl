@@ -120,3 +120,180 @@ end
 function exact_autocovariances(bp::MPBP; r = exact_autocorrelations(bp), μ = exact_marginal_expectations(bp))
     covariance.(r, μ)
 end
+
+struct ExactMsg{Periodic,U<:AbstractArray,S,TI<:Integer}
+    logm    :: U
+    states  :: S
+    T       :: TI
+
+    function ExactMsg(logm::U, states::S, T::TI; periodic::Bool=false) where {U<:AbstractArray,S,TI<:Integer}
+        @assert length(logm) == prod(states) ^ (T+1)
+        new{periodic,U,S,TI}(logm, states, T)
+    end
+end
+is_periodic(::Type{<:ExactMsg{Periodic}}) where {Periodic} = Periodic
+
+function uniform_exact_msg(states, T; periodic=false)
+    n = prod(states) ^ (T+1)
+    x = log(1 / n)
+    logm = fill(x, reduce(vcat, (fill(s, T+1) for s in states))...)
+    return ExactMsg(logm, states, T; periodic)
+end
+function zero_exact_msg(states, T; periodic=false)
+    logm = fill(-Inf, reduce(vcat, (fill(s, T+1) for s in states))...)
+    return ExactMsg(logm, states, T; periodic)
+end
+
+nstates(m::ExactMsg) = prod(m.states)
+Base.length(m::ExactMsg) = m.T + 1
+function normalize!(m::ExactMsg) 
+    logz = logsumexp(m.logm)
+    m.logm .-= logz
+    return logz
+end
+normalization(m::ExactMsg) = exp(logsumexp(m.logm))
+
+function eachstate(m::ExactMsg)
+    return Iterators.product(fill(Iterators.product((1:s for s in m.states)...), m.T+1)...)
+end
+function eachstate(m::ExactMsg, i::Integer)
+    return Iterators.product(fill(1:m.states[i], m.T+1)...)
+end
+
+const MPBPExact = MPBP{<:AbstractIndexedDiGraph, <:Real, <:AbstractVector{<:BPFactor}, <:ExactMsg, <:ExactMsg}
+
+function mpbp_exact(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}},
+        q::AbstractVector{Int}, T::Int; 
+        periodic = false,
+        ϕ = [[ones(q[i]) for t in 0:T] for i in vertices(g)],
+        ψ = [[ones(q[i],q[j]) for t in 0:T] for (i,j) in edges(g)],
+        μ = [uniform_exact_msg((q[i],q[j]), T; periodic) for (i,j) in edges(g)],
+        b = [uniform_exact_msg((q[i],), T; periodic) for i in vertices(g)],
+        f = zeros(nv(g)))
+    return MPBP(g, w, ϕ, ψ, μ, b, f)
+end
+
+function f_bp(m_in::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, 
+        ψₙᵢ::Vector{Vector{Matrix{F}}}, j_index::Integer; showprogress=false, 
+        periodic=is_periodic(M2)) where {F,U<:BPFactor,M2<:ExactMsg}
+    T = length(ϕᵢ) - 1
+    @assert all(length(a) == T + 1 for a in m_in)
+    @assert length(wᵢ) == T + 1
+    @assert length(ϕᵢ) == T + 1
+
+    dt = showprogress ? 1.0 : Inf
+    prog = Progress(prod(nstates, m_in; init=1), dt=dt, desc="Computing outgoing message")
+    mⱼᵢ = m_in[j_index]
+    m_out = zero_exact_msg(reverse(mⱼᵢ.states), mⱼᵢ.T; periodic)
+    for xᵢ in eachstate(m_out, 1)
+        for xₐ in Iterators.product((eachstate(m, 1) for (k,m) in enumerate(m_in))...)
+            # compute weight
+            y = prod(1:(T+1)) do t
+                xᵢᵗ⁺¹ = xᵢ[mod1(t+1,T+1)][1]
+                xₙᵢᵗ = [xₐ[k][mod1(t,T+1)] for k in eachindex(xₐ)]
+                xᵢᵗ = xᵢ[mod1(t,T+1)][1]
+                w = (t!=T+1 || periodic) ? wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) : 1
+                ϕ = ϕᵢ[t][xᵢᵗ]
+                ψ = prod(ψₖᵢ[t][xₖᵗ,xᵢᵗ] for (k,xₖᵗ,ψₖᵢ) in zip(eachindex(xₙᵢᵗ),xₙᵢᵗ,ψₙᵢ) if k != j_index; init=1)
+                w * ϕ * ψ
+            end
+            # compute (log of) product of incoming messages
+            z = sum(m_in[k].logm[xₖ..., xᵢ...] for (k,xₖ) in enumerate(xₐ) if k != j_index; init=0)
+            # sum
+            m_out.logm[xᵢ..., xₐ[j_index]...] = logaddexp(
+                m_out.logm[xᵢ..., xₐ[j_index]...], log(y) + z)
+        end
+        next!(prog)
+    end
+    return m_out
+end
+
+function f_bp_dummy_neighbor(m_in::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, 
+        ψₙᵢ::Vector{Vector{Matrix{F}}}; showprogress=false, 
+        periodic=is_periodic(M2)) where {F,U<:BPFactor,M2<:ExactMsg}
+    T = length(ϕᵢ) - 1
+    @assert all(length(a) == T + 1 for a in m_in)
+    @assert length(wᵢ) == T + 1
+    @assert length(ϕᵢ) == T + 1
+
+    dt = showprogress ? 1.0 : Inf
+    prog = Progress(prod(nstates, m_in; init=1), dt=dt, desc="Computing outgoing message")
+    m_out = zero_exact_msg((length(ϕᵢ[1]),), T; periodic)
+    for xᵢ in eachstate(m_out, 1)
+        for xₐ in Iterators.product((eachstate(m, 1) for (k,m) in enumerate(m_in))...)
+            # compute weight
+            y = prod(1:(T+1)) do t
+                xᵢᵗ⁺¹ = xᵢ[mod1(t+1,T+1)][1]
+                xₙᵢᵗ = [xₐ[k][mod1(t,T+1)] for k in eachindex(xₐ)]
+                xᵢᵗ = xᵢ[mod1(t,T+1)][1]
+                w = (t!=T+1 || periodic) ? wᵢ[t](xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) : 1
+                ϕ = ϕᵢ[t][xᵢᵗ]
+                ψ = prod(ψₖᵢ[t][xₖᵗ,xᵢᵗ] for (k,xₖᵗ,ψₖᵢ) in zip(eachindex(xₙᵢᵗ),xₙᵢᵗ,ψₙᵢ); init=1)
+                w * ϕ * ψ
+            end
+            # compute (log of) product of incoming messages
+            z = sum(m_in[k].logm[xₖ..., xᵢ...] for (k,xₖ) in enumerate(xₐ); init=0)
+            # sum
+            m_out.logm[xᵢ...] = logaddexp(
+                m_out.logm[xᵢ...], log(y) + z)
+        end
+        next!(prog)
+    end
+    return m_out
+end
+
+# compute outgoing messages from node `i`
+function onebpiter!(bp_ex::MPBPExact, i::Integer, ::Type{U}; 
+        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp=0.0, periodic=is_periodic(bp_ex)) where {U<:BPFactor}
+    (; g, w, ϕ, ψ, μ) = bp_ex
+    ein = inedges(g, i)
+    eout = outedges(g, i)
+    A = μ[ein.|>idx]
+    # @assert all(normalization(a) ≈ 1 for a in A)
+    sumlogzᵢ₂ⱼ = 0.0
+    for (j_ind, e_out) in enumerate(eout)
+        μj = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; periodic)
+        sumlogzᵢ₂ⱼ += normalize!(μj)
+        μ[idx(e_out)] = μj # damp?
+    end
+    dᵢ = length(ein)
+    bp_ex.b[i] = onebpiter_dummy_neighbor(bp_ex, i)
+    logzᵢ = log(normalization(bp_ex.b[i]))
+    bp_ex.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
+    nothing    
+end
+
+function onebpiter_dummy_neighbor(bp::MPBPExact, i::Integer; periodic=is_periodic(bp))
+    (; g, w, ϕ, ψ, μ) = bp
+    ein = inedges(g,i)
+    eout = outedges(g, i)
+    A = μ[ein.|>idx]
+    return f_bp_dummy_neighbor(A, w[i], ϕ[i], ψ[eout.|>idx]; periodic)
+end
+
+function marginals(m::ExactMsg)
+    (; logm, T) = m
+    return map(1:T+1) do t
+        idx = t:T+1:ndims(logm)
+        p = exp.(dropdims(logsumexp(logm, dims=(1:ndims(logm))[Not(idx)]), dims=tuple((1:ndims(logm))[Not(idx)]...)))
+        p ./= sum(p)
+        p
+    end
+end
+
+is_periodic(bp::MPBP{G,F,V,<:ExactMsg{P},<:ExactMsg{P}}) where {G,F,V,P} = P
+
+function exact_mpbp_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
+    ϕᵢ = fill(ones(qi), length(wᵢ));
+    ψₖᵢ = fill(ones(qi, qi), length(wᵢ)),
+    periodic = false) where {U<:BPFactor}
+
+    T = length(wᵢ) - 1
+    @assert length(ϕᵢ) == T + 1
+    @assert length(ψₖᵢ) == T + 1
+    
+    g = InfiniteRegularGraph(k)
+    μ = uniform_exact_msg((qi, qi), T; periodic)
+    b = uniform_exact_msg((qi,), T; periodic)
+    MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [0.0])
+end

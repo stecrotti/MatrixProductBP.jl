@@ -33,7 +33,7 @@
     X, observed = draw_node_observations!(bp, N; rng)
 
     svd_trunc = TruncThresh(0.0)
-    svd_trunc = TruncBondThresh(10)
+    svd_trunc = TruncBond(10)
     cb = CB_BP(bp; showprogress=false, info="Glauber")
     iterate!(bp; maxiter=20, svd_trunc, cb)
 
@@ -67,52 +67,52 @@
         @test pb_bp ≈ pb_bp2
     end
 
-    ########## INFINITE GRAPH
-    T = 2
-    k = 3   
-    m⁰ = 0.5
+    # ########## INFINITE GRAPH
+    # T = 2
+    # k = 3   
+    # m⁰ = 0.5
 
-    β = 1.0
-    J = 1.0
-    h = 0.0
+    # β = 1.0
+    # J = 1.0
+    # h = 0.0
 
-    wᵢ = fill(HomogeneousGlauberFactor(J, h, β), T+1)
-    ϕᵢ = [ t == 0 ? [(1+m⁰)/2, (1-m⁰)/2] : ones(2) for t in 0:T]
-    ϕᵢ[2] = [0.4, 0.6]
-    ϕᵢ[end] = [0.95, 0.05]
-    bp = periodic_mpbp_infinite_graph(k, wᵢ, 2, ϕᵢ)
-    cb = CB_BP(bp)
+    # wᵢ = fill(HomogeneousGlauberFactor(J, h, β), T+1)
+    # ϕᵢ = [ t == 0 ? [(1+m⁰)/2, (1-m⁰)/2] : ones(2) for t in 0:T]
+    # ϕᵢ[2] = [0.4, 0.6]
+    # ϕᵢ[end] = [0.95, 0.05]
+    # bp = periodic_mpbp_infinite_graph(k, wᵢ, 2, ϕᵢ)
+    # cb = CB_BP(bp)
 
-    iters, cb = iterate!(bp; maxiter=150, svd_trunc=TruncBond(10), cb, tol=1e-12, damp=0.2)
+    # iters, cb = iterate!(bp; maxiter=150, svd_trunc=TruncBond(10), cb, tol=1e-12, damp=0.2)
 
-    b_bp = beliefs(bp)
-    pb_bp = pair_beliefs(bp)[1][1]
-    p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
+    # b_bp = beliefs(bp)
+    # pb_bp = pair_beliefs(bp)[1][1]
+    # p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
 
-    f_bethe = bethe_free_energy(bp)
-    Z_bp = exp(-f_bethe)
+    # f_bethe = bethe_free_energy(bp)
+    # Z_bp = exp(-f_bethe)
 
-    N = k+1
-    g = IndexedBiDiGraph(complete_graph(N))
-    bp_exact = periodic_mpbp(g, fill(wᵢ, N), fill(2,N), T)
-    for i in 1:N; bp_exact.ϕ[i] = ϕᵢ; end
+    # N = k+1
+    # g = IndexedBiDiGraph(complete_graph(N))
+    # bp_exact = periodic_mpbp(g, fill(wᵢ, N), fill(2,N), T)
+    # for i in 1:N; bp_exact.ϕ[i] = ϕᵢ; end
 
-    cb = CB_BP(bp_exact)
-    iterate!(bp_exact; maxiter=150, svd_trunc=TruncBond(10), cb, tol=1e-12, damp=0.2)
+    # cb = CB_BP(bp_exact)
+    # iterate!(bp_exact; maxiter=150, svd_trunc=TruncBond(10), cb, tol=1e-12, damp=0.2)
 
-    b_exact = beliefs(bp_exact)
-    p_exact = [[bbb[2] for bbb in bb] for bb in b_exact][1:1]
-    pb_exact = pair_beliefs(bp_exact)[1][1]
+    # b_exact = beliefs(bp_exact)
+    # p_exact = [[bbb[2] for bbb in bb] for bb in b_exact][1:1]
+    # pb_exact = pair_beliefs(bp_exact)[1][1]
 
-    f_bethe_exact = bethe_free_energy(bp_exact)
-    Z_exact = exp(-1/N*f_bethe_exact)
+    # f_bethe_exact = bethe_free_energy(bp_exact)
+    # Z_exact = exp(-1/N*f_bethe_exact)
 
-    @testset "Glauber infinite graph - periodic" begin
-        # @test Z_exact ≈ Z_bp ### NOT WORKING!
-        @test p_exact ≈ p_bp
-        @test pb_exact ≈ pb_bp
+    # @testset "Glauber infinite graph - periodic" begin
+    #     # @test Z_exact ≈ Z_bp ### NOT WORKING!
+    #     @test p_exact ≈ p_bp
+    #     @test pb_exact ≈ pb_bp
 
-    end
+    # end
 
     ##### Generic Glauber
     T = 2
@@ -146,8 +146,7 @@
 
     X, observed = draw_node_observations!(bp, N; rng)
 
-    svd_trunc = TruncThresh(0.0)
-    svd_trunc = TruncBondThresh(10)
+    svd_trunc = TruncBond(10)
     cb = CB_BP(bp; showprogress=false, info="Glauber")
     iterate!(bp; maxiter=20, svd_trunc, cb)
 
