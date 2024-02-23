@@ -29,7 +29,8 @@ export
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
     equilibrium_magnetization, equilibrium_observables, RandomRegular, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTIOUS, RECOVERED,
-    kl_marginals, l1_marginals, roc, auc
+    kl_marginals, l1_marginals, roc, auc,
+    VoterFactor
 
 include("glauber/glauber.jl")
 include("glauber/glauber_bp.jl")
@@ -40,5 +41,7 @@ include("epidemics/sis_bp.jl")
 include("epidemics/inference.jl")
 include("epidemics/sirs.jl")
 include("epidemics/sirs_bp.jl")
+
+include("voter.jl")
 
 end # end module
