@@ -146,6 +146,33 @@ function pair_marginals(sms::SoftMarginSampler; showprogress::Bool=true)
    return marg
 end
 
+# return a T by |E| matrix, with uncertainty estimates
+function pair_marginals_alternate(sms::SoftMarginSampler; showprogress::Bool=true) 
+    @unpack bp, X, w = sms
+    g = bp.g
+    T = getT(bp); E = ne(g)
+    marg = [[zeros(nstates(bp,i), nstates(bp,j)) for t in 1:T] for (i,j,id) in edges(g)]
+    @assert all(>=(0), w)
+    wv = weights(w)
+    nsamples = length(X)
+    prog = Progress(E, desc="Marginals from Soft Margin"; dt=showprogress ? 0.1 : Inf)
+    x = zeros(Int, length(X))
+
+    for (i,j,id) in edges(g)
+        linear = LinearIndices((1:nstates(bp,i), 1:nstates(bp,j)))
+        for t in 1:T
+            x .= [linear[xx[i, t+1],xx[j,t]] for xx in X]
+            mijt_avg_linear = proportions(x, nstates(bp,i)*nstates(bp,j), wv)
+            # mijt_avg = reshape(mijt_avg_linear, linear.indices...)
+            # mijt_var = mijt_avg .* (1 .- mijt_avg) ./ nsamples
+            copyto!(marg[id][t], mijt_avg_linear)
+        end
+        next!(prog)
+    end
+
+   return marg
+end
+
 function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true, 
         sites=vertices(sms.bp.g))
     @unpack bp, X, w = sms

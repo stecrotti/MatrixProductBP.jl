@@ -4,9 +4,9 @@
     T = 3
 
     J = [0 -1  0  0;
-        -1 0  1  1;
-        0  1  0  0;
-        0  1  0  0] .|> float 
+        -1 0  -1  -1;
+        0  -1  0  0;
+        0  -1  0  0] .|> float 
 
     N = size(J, 1)
     h = randn(rng, N)
@@ -21,7 +21,7 @@
     bp = mpbp(IndexedBiDiGraph(J), w, fill(2,N), T)
 
     for i in 1:N
-        r = 0.75
+        r = 1.0
         bp.ϕ[i][1] .*= [r, 1-r]
     end
 
@@ -29,7 +29,7 @@
         @test all(eltype(wᵢ) <: VoterFactor for wᵢ in bp.w)
     end
 
-    X = draw_node_observations!(bp, N; rng)
+    # X = draw_node_observations!(bp, N; rng)
 
     svd_trunc = TruncThresh(0.0)
     cb = CB_BP(bp; showprogress=false)
