@@ -30,7 +30,7 @@ export
     equilibrium_magnetization, equilibrium_observables, RandomRegular, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTIOUS, RECOVERED,
     kl_marginals, l1_marginals, roc, auc,
-    VoterFactor
+    VoterFactor, HomogeneousVoterFactor
 
 include("glauber/glauber.jl")
 include("glauber/glauber_bp.jl")
