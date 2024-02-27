@@ -13,7 +13,7 @@ function (fᵢ::VoterFactor)(xᵢᵗ⁺¹::Integer,
 
     hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.J))
     z = sum(abs, fᵢ.J)
-    p = 0.5 * (1 - potts2spin(xᵢᵗ⁺¹) * hⱼᵢ / z)
+    p = 0.5 * (1 + potts2spin(xᵢᵗ⁺¹) * hⱼᵢ / z)
     return p
 end
 
@@ -42,6 +42,6 @@ function (fᵢ::HomogeneousVoterFactor)(xᵢᵗ⁺¹::Integer,
     isempty(xₙᵢᵗ) && return 0.5
 
     hⱼᵢ = fᵢ.J * mean(potts2spin, xₙᵢᵗ)
-    p = 0.5 * (1 - potts2spin(xᵢᵗ⁺¹) * hⱼᵢ)
+    p = 0.5 * (1 + potts2spin(xᵢᵗ⁺¹) * hⱼᵢ)
     return p
 end
