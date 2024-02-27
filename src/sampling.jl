@@ -155,11 +155,11 @@ function pair_marginals_alternate(sms::SoftMarginSampler; showprogress::Bool=tru
     @assert all(>=(0), w)
     wv = weights(w)
     nsamples = length(X)
-    prog = Progress(E, desc="Marginals from Soft Margin"; dt=showprogress ? 0.1 : Inf)
-    x = zeros(Int, length(X))
+    prog = Progress(E, desc="Pair marginals from Soft Margin"; dt=showprogress ? 0.1 : Inf)
 
-    for (i,j,id) in edges(g)
+    @threads for (i,j,id) in collect(edges(g))
         linear = LinearIndices((1:nstates(bp,i), 1:nstates(bp,j)))
+        x = zeros(Int, length(X))
         for t in 1:T
             x .= [linear[xx[i, t+1],xx[j,t]] for xx in X]
             mijt_avg_linear = proportions(x, nstates(bp,i)*nstates(bp,j), wv)
