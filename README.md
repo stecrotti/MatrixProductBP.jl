@@ -8,7 +8,7 @@ When possible, variable names match the notation used there.
 An [errata](errata.md) file is also found here.
 
 ### Installation
-Usage requires Julia version >= 1.8, although 1.9 is recommended. You can download Julia [here](https://julialang.org/downloads/).
+Usage requires Julia version >= 1.8, although 1.9 or 1.10 are recommended. You can download Julia [here](https://julialang.org/downloads/).
 
 To install the package:
 ```julia
