@@ -16,7 +16,7 @@ import Statistics: mean, std
 import Unzip: unzip
 import StatsBase: weights, proportions
 import LogExpFunctions: logistic, logsumexp
-import .Threads: SpinLock, lock, unlock
+import .Threads: SpinLock, lock, unlock, @threads
 import Lazy: @forward
 import CavityTools: cavity
 import LogarithmicNumbers: ULogarithmic
