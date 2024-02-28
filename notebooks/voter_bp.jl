@@ -23,15 +23,13 @@ sms = sample(bp, nsamples; showprogress=false)
 
 spin(x, i) = 3 - 2x
 spin(x) = spin(x, 0)
-magnetiz(sms) = mean(getproperty.(mm, :val) for mm in means(spin, sms))
-m_mc = [magnetiz(sms) for sms in samplers]
-c_mc = map(samplers) do sms
-    pm = pair_marginals_alternate(sms; showprogress=true)
-    ee = map(pm) do bij
-        expectation.(spin, bij)
-    end
-    mean(ee)
+m_mc = mean(getproperty.(mm, :val) for mm in means(spin, sms))
+
+pm = pair_marginals_alternate(sms; showprogress=true)
+ee = map(pm) do bij
+    expectation.(spin, bij)
 end
+c_mc = mean(ee)
 
 
 ########## MPBP
@@ -64,4 +62,4 @@ plot!(pl, 0:T, m_mc, label="MonteCarlo", c=:black, m=:diamond, ms=3, msc=:auto, 
 plot!(pl, 0:T, m_bp, label="MPBP",
     size=(500,300), ms=3, titlefontsize=12,
     legend=:bottomright, msc=:auto, c=blue, lw=2)
-pl
+savefig(pl, "voter_bp.pdf")
