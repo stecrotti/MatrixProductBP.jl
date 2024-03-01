@@ -34,11 +34,11 @@ c_mc = mean(ee)
 
 ########## MPBP
 
-unicodeplots()
+gr()
 
 cb = CB_BP(bp)
 tol = 1e-5
-matrix_sizes = [5, 10, 15]
+matrix_sizes = [5, 10]
 maxiters = fill(20, length(matrix_sizes))
 iters = zeros(Int, length(maxiters))
 for i in eachindex(maxiters)
@@ -60,6 +60,9 @@ blue = theme_palette(:auto)[1]
 pl = plot(xlabel="time", ylabel="magnetization")
 plot!(pl, 0:T, m_mc, label="MonteCarlo", c=:black, m=:diamond, ms=3, msc=:auto, st=:scatter)
 plot!(pl, 0:T, m_bp, label="MPBP",
-    size=(500,300), ms=3, titlefontsize=12,
+    size=(500,300), ms=3, titlefontsize=12, margin=5Plots.mm,
     legend=:bottomright, msc=:auto, c=blue, lw=2)
-savefig(pl, "voter_bp.pdf")
+savefig(pl, "notebooks/voter_bp.pdf")
+
+include("../telegram/notifications.jl")
+@telegram "voter bp"

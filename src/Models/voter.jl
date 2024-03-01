@@ -27,7 +27,7 @@ function prob_y(wᵢ::HomogeneousVoterFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
     d == 0 && return 0.5
     (; J) = wᵢ
     yᵗ = 2 * zᵗ - 2 - d
-    return 0.5 * (1 - potts2spin(xᵢᵗ⁺¹) * J * yᵗ / d)
+    return 0.5 * (1 + potts2spin(xᵢᵗ⁺¹) * J * yᵗ / d)
 end
 
 prob_xy(::HomogeneousVoterFactor, yₖ, xₖ, xᵢ) = (yₖ != xₖ)
