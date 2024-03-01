@@ -81,6 +81,12 @@ end
         fill(wᵢᵗ, T + 1)
     end
 
+    @testset "Check factor function" begin
+        f = w[2][1]
+        fcheck = RestrictedRecursiveBPFactor(f)
+        @test all(f(x, [y, z], 0) == fcheck(x, [y, z], 0) for x in 1:2, y in 1:2, z in 1:2)
+    end
+
     bp = mpbp(IndexedBiDiGraph(J), w, fill(2,N), T)
 
     for i in 1:N
