@@ -213,13 +213,14 @@ end
 # T = final time
 function simulate_queue_sis!(x, g, P0, λ, μ, T;
     stats = (t, i, x) -> println("$t $i $(x[i])"),
-    Q = ExponentialQueue(length(x)))
+    Q = ExponentialQueue(length(x)),
+    rng = Random.default_rng())
     t = 0.0
     @assert eachindex(x) == vertices(g)
     fill!(x, false)
     empty!(Q)
     for (i,p) in pairs(P0)
-        if rand() < p
+        if rand(rng) < p
             Q[i] = Inf
         end
     end
