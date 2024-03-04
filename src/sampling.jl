@@ -225,7 +225,7 @@ function simulate_queue_sis!(x, g, P0, λ, μ, T;
         end
     end
     while !isempty(Q)
-        i, Δt = pop!(Q)
+        i, Δt = pop!(Q; rng)
         t += Δt
         t > T && break
         x[i] ⊻= true

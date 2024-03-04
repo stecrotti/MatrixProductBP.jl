@@ -1,7 +1,7 @@
 name = "MatrixProductBP"
 uuid = "3d39929c-b583-45fa-b331-3f50b693a38a"
 authors = ["stecrotti <stefano.crotti@polito.it>"]
-version = "0.2.0"
+version = "0.3.0"
 
 [deps]
 CavityTools = "217fe2f1-7e3d-419f-9934-cd6900c2759a"
@@ -28,7 +28,7 @@ UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 Unzip = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 
 [compat]
-CavityTools = "0.2.1"
+CavityTools = "0.3 - 1"
 Distributions = "0.25"
 IndexedGraphs = "0.3, 0.4"
 InvertedIndices = "1"

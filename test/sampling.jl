@@ -32,10 +32,11 @@
         @test all(all(all(-1 ≤ x.val ≤ 1 for x in cit) for cit in ci) for ci in c)
     end
 
-    # just check that it runs without errors
-    @testset "sampling - Gillespie" begin
+    @testset "sampling - Gillespie - reproducibility" begin
         av, va = continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^4, sites=1,
-        discard_dead_epidemics=true)
-        @test true
+        discard_dead_epidemics=true, rng = MersenneTwister(0))
+        av2, va2 = continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^4, sites=1,
+        discard_dead_epidemics=true, rng = MersenneTwister(0))
+        @test av2 == av && va2 == va  
     end
 end
