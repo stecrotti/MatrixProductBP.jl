@@ -254,7 +254,7 @@ end
 
 
 function continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^5, sites=1:nv(sis.g), Δt=T/200,
-        discard_dead_epidemics=false)
+        discard_dead_epidemics=false, rng = GLOBAL_RNG)
     K = floor(Int, T/Δt)+1
     N = nv(sis.g)
     av = [zeros(K) for _ in 1:N]
@@ -273,7 +273,7 @@ function continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^5, sites=1:nv(sis.
     ndiscarded = 0
     @showprogress for _ = 1:nsamples
         for nik in ni; fill!(nik, 0); end
-        simulate_queue_sis!(x, sis.g, P0, λ, ρ, T; stats, Q)
+        simulate_queue_sis!(x, sis.g, P0, λ, ρ, T; stats, Q, rng)
         if discard_dead_epidemics && all(isequal(false), x)
             ndiscarded += 1
         else
