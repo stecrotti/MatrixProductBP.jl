@@ -214,7 +214,7 @@ end
 function simulate_queue_sis!(x, g, P0, λ, μ, T;
     stats = (t, i, x) -> println("$t $i $(x[i])"),
     Q = ExponentialQueue(length(x)),
-    rng = Random.default_rng())
+    rng = GLOBAL_RNG)
     t = 0.0
     @assert eachindex(x) == vertices(g)
     fill!(x, false)
