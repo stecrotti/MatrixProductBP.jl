@@ -1,68 +1,89 @@
-using MatrixProductBP, MatrixProductBP.Models
-using Graphs, IndexedGraphs
+using MatrixProductBP
+using MatrixProductBP.Models
+using Graphs, IndexedGraphs, Random
+using Plots, LaTeXStrings
 using Statistics
-using Plots
+using JLD2
+using TensorTrains
+using Unzip, ProgressMeter
 
-T = 50
-N = 10^2
-k = 3
-m0 = 0.7
+Plots.default(
+    grid = :off, box = :on,
+    widen = true,
+    label = "",
+    lw = 1.5,
+    msc = :auto,
+    size = (400,300),
+    markersize = 3,
+    margin=5Plots.mm
+)
 
-seed = 1
-gg = erdos_renyi(N, k/N; seed)
-g = IndexedGraph(gg)
-w = fill(fill(HomogeneousVoterFactor(1), T+1), N)
-bp = mpbp(IndexedBiDiGraph(gg), w, fill(2,N), T)
-for i in eachindex(bp.ϕ)
-    bp.ϕ[i][begin] .= [(1+m0)/2,(1-m0)/2]
+function infer_voter(bp, p0; 
+        rng = Random.default_rng(), svd_trunc = TruncThresh(5e-3),
+        softinf=Inf)
+    N = nv(bp.g)
+    reset!(bp, observations=true)
+    for i in 1:N
+        bp.ϕ[i][1] .= [p0, 1-p0]
+    end
+    X = draw_node_observations!(bp, N; rng, last_time=true, softinf)
+    svd_trunc = TruncThresh(5e-3)
+    cb = CB_BP(bp; showprogress=false)
+    iterate!(bp; maxiter=20, svd_trunc, cb, tol=1e-6, damp=0.6)
+    bp, X, cb
 end
 
-#### montecarlo
-nsamples = 10^3
-sms = sample(bp, nsamples; showprogress=false)
+rng = MersenneTwister(111)
 
-spin(x, i) = 3 - 2x
-spin(x) = spin(x, 0)
-m_mc = mean(getproperty.(mm, :val) for mm in means(spin, sms))
+T = 30
+N = 50
+p0 = 0.7
+gg = prufer_decode(rand(rng, 1:N, N-2))
+J = 1
+w = fill(fill(HomogeneousVoterFactor(J), T+1), N)
 
-pm = pair_marginals_alternate(sms; showprogress=true)
-ee = map(pm) do bij
-    expectation.(spin, bij)
-end
-c_mc = mean(ee)
+bp = mpbp(IndexedBiDiGraph(gg), w, fill(2,N), T);
+svd_trunc = TruncThresh(5e-3)
 
+nsamples = 10
+bps, Xs, cbs = map(1:nsamples) do s
+    bp_, X, cb = infer_voter(deepcopy(bp), p0; rng, svd_trunc)
+    println("Finished sample $s of $(nsamples)")
+    bp_, X, cb
+end |> unzip;
 
-########## MPBP
+Δts = 0:T
 
-gr()
+props = map(zip(bps,Xs)) do (bp,X)
+    b_bp = beliefs(bp)
+    prop = map(Δts) do Δt
+        x_t = X[1][:,end-Δt]
+        p_bp_t = [p[end-Δt] for p in b_bp]        
+        mean(argmax(p)==x for (p,x) in zip(p_bp_t, x_t))
+    end
+end;
 
-cb = CB_BP(bp)
-tol = 1e-5
-matrix_sizes = [5, 10]
-maxiters = fill(20, length(matrix_sizes))
-iters = zeros(Int, length(maxiters))
-for i in eachindex(maxiters)
-    iters[i], _ = iterate!(bp; maxiter=maxiters[i], svd_trunc=TruncBond(matrix_sizes[i]), cb, tol)
-end
+props_naive = map(zip(bps,Xs)) do (bp,X)
+    b_bp = beliefs(bp)
+    prop = map(Δts) do Δt
+        x_t = X[1][:,end-Δt]
+        y = X[1][:,end]
+        mean(yy==x for (yy,x) in zip(y, x_t))
+    end
+end;
 
-iters_cum = cumsum(iters)
-inds = 1:iters_cum[1]
-pl = plot(inds, cb.Δs[inds], label="$(matrix_sizes[1])x$(matrix_sizes[1]) matrices")
-for i in 2:length(iters)
-    inds = iters_cum[i-1]:iters_cum[i]
-   plot!(pl, inds, cb.Δs[inds], label="$(matrix_sizes[i])x$(matrix_sizes[i]) matrices")
-end
-plot(pl, ylabel="convergence error", xlabel="iters", yaxis=:log10, size=(500,300), legend=:outertopright)
+maxbonddim(bp::MPBP) = maximum(maximum.(bond_dims.(bp.μ)))
+av_bp = round(Int, mean(maxbonddim.(bps)))
 
-m_bp = mean(means(spin, bp))
+pl = plot(Δts, mean(props), yerr=std(props)./sqrt(nsamples),
+    m=:o, xlabel=L"\Delta t", size=(500,400), label="MPBP",
+    ylabel=L"\frac{1}{N}\sum_{i=1}^N \delta(X_i^{T-\Delta t}, \arg\max p_i^{T-\Delta t})",
+    title="Prediction Δt steps in the past\n Tree graph, N=$N, T=$T, $nsamples samples\n Avg matrix size $av_bp")
 
-blue = theme_palette(:auto)[1]
-pl = plot(xlabel="time", ylabel="magnetization")
-plot!(pl, 0:T, m_mc, label="MonteCarlo", c=:black, m=:diamond, ms=3, msc=:auto, st=:scatter)
-plot!(pl, 0:T, m_bp, label="MPBP",
-    size=(500,300), ms=3, titlefontsize=12, margin=5Plots.mm,
-    legend=:bottomright, msc=:auto, c=blue, lw=2)
-savefig(pl, "notebooks/voter_bp.pdf")
+plot!(pl, Δts, mean(props_naive), yerr=std(props)./sqrt(nsamples),
+    m=:o, label="naive")
+
+savefig(pl, (@__DIR__)*"/voter_prediction.pdf")
 
 include("../telegram/notifications.jl")
 @telegram "voter bp"
