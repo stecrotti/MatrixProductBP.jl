@@ -35,8 +35,8 @@ end
 
 rng = MersenneTwister(111)
 
-T = 30
-N = 50
+T = 12
+N = 100
 p0 = 0.7
 gg = prufer_decode(rand(rng, 1:N, N-2))
 J = 1
@@ -82,8 +82,8 @@ pl = plot(Δts, mean(props), yerr=std(props)./sqrt(nsamples),
 
 plot!(pl, Δts, mean(props_naive), yerr=std(props)./sqrt(nsamples),
     m=:o, label="naive")
+plot!(pl, titlefontsize=9, margin=15Plots.mm, size=(700,400))
+savefig(pl, (@__DIR__)*"/voter_prediction_short_time.pdf")
 
-savefig(pl, (@__DIR__)*"/voter_prediction.pdf")
-
-include("../telegram/notifications.jl")
+include("../../telegram/notifications.jl")
 @telegram "voter bp"
