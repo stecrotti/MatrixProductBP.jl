@@ -5,7 +5,7 @@ using Plots, ColorSchemes, LaTeXStrings
 
 Base.GC.gc()
 
-T = 200
+T = 200  
 N = 10^2
 k = 3
 nsamples = 5*10^2
@@ -13,6 +13,7 @@ nsamples = 5*10^2
 # seed = 7111
 seed = 1
 gg = erdos_renyi(N, k/N; seed)
+gg = random_regular_graph(N, k)
 g = IndexedGraph(gg)
 
 Δt = 1
@@ -22,13 +23,13 @@ p0 = 0
 w = map(1:N) do i
     ei = inedges(g, i)
     J = 1
-    fill(DampedFactor(HomogeneousVoterFactor(J), p0), T+1)
-    # fill(HomogeneousGlauberFactor(J, 0), T+1)
+    # fill(DampedFactor(HomogeneousVoterFactor(J), p0), T+1)
+    fill(HomogeneousGlauberFactor(J, 0), T+1)
 end
 
 m0 = [0.7, 0.8, 0.9] |> reverse
 # m0 = [0.9]
-m0 = [0.1]
+m0 = [0.0]
 
 samplers = map(eachindex(m0)) do a
     m = m0[a]
@@ -80,21 +81,21 @@ ple
 plot(plm, ple, size=(800,400))
 
 ##### david
-using DelimitedFiles
-names = reverse([
-    "MC_Voter_cont_time_ener_N_1000_c_3_00_m0_0_70_t0_0_00_tl_50_00_ts.txt",
-    "MC_Voter_cont_time_ener_N_1000_c_3_00_m0_0_80_t0_0_00_tl_50_00_ts.txt",
-    "MC_Voter_cont_time_ener_N_1000_c_3_00_m0_0_90_t0_0_00_tl_50_00_ts.txt"
-])
-e_david = map(names) do fn
-    y = readdlm(fn)
-    vec(y[:,2])
-end
-ple2 = deepcopy(ple)
-for a in eachindex(samplers)
-    plot!(ple2, LinRange(0,50,length(e_david[a])), e_david[a], label="", c=cg[a+1])
-end
-plot(ple2, xlims=(0,10))
+# using DelimitedFiles
+# names = reverse([
+#     "MC_Voter_cont_time_ener_N_1000_c_3_00_m0_0_70_t0_0_00_tl_50_00_ts.txt",
+#     "MC_Voter_cont_time_ener_N_1000_c_3_00_m0_0_80_t0_0_00_tl_50_00_ts.txt",
+#     "MC_Voter_cont_time_ener_N_1000_c_3_00_m0_0_90_t0_0_00_tl_50_00_ts.txt"
+# ])
+# e_david = map(names) do fn
+#     y = readdlm(fn)
+#     vec(y[:,2])
+# end
+# ple2 = deepcopy(ple)
+# for a in eachindex(samplers)
+#     plot!(ple2, LinRange(0,50,length(e_david[a])), e_david[a], label="", c=cg[a+1])
+# end
+# plot(ple2, xlims=(0,10))
 
 # using DelimitedFiles
 # open("energy.txt", "w") do io
