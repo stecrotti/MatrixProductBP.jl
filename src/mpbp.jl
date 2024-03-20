@@ -64,8 +64,8 @@ function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}},
         bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(q[i]) for t in 0:T] for i in vertices(g)],
         ψ = [[ones(q[i],q[j]) for t in 0:T] for (i,j) in edges(g)],
-        μ = [uniform_mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
-        b = [uniform_mpem1(q[i], T; d, bondsizes) for i in vertices(g)],
+        μ = [flat_mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
+        b = [flat_mpem1(q[i], T; d, bondsizes) for i in vertices(g)],
         f = zeros(nv(g)))
     return MPBP(g, w, ϕ, ψ, μ, b, f)
 end
@@ -207,7 +207,7 @@ end
 
 # return pair beliefs in MPEM form
 function pair_beliefs_as_mpem(bp::MPBP{G,F,V,M2}) where {G,F,V,M2}
-    # b = [uniform_mpem2(nstates(bp,i),nstates(bp,j), getT(bp)) for (i,j) in edges(bp.g)]
+    # b = [flat_mpem2(nstates(bp,i),nstates(bp,j), getT(bp)) for (i,j) in edges(bp.g)]
     b = Vector{M2}(undef, ne(bp.g))
     function f(A, B, ψ) 
         C = pair_belief_as_mpem(A, B, ψ)
@@ -377,8 +377,8 @@ function periodic_mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}}
         bondsizes=fill(d, T+1),
         ϕ = [[ones(q[i]) for t in 0:T] for i in vertices(g)],
         ψ = [[ones(q[i],q[j]) for t in 0:T] for (i,j) in edges(g)],
-        μ = [uniform_periodic_mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
-        b = [uniform_periodic_mpem1(q[i], T; d, bondsizes) for i in vertices(g)],
+        μ = [flat_periodic_mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
+        b = [flat_periodic_mpem1(q[i], T; d, bondsizes) for i in vertices(g)],
         f = zeros(nv(g)))
     return MPBP(g, w, ϕ, ψ, μ, b, f)
 end
