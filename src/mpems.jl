@@ -2,11 +2,11 @@ const AbstractMPEM1{F} = AbstractTensorTrain{F, 3}
 const MPEM1{F} = TensorTrain{F, 3}
 const PeriodicMPEM1{F} = PeriodicTensorTrain{F, 3}
 
-# construct a uniform mpem with given bond dimensions
-uniform_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = uniform_tt(bondsizes, q)
-uniform_periodic_mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = uniform_periodic_tt(bondsizes, q)
+# construct a flat mpem with given bond dimensions
+flat_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = flat_tt(bondsizes, q)
+flat_periodic_mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = flat_periodic_tt(bondsizes, q)
 
-# construct a uniform mpem with given bond dimensions
+# construct a flat mpem with given bond dimensions
 rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_tt(bondsizes, q)
 rand_periodic_mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = rand_periodic_tt(bondsizes, q)
 
@@ -16,11 +16,11 @@ const AbstractMPEM2{F} = AbstractTensorTrain{F, 4}
 const MPEM2{F} = TensorTrain{F, 4}
 const PeriodicMPEM2{F} = PeriodicTensorTrain{F, 4}
 
-# construct a uniform mpem with given bond dimensions
-uniform_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = uniform_tt(bondsizes, q1, q2)
-uniform_periodic_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = uniform_periodic_tt(bondsizes, q1, q2)
+# construct a flat mpem with given bond dimensions
+flat_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = flat_tt(bondsizes, q1, q2)
+flat_periodic_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = flat_periodic_tt(bondsizes, q1, q2)
 
-# construct a uniform mpem with given bond dimensions
+# construct a flat mpem with given bond dimensions
 rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_tt(bondsizes, q1, q2)
 rand_periodic_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = rand_periodic_tt(bondsizes, q1, q2)
 

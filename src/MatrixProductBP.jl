@@ -28,7 +28,7 @@ import TensorTrains:
     SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh, summary_compact,
     AbstractTensorTrain, PeriodicTensorTrain, TensorTrain, normalize_eachmatrix!,
     check_bond_dims, evaluate,
-    bond_dims, uniform_tt, rand_tt, uniform_periodic_tt, rand_periodic_tt, 
+    bond_dims, flat_tt, rand_tt, flat_periodic_tt, rand_periodic_tt, 
     orthogonalize_right!, orthogonalize_left!, compress!,
     marginals, twovar_marginals, normalization, normalize!,
     svd, _compose, accumulate_L, accumulate_R
