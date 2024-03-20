@@ -15,6 +15,7 @@ ne(g::InfiniteRegularGraph) = 1
 nv(::InfiniteRegularGraph) = 1
 inedges(g::InfiniteRegularGraph, i::Integer) = ( @assert i == 1; edges(g) )
 outedges(g::InfiniteRegularGraph, i::Integer) = inedges(g, i)
+issymmetric(::InfiniteRegularGraph) = true
 Base.show(io::IO, g::InfiniteRegularGraph) = println(io, "Infinite regular graph of degree ", g.k)
 check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::InfiniteRegularGraph) = true
 

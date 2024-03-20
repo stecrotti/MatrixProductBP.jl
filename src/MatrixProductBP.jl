@@ -6,7 +6,7 @@ import TensorCast: @reduce, @cast, TensorCast
 import LoopVectorization
 import Tullio: @tullio
 import IndexedGraphs: nv, ne, edges, vertices, AbstractIndexedDiGraph, IndexedGraph,
-    IndexedBiDiGraph, inedges, outedges, src, dst, idx, neighbors, IndexedEdge
+    IndexedBiDiGraph, inedges, outedges, src, dst, idx, neighbors, IndexedEdge, issymmetric
 import UnPack: @unpack
 import Random: shuffle!, AbstractRNG, GLOBAL_RNG
 import SparseArrays: rowvals, nonzeros, nzrange
