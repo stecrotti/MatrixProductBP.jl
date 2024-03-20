@@ -15,6 +15,7 @@ struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}, M
             f::Vector{F}) where {G<:AbstractIndexedDiGraph, F<:Real, 
             V<:AbstractVector{<:BPFactor}, M2<:AbstractMPEM2, M1<:AbstractMPEM1}
     
+        @assert issymmetric(g)
         T = length(w[1]) - 1
         @assert length(w) == length(ϕ) == length(b) == length(f) == nv(g) "$(length(w)), $(length(ϕ)), $(nv(g))"
         @assert length(ψ) == ne(g)
