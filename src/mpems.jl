@@ -44,13 +44,13 @@ struct MPEM3{F<:Real}
     end
 end
 
-@forward MPEM3.tensors getindex, iterate, firstindex, lastindex, setindex!, 
-    length, eachindex
+@forward MPEM3.tensors Base.getindex, Base.iterate, Base.firstindex, Base.lastindex,
+    Base.setindex!, Base.length, Base.eachindex
 
 
 # evaluate of MPEM3 is not simply evaluate(MatrixProductTrain{F,5}) because of how we
 # interpret the entries of the tensors
-function evaluate(B::MPEM3, x)
+function TensorTrains.evaluate(B::MPEM3, x)
     length(x) == length(B) || throw(ArgumentError("`x` must be of length $(length(B)), got $(length(x))"))
     M = [1.0;;]
     for t in 1:lastindex(B)-1
@@ -95,10 +95,10 @@ struct PeriodicMPEM3{F<:Real}
     end
 end
 
-@forward PeriodicMPEM3.tensors getindex, iterate, firstindex, lastindex, setindex!, 
-    length, eachindex
+@forward PeriodicMPEM3.tensors Base.getindex, Base.iterate, Base.firstindex, Base.lastindex,
+    Base.setindex!, Base.length, Base.eachindex
 
-function evaluate(B::PeriodicMPEM3, x)
+function TensorTrains.evaluate(B::PeriodicMPEM3, x)
     Tp1 = length(B)
     length(x) == Tp1 || throw(ArgumentError("`x` must be of length $(length(B)), got $(length(x))"))
     d = size(B[1], 1)

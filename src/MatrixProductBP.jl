@@ -1,29 +1,31 @@
 module MatrixProductBP
 
-import InvertedIndices: Not
-import ProgressMeter: Progress, ProgressUnknown, next!
-import TensorCast: @reduce, @cast, TensorCast 
-import LoopVectorization
-import Tullio: @tullio
-import IndexedGraphs: nv, ne, edges, vertices, AbstractIndexedDiGraph, IndexedGraph,
-    IndexedBiDiGraph, inedges, outedges, src, dst, idx, neighbors, IndexedEdge, issymmetric
-import UnPack: @unpack
-import Random: shuffle!, AbstractRNG, GLOBAL_RNG
-import SparseArrays: rowvals, nonzeros, nzrange
-import Distributions: sample, sample!, Bernoulli
-import Measurements: Measurement, ±
-import Statistics: mean, std
-import Unzip: unzip
-import StatsBase: weights, proportions
-import LogExpFunctions: logistic, logsumexp
-import .Threads: SpinLock, lock, unlock, @threads
-import Lazy: @forward
-import CavityTools: cavity
-import LogarithmicNumbers: ULogarithmic
-import LinearAlgebra: I, tr
-import Kronecker: kronecker
+using InvertedIndices: Not
+using ProgressMeter: Progress, ProgressUnknown, next!
+using TensorCast: @reduce, @cast, TensorCast 
+using LoopVectorization
+using Tullio: @tullio
+using IndexedGraphs: IndexedGraphs, AbstractIndexedDiGraph, IndexedGraph, IndexedBiDiGraph,
+    nv, ne, edges, vertices, inedges, outedges, src, dst, idx, neighbors, IndexedEdge,
+    issymmetric
+using UnPack: @unpack
+using Random: shuffle!, AbstractRNG, GLOBAL_RNG
+using SparseArrays: rowvals, nonzeros, nzrange
+using Distributions: Distributions, sample, sample!
+using Measurements: Measurement, ±
+using Statistics: mean, std
+using Unzip: unzip
+using StatsBase: weights, proportions
+using LogExpFunctions: logistic, logsumexp
+using .Threads: SpinLock, lock, unlock, @threads
+using Lazy: @forward
+using CavityTools: cavity
+using LogarithmicNumbers: ULogarithmic
+using LinearAlgebra: I, tr
+using Kronecker: kronecker
 
-import TensorTrains:
+using TensorTrains:
+    TensorTrains,
     getindex, iterate, firstindex, lastindex, setindex!, length, eachindex, +, -, isapprox,
     SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh, summary_compact,
     AbstractTensorTrain, PeriodicTensorTrain, TensorTrain, normalize_eachmatrix!,

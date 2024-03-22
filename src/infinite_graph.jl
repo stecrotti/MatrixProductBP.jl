@@ -9,13 +9,13 @@ struct InfiniteRegularGraph <: AbstractIndexedDiGraph{Int}
     k :: Int
 end
 
-edges(g::InfiniteRegularGraph) = (IndexedEdge(1,1,1) for _ in 1:g.k)
-vertices(::InfiniteRegularGraph) = 1:1
-ne(g::InfiniteRegularGraph) = 1
-nv(::InfiniteRegularGraph) = 1
-inedges(g::InfiniteRegularGraph, i::Integer) = ( @assert i == 1; edges(g) )
-outedges(g::InfiniteRegularGraph, i::Integer) = inedges(g, i)
-issymmetric(::InfiniteRegularGraph) = true
+IndexedGraphs.edges(g::InfiniteRegularGraph) = (IndexedEdge(1,1,1) for _ in 1:g.k)
+IndexedGraphs.vertices(::InfiniteRegularGraph) = 1:1
+IndexedGraphs.ne(g::InfiniteRegularGraph) = 1
+IndexedGraphs.nv(::InfiniteRegularGraph) = 1
+IndexedGraphs.inedges(g::InfiniteRegularGraph, i::Integer) = ( @assert i == 1; edges(g) )
+IndexedGraphs.outedges(g::InfiniteRegularGraph, i::Integer) = inedges(g, i)
+IndexedGraphs.issymmetric(::InfiniteRegularGraph) = true
 Base.show(io::IO, g::InfiniteRegularGraph) = println(io, "Infinite regular graph of degree ", g.k)
 check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::InfiniteRegularGraph) = true
 

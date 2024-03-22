@@ -63,7 +63,7 @@ function onesample(bp::MPBP; kw...)
     onesample!(x, bp; kw...)
 end
 
-function sample!(sms::SoftMarginSampler, nsamples::Integer;
+function Distributions.sample!(sms::SoftMarginSampler, nsamples::Integer;
         showprogress::Bool=true, rng = GLOBAL_RNG)
 
     dt = showprogress ? 0.1 : Inf
@@ -82,13 +82,13 @@ function sample!(sms::SoftMarginSampler, nsamples::Integer;
     sms
 end
 
-function sample(bp::MPBP, nsamples::Integer; kw...)
+function Distributions.sample(bp::MPBP, nsamples::Integer; kw...)
     sms = SoftMarginSampler(bp)
     sample!(sms, nsamples; kw...)
 end
 
 # return a (T+1) by N matrix, with uncertainty estimates
-function marginals(sms::SoftMarginSampler; showprogress::Bool=true, sites=vertices(sms.bp.g)) 
+function TensorTrains.marginals(sms::SoftMarginSampler; showprogress::Bool=true, sites=vertices(sms.bp.g)) 
     @unpack bp, X, w = sms
     N = length(sites); T = getT(bp);
     marg = [[zeros(Measurement, nstates(bp,i)) for t in 0:T] for i in sites]
