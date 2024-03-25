@@ -15,9 +15,11 @@ Might depend on the degree `dᵢ` because of a change of variable from
     y ∈ {1,2,...} to its physical value, e.g. {-dᵢ,...,dᵢ} for Ising"
 prob_y(wᵢ::U, xᵢᵗ⁺¹, xᵢᵗ, yₙᵢᵗ, dᵢ) where {U<:RecursiveBPFactor} = error("Not implemented")
 
-"P(yₖᵗ| xₖᵗ, xᵢᵗ)"
+"P(yₖᵗ| xₖᵗ, xᵢᵗ)
+`k` is the index of the current neighbor among the set of neighbors"
 prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ) = error("Not implemented")
-prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ, dᵢ) = prob_xy(wᵢ, yₖ, xₖ, xᵢ)
+# By default we assume no dependence on `k`. A case where `k` actually matters is e.g. IntegerGlauberFactor
+prob_xy(wᵢ::RecursiveBPFactor, yₖ, xₖ, xᵢ, k) = prob_xy(wᵢ, yₖ, xₖ, xᵢ)
 
 "P(yₐᵦ|yₐ,yᵦ,xᵢᵗ)"
 prob_yy(wᵢ::RecursiveBPFactor, y, y1, y2, xᵢ, d1, d2) = prob_yy(wᵢ::RecursiveBPFactor, y, y1, y2, xᵢ)
