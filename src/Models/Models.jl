@@ -28,7 +28,7 @@ export
     Ising, Glauber, energy,
     HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
     equilibrium_magnetization, equilibrium_observables, RandomRegular, ErdosRenyi, CB_Pop,
-    SIS, SISFactor, SIRS, SIRSFactor, SUSCEPTIBLE, INFECTIOUS, RECOVERED,
+    SIS, SISFactor, SIRS, SIRSFactor, SIS_heterogeneous, SIS_heterogeneousFactor, SUSCEPTIBLE, INFECTIOUS, RECOVERED,
     kl_marginals, l1_marginals, roc, auc
 
 include("glauber/glauber.jl")
@@ -40,5 +40,7 @@ include("epidemics/sis_bp.jl")
 include("epidemics/inference.jl")
 include("epidemics/sirs.jl")
 include("epidemics/sirs_bp.jl")
+include("epidemics/sis_heterogeneous.jl")
+include("epidemics/sis_heterogeneous_bp.jl")
 
 end # end module
