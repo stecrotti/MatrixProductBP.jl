@@ -1,6 +1,6 @@
 using Test, MatrixProductBP
 using MatrixProductBP.Models
-using Graphs, IndexedGraphs, Random, Distributions
+using Graphs, IndexedGraphs, Random, Distributions, SparseArrays
 using TensorTrains
 using Aqua
 
@@ -19,6 +19,7 @@ include("pair_observations.jl")
 include("periodic.jl")
 include("sampling.jl")
 include("sirs_small_tree.jl")
+include("sis_heterogeneous_compare_homogeneous.jl")
 include("sis_infinite_graph.jl")
 include("sis_small_tree.jl")
 
