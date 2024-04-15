@@ -1,6 +1,3 @@
-# import MatrixProductBP: mpbp, nstates, prob_y, prob_xy, prob_yy
-
-
 const SUSCEPTIBLE = 1 
 const INFECTIOUS = 2
 
