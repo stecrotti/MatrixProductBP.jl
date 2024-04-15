@@ -2,7 +2,7 @@ module MatrixProductBP
 
 using InvertedIndices: Not
 using ProgressMeter: Progress, ProgressUnknown, next!
-using TensorCast: @reduce, @cast, TensorCast 
+using TensorCast: @reduce, @cast, TensorCast
 using LoopVectorization
 using Tullio: @tullio
 using IndexedGraphs: IndexedGraphs, AbstractIndexedDiGraph, IndexedGraph, IndexedBiDiGraph,
@@ -10,7 +10,7 @@ using IndexedGraphs: IndexedGraphs, AbstractIndexedDiGraph, IndexedGraph, Indexe
     issymmetric
 using UnPack: @unpack
 using Random: shuffle!, AbstractRNG, GLOBAL_RNG
-using SparseArrays: rowvals, nonzeros, nzrange
+using SparseArrays: rowvals, nonzeros, nzrange, sparse
 using Distributions: Distributions, sample, sample!
 using Measurements: Measurement, ±
 using Statistics: mean, std
