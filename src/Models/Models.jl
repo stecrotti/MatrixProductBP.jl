@@ -11,7 +11,7 @@ using MatrixProductBP
 import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, AbstractIndexedDiGraph, ne, nv, 
     outedges, idx, src, dst, inedges, neighbors, edges, vertices, IndexedEdge
 import UnPack: @unpack
-import SparseArrays: nonzeros, nzrange, rowvals, Symmetric
+import SparseArrays: nonzeros, nzrange, rowvals, Symmetric, SparseMatrixCSC
 import TensorCast: @reduce, @cast, TensorCast 
 import ProgressMeter: Progress, next!, ProgressUnknown
 import LogExpFunctions: xlogx, xlogy
