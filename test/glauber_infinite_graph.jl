@@ -73,7 +73,7 @@ end
     Z_bp = exp(-f_bethe)
 
     N = sum(k)
-    g = IndexedBiDiGraph(complete_bipartite_graph(k...))
+    g = IndexedBiDiGraph(complete_bipartite_graph(reverse(k)...))
     bp_exact = mpbp(g, fill(wᵢ, N), fill(2,N), T)
     for i in 1:N; bp_exact.ϕ[i] = ϕᵢ; end
 
