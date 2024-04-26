@@ -113,3 +113,10 @@ function _pair_beliefs!(b, f, bp::MPBP{G,F}) where {G<:InfiniteBipartiteRegularG
     end 
     b, logz
 end
+
+# the bethe free energy contributions must be reweighted according to the fraction of nodes in each block
+function bethe_free_energy(bp::MPBP{<:InfiniteBipartiteRegularGraph})
+    k = bp.g.k
+    f = bp.f
+    return (f[1]*k[2] + f[2]*k[1]) / sum(k)
+end
