@@ -53,9 +53,7 @@ end
     β = 1.0
     JA = 1.0
     JB = -0.2
-    h = 0.0
-
-    fill2(x) = fill(x, 2)
+    h = -0.1
 
     w = [
         fill(HomogeneousGlauberFactor(JA, h, β), T+1),
