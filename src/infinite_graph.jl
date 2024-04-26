@@ -90,7 +90,7 @@ check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::InfiniteBipartiteRegularGra
 function mpbp_infinite_bipartite_graph(k::NTuple{2,Int}, wᵢ::Vector{Vector{U}},
         qi::NTuple{2,Int},
         ϕᵢ = [fill(ones(qi[i]), length(wᵢ[1])) for i in 1:2];
-        ψₖᵢ = [fill(ones(qi[i], qi[i]), length(wᵢ[1])) for i in 1:2],
+        ψₖᵢ = [fill(ones(qi[i], qi[3-i]), length(wᵢ[1])) for i in 1:2],
         d=(1, 1), bondsizes=ntuple(i->[1; fill(d[i], length(wᵢ[1])-1); 1], 2)) where {U<:BPFactor}
 
     T = length(wᵢ[1]) - 1
