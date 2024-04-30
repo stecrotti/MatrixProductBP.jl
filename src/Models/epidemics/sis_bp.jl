@@ -4,10 +4,13 @@ const INFECTIOUS = 2
 struct SISFactor{T<:AbstractFloat} <: RecursiveBPFactor
     λ :: T  # infection rate
     ρ :: T  # recovery rate
-    function SISFactor(λ::T, ρ::T) where {T<:AbstractFloat}
+    α :: T  # auto-infection rate
+
+    function SISFactor(λ::T, ρ::T; α=zero(T)) where {T<:AbstractFloat}
         @assert 0 ≤ λ ≤ 1
         @assert 0 ≤ ρ ≤ 1
-        new{T}(λ, ρ)
+        @assert 0 ≤ α ≤ 1
+        new{T}(λ, ρ, α)
     end
 end
 
@@ -18,7 +21,7 @@ function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:I
     @assert xᵢᵗ⁺¹ ∈ 1:2
     @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
 
-    @unpack λ, ρ = fᵢ
+    @unpack λ, ρ, α = fᵢ
 
     if xᵢᵗ == INFECTIOUS
         if xᵢᵗ⁺¹ == SUSCEPTIBLE
@@ -27,7 +30,7 @@ function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:I
             return 1 - ρ 
         end
     else
-        p = (1-λ)^sum(xⱼᵗ == INFECTIOUS for xⱼᵗ in xₙᵢᵗ; init=0.0)
+        p = (1-α)*(1-λ)^sum(xⱼᵗ == INFECTIOUS for xⱼᵗ in xₙᵢᵗ; init=0.0)
         if xᵢᵗ⁺¹ == SUSCEPTIBLE
             return p
         elseif xᵢᵗ⁺¹ == INFECTIOUS
@@ -50,10 +53,10 @@ end
 
 # neighbor j is susceptible -> does nothing
 function prob_y(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
-    @unpack λ, ρ = wᵢ
+    @unpack λ, ρ, α = wᵢ
     xⱼᵗ = SUSCEPTIBLE
     z = 1 - λ*(xⱼᵗ == INFECTIOUS)
-    w = (yᵗ == SUSCEPTIBLE)
+    w = (yᵗ == SUSCEPTIBLE) * (1-α)
     if xᵢᵗ⁺¹ == INFECTIOUS
         return (xᵢᵗ==INFECTIOUS) * (1 - ρ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - z * w) 
     elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
