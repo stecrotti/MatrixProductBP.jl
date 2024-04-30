@@ -8,14 +8,15 @@
     λ = 0.5
     ρ = 0.4
     γ = 0.5
+    α = 0.1
 
-    sis = SIS(g, λ, ρ, T; γ)
+    sis = SIS(g, λ, ρ, T; γ, α)
     bp = mpbp(sis)
     rng = MersenneTwister(111)
     X, _ = onesample(bp; rng)
 
     @testset "logprob" begin
-        @test logprob(bp, X) ≈ -8.50477067141768 
+        @test logprob(bp, X) ≈ -10.900027128953564
     end
 
     draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
