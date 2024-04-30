@@ -211,7 +211,7 @@ end
 # λ = rate of infection
 # μ = rate of recovery
 # T = final time
-function simulate_queue_sis!(x, g, P0, λ, μ, T;
+function simulate_queue_sis!(x, g, P0, λ, μ, α, T;
     stats = (t, i, x) -> println("$t $i $(x[i])"),
     Q = ExponentialQueue(length(x)),
     rng = GLOBAL_RNG)
@@ -238,7 +238,7 @@ function simulate_queue_sis!(x, g, P0, λ, μ, T;
             end
             Q[i] = μ
         else
-            s = 0.0
+            s = α
             for j in neighbors(g, i)
                 if x[j] == 0
                     Q[j] -= λ
@@ -253,7 +253,7 @@ function simulate_queue_sis!(x, g, P0, λ, μ, T;
 end
 
 
-function continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^5, sites=1:nv(sis.g), Δt=T/200,
+function continuous_sis_sampler(sis, T, λ, ρ, α; nsamples = 10^5, sites=1:nv(sis.g), Δt=T/200,
         discard_dead_epidemics=false, rng = GLOBAL_RNG)
     K = floor(Int, T/Δt)+1
     N = nv(sis.g)
@@ -273,7 +273,7 @@ function continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^5, sites=1:nv(sis.
     ndiscarded = 0
     @showprogress for _ = 1:nsamples
         for nik in ni; fill!(nik, 0); end
-        simulate_queue_sis!(x, sis.g, P0, λ, ρ, T; stats, Q, rng)
+        simulate_queue_sis!(x, sis.g, P0, λ, ρ, α, T; stats, Q, rng)
         if discard_dead_epidemics && all(isequal(false), x)
             ndiscarded += 1
         else
