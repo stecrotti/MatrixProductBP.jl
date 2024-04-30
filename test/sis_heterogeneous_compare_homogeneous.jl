@@ -32,9 +32,7 @@
     b_bp_h = beliefs(bp_h)
     p_bp_h = [[bᵗ[INFECTIOUS] for bᵗ in bb] for bb in b_bp_h]
 
-    err = maximum([(p_bp_h[i][j]-p_bp_u[i][j])/p_bp_u[i][j] for i in eachindex(p_bp_u) for j in eachindex(p_bp_u[i])])
-
-    @test err ≈ 0
+    @test p_bp_h ≈ p_bp_u
 
 
     A_ = copy(A)
@@ -58,8 +56,6 @@
     b_bp_h_ = beliefs(bp_h_)
     p_bp_h_ = [[bᵗ[INFECTIOUS] for bᵗ in bb] for bb in b_bp_h_]
 
-    err_ = maximum([(p_bp_h_[i][j]-p_bp_u_[i][j])/p_bp_u_[i][j] for i in eachindex(p_bp_u_) for j in eachindex(p_bp_u_[i])])
-
-    @test err_ ≈ 0
+    @test p_bp_h_ ≈ p_bp_u_
 
 end
