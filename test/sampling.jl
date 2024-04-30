@@ -10,8 +10,9 @@
     ρ = 0.4
     γ = 0.5
     ρ = 0.2
+    α = 0.1
 
-    sis = SIS(g, λ, ρ, T; γ)
+    sis = SIS(g, λ, ρ, T; γ, α)
     bp = mpbp(sis)
     rng = MersenneTwister(111)
 
@@ -33,9 +34,9 @@
     end
 
     @testset "sampling - Gillespie - reproducibility" begin
-        av, va = continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^4, sites=1,
+        av, va = continuous_sis_sampler(sis, T, λ, ρ, α; nsamples = 10^4, sites=1,
         discard_dead_epidemics=true, rng = MersenneTwister(0))
-        av2, va2 = continuous_sis_sampler(sis, T, λ, ρ; nsamples = 10^4, sites=1,
+        av2, va2 = continuous_sis_sampler(sis, T, λ, ρ, α; nsamples = 10^4, sites=1,
         discard_dead_epidemics=true, rng = MersenneTwister(0))
         @test av2 == av && va2 == va  
     end
