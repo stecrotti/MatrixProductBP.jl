@@ -95,7 +95,7 @@
     f_bethe = bethe_free_energy(bp2)
     Z_bp = exp(-f_bethe)
 
-    f(x,i) = 2x-3
+    local f(x,i) = 2x-3
 
     r_bp = autocorrelations(f, bp2)
     r_exact = exact_autocorrelations(f, bp2; p_exact)
@@ -244,7 +244,7 @@ end
     f_bethe = bethe_free_energy(bp2)
     Z_bp = exp(-f_bethe)
 
-    f(x,i) = 2x-3
+    local f(x,i) = 2x-3
 
     r_bp = autocorrelations(f, bp2)
     r_exact = exact_autocorrelations(f, bp2; p_exact)
