@@ -4,11 +4,13 @@ struct SIRSFactor{T<:AbstractFloat} <: RecursiveBPFactor
     λ :: T  # infection rate
     ρ :: T  # recovery rate
     σ :: T  # deimmunization rate
-    function SIRSFactor(λ::T, ρ::T, σ::T)  where {T<:AbstractFloat}
+    α :: T  # auto-infection rate
+    function SIRSFactor(λ::T, ρ::T, σ::T; α=zero(T))  where {T<:AbstractFloat}
         @assert 0 ≤ λ ≤ 1
         @assert 0 ≤ ρ ≤ 1
         @assert 0 ≤ σ ≤ 1
-        new{T}(λ, ρ, σ)
+        @assert 0 ≤ α ≤ 1
+        new{T}(λ, ρ, σ, α)
     end
 end
 
@@ -23,8 +25,8 @@ function mpbp(sirs::SIRS{T,N,F}; kw...) where {T,N,F}
 end
 
 function prob_y(wᵢ::SIRSFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
-    @unpack λ, ρ, σ = wᵢ
-    w = (yᵗ == SUSCEPTIBLE)
+    @unpack λ, ρ, σ, α = wᵢ
+    w = (yᵗ == SUSCEPTIBLE) * (1 - α)
     if xᵢᵗ⁺¹ == INFECTIOUS
         return (xᵢᵗ == INFECTIOUS) * (1 - ρ) + (xᵢᵗ == SUSCEPTIBLE) * (1 - w) 
     elseif xᵢᵗ⁺¹ == SUSCEPTIBLE

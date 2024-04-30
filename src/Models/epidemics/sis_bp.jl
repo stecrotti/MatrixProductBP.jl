@@ -56,7 +56,7 @@ function prob_y(wᵢ::SISFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
     @unpack λ, ρ, α = wᵢ
     xⱼᵗ = SUSCEPTIBLE
     z = 1 - λ*(xⱼᵗ == INFECTIOUS)
-    w = (yᵗ == SUSCEPTIBLE) * (1-α)
+    w = (yᵗ == SUSCEPTIBLE) * (1 - α)
     if xᵢᵗ⁺¹ == INFECTIOUS
         return (xᵢᵗ==INFECTIOUS) * (1 - ρ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - z * w) 
     elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
