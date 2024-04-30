@@ -32,7 +32,7 @@ prob_y0(wᵢ::RecursiveBPFactor, y, xᵢᵗ) = y == 1
 
 "P(xᵢᵗ⁺¹|xᵢᵗ, xₙᵢᵗ, d)"
 function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
-    xᵢᵗ::Integer)
+        xᵢᵗ::Integer)
     d = length(xₙᵢᵗ)
     Pyy = [float(prob_y0(wᵢ, y, xᵢᵗ)) for y in 1:nstates(wᵢ,0)]
     for k in 1:d
@@ -45,7 +45,7 @@ function (wᵢ::RecursiveBPFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVe
     sum(Pyy[y] * prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, y, d) for y in eachindex(Pyy))
 end
 
-"P(xᵢᵗ⁺¹|xᵢᵗ, xₙᵢᵗ, d)"
+"P(xᵢᵗ⁺¹|xᵢᵗ, yₙᵢnotk, xₖᵗ, d)"
 function prob_y_partial(wᵢ::RecursiveBPFactor, xᵢᵗ⁺¹, xᵢᵗ, xₖᵗ, y1, d, k)
     sum(prob_y(wᵢ, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d + 1) * 
         prob_xy(wᵢ, y2, xₖᵗ, xᵢᵗ, k) * 
