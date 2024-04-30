@@ -10,8 +10,9 @@
     γ = 0.5
     ρ = 0.2
     σ = 0.1
+    α = 0.05
 
-    sirs = SIRS(g, λ, ρ, σ, T; γ)
+    sirs = SIRS(g, λ, ρ, σ, T; γ, α)
     bp = mpbp(sirs)
 
     rng = MersenneTwister(111)
@@ -20,7 +21,7 @@
     @testset "SIRS small tree" begin
 
         @testset "logprob" begin
-            @test logprob(bp, X) ≈ -3.912023005428146
+            @test logprob(bp, X) ≈ -4.017112724421366
         end
 
         draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
