@@ -2,34 +2,38 @@ const SUSCEPTIBLE = 1
 const INFECTIOUS = 2
 
 struct SIS_heterogeneousFactor{T<:AbstractFloat} <: RecursiveBPFactor
-    λ :: Vector{T}  # infection rates
-    ρ :: T          # recovery rate
-    function SIS_heterogeneousFactor(λ::Vector{T}, ρ::T) where {T<:AbstractFloat}
+    λ :: Vector{T}  # incoming infection probabilities
+    ρ :: T          # recovery probability
+    α :: T          # auto-infection probability
+    function SIS_heterogeneousFactor(λ::Vector{T}, ρ::T; α=zero(T)) where {T<:AbstractFloat}
         @assert all(0 ≤ λⱼᵢ ≤ 1 for λⱼᵢ in λ)
         @assert 0 ≤ ρ ≤ 1
-        new{T}(λ, ρ)
+        @assert 0 ≤ α ≤ 1
+        new{T}(λ, ρ, α)
     end
 end
 
 # the accumulated variable is still binary
 nstates(::SIS_heterogeneousFactor, l::Int64) = (l == 0 ? 1 : 2)
 
-function (fᵢ::SIS_heterogeneousFactor)(xᵢᵗ⁺¹::Integer, xᵗ::AbstractVector{<:Integer}, g::IndexedGraph, i::Integer)
+function (fᵢ::SIS_heterogeneousFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:Integer}, 
+        xᵢᵗ::Integer)
     @assert xᵢᵗ⁺¹ ∈ 1:2
-    @assert all(x ∈ 1:2 for x in xᵗ)
+    @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
+    @assert xᵢᵗ ∈ 1:2
 
-    @unpack λ, ρ = fᵢ
+    @unpack λ, ρ, α = fᵢ
 
-    if xᵗ[i] == INFECTIOUS
+    if xᵢᵗ == INFECTIOUS
         if xᵢᵗ⁺¹ == SUSCEPTIBLE
             return ρ
         else
             return 1 - ρ
         end
     else
-        p = 1.0
-        for j in neighbors(g,i)
-            p *= (1-λ[j])*(xᵗ[j] == INFECTIOUS)
+        p = 1 - α
+        for (xⱼ, λⱼ) in zip(xₙᵢᵗ, λ)
+            p *= 1 - λⱼ*(xⱼ == INFECTIOUS)
         end
         if xᵢᵗ⁺¹ == SUSCEPTIBLE
             return p
@@ -53,15 +57,16 @@ end
 
 # neighbor j is susceptible -> does nothing
 function prob_y(wᵢ::SIS_heterogeneousFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)
-    @unpack λ, ρ = wᵢ
+    @unpack ρ, α = wᵢ
+    w = (yᵗ == SUSCEPTIBLE) * (1 - α)
     if xᵢᵗ⁺¹ == INFECTIOUS
-        return (xᵢᵗ==INFECTIOUS) * (1 - ρ) + (xᵢᵗ==SUSCEPTIBLE) * (yᵗ == INFECTIOUS)
+        return (xᵢᵗ==INFECTIOUS) * (1 - ρ) + (xᵢᵗ==SUSCEPTIBLE) * (1 - w)
     elseif xᵢᵗ⁺¹ == SUSCEPTIBLE
-        return (xᵢᵗ==INFECTIOUS) * ρ + (xᵢᵗ==SUSCEPTIBLE) * (yᵗ == SUSCEPTIBLE)
+        return (xᵢᵗ==INFECTIOUS) * ρ + (xᵢᵗ==SUSCEPTIBLE) * w
     end
 end
 
-function prob_xy(wᵢ::SIS_heterogeneousFactor, yₖ, xₖ, xᵢ,k)
+function prob_xy(wᵢ::SIS_heterogeneousFactor, yₖ, xₖ, xᵢ, k)
     @unpack λ = wᵢ
     (yₖ == INFECTIOUS)*λ[k]*(xₖ==INFECTIOUS) + (yₖ == SUSCEPTIBLE)*(1-λ[k]*(xₖ==INFECTIOUS))
 end
