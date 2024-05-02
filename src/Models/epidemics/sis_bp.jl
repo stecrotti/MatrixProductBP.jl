@@ -37,17 +37,15 @@ function (fᵢ::SISFactor)(xᵢᵗ⁺¹::Integer, xₙᵢᵗ::AbstractVector{<:I
 end
 
 function mpbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
-    sis_ = deepcopy(sis)
-    g = IndexedBiDiGraph(sis_.g.A)
-    w = sis_factors(sis_)
-    return mpbp(g, w, fill(2, nv(g)), T, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
+    g = IndexedBiDiGraph(sis.g.A)
+    w = sis_factors(sis)
+    return mpbp(g, w, fill(2, nv(g)), T, ϕ=sis.ϕ, ψ=sis.ψ; kw...)
 end
 
 function periodic_mpbp(sis::SIS{T,N,F}; kw...) where {T,N,F}
-    sis_ = deepcopy(sis)
-    g = IndexedBiDiGraph(sis_.g.A)
-    w = sis_factors(sis_)
-    return periodic_mpbp(g, w, fill(2, nv(g)), T, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
+    g = IndexedBiDiGraph(sis.g.A)
+    w = sis_factors(sis)
+    return periodic_mpbp(g, w, fill(2, nv(g)), T, ϕ=sis.ϕ, ψ=sis.ψ; kw...)
 end
 
 # neighbor j is susceptible -> does nothing
