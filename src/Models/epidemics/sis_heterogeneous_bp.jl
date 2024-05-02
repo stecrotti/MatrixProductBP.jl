@@ -40,17 +40,15 @@ function (fᵢ::SIS_heterogeneousFactor)(xᵢᵗ⁺¹::Integer, xᵗ::AbstractVe
 end
 
 function mpbp(sis::SIS_heterogeneous{T,N,F}; kw...) where {T,N,F}
-    sis_ = deepcopy(sis)
-    g = IndexedBiDiGraph(sis_.g.A)
-    w = sis_heterogeneous_factors(sis_)
-    return mpbp(g, w, fill(2, nv(g)), T, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
+    g = IndexedBiDiGraph(sis.g.A)
+    w = sis_heterogeneous_factors(sis)
+    return mpbp(g, w, fill(2, nv(g)), T, ϕ=sis.ϕ, ψ=sis.ψ; kw...)
 end
 
 function periodic_mpbp(sis::SIS_heterogeneous{T,N,F}; kw...) where {T,N,F}
-    sis_ = deepcopy(sis)
-    g = IndexedBiDiGraph(sis_.g.A)
-    w = sis_heterogeneous_factors(sis_)
-    return periodic_mpbp(g, w, fill(2, nv(g)), T, ϕ=sis_.ϕ, ψ=sis_.ψ; kw...)
+    g = IndexedBiDiGraph(sis.g.A)
+    w = sis_heterogeneous_factors(sis)
+    return periodic_mpbp(g, w, fill(2, nv(g)), T, ϕ=sis.ϕ, ψ=sis.ψ; kw...)
 end
 
 # neighbor j is susceptible -> does nothing

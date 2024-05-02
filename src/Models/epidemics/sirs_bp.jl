@@ -17,10 +17,9 @@ nstates(::SIRSFactor, l::Integer) = l == 0 ? 1 : 2
 
 
 function mpbp(sirs::SIRS{T,N,F}; kw...) where {T,N,F}
-    sirs_ = deepcopy(sirs)
-    g = IndexedBiDiGraph(sirs_.g.A)
-    w = sirs_factors(sirs_)
-    return mpbp(g, w, fill(3, nv(g)), T, ϕ=sirs_.ϕ, ψ=sirs_.ψ; kw...)
+    g = IndexedBiDiGraph(sirs.g.A)
+    w = sirs_factors(sirs)
+    return mpbp(g, w, fill(3, nv(g)), T, ϕ=sirs.ϕ, ψ=sirs.ψ; kw...)
 end
 
 function prob_y(wᵢ::SIRSFactor, xᵢᵗ⁺¹, xᵢᵗ, yᵗ, d)

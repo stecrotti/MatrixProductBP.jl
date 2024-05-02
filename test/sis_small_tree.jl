@@ -110,35 +110,35 @@
         @test logl_bp ≈ logp
     end
 
-    ### Periodic version
-    bp = periodic_mpbp(sis)
-    rng = MersenneTwister(111)
-    X, _ = onesample(bp; rng)
-
-    draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
-
-    svd_trunc = TruncBondMax(10)
-    iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
-
-    b_bp = beliefs(bp)
-    p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
-
-    p_exact, Z_exact = exact_prob(bp)
-    b_exact = exact_marginals(bp; p_exact)
-    p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
-
-    f_bethe = bethe_free_energy(bp)
-    Z_bp = exp(-f_bethe)
-
-    local f(x,i) = x-1
-
-    r_bp = autocorrelations(f, bp)
-    r_exact = exact_autocorrelations(f, bp; p_exact)
-
-    c_bp = autocovariances(f, bp)
-    c_exact = exact_autocovariances(f, bp; r = r_exact)
-
     @testset "SIS small tree - periodic" begin
+        bp = periodic_mpbp(sis)
+        rng = MersenneTwister(111)
+        X, _ = onesample(bp; rng)
+
+        reset!(bp; observations=true)
+        draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
+
+        svd_trunc = TruncBondMax(10)
+        iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
+
+        b_bp = beliefs(bp)
+        p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
+
+        p_exact, Z_exact = exact_prob(bp)
+        b_exact = exact_marginals(bp; p_exact)
+        p_ex = [[bbb[2] for bbb in bb] for bb in b_exact]
+
+        f_bethe = bethe_free_energy(bp)
+        Z_bp = exp(-f_bethe)
+
+        local f(x,i) = x-1
+
+        r_bp = autocorrelations(f, bp)
+        r_exact = exact_autocorrelations(f, bp; p_exact)
+
+        c_bp = autocovariances(f, bp)
+        c_exact = exact_autocovariances(f, bp; r = r_exact)
+
         @test Z_exact ≈ Z_bp
         @test p_ex ≈ p_bp
         @test r_bp ≈ r_exact
