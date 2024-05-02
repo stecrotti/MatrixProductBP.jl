@@ -253,7 +253,7 @@ function simulate_queue_sis!(x, g, P0, λ, μ, α, T;
 end
 
 
-function continuous_sis_sampler(sis, T, λ, ρ, α; nsamples = 10^5, sites=1:nv(sis.g), Δt=T/200,
+function continuous_sis_sampler(sis, T, λ, ρ; α, nsamples = 10^5, sites=1:nv(sis.g), Δt=T/200,
         discard_dead_epidemics=false, rng = GLOBAL_RNG)
     K = floor(Int, T/Δt)+1
     N = nv(sis.g)

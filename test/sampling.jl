@@ -34,9 +34,9 @@
     end
 
     @testset "sampling - Gillespie - reproducibility" begin
-        av, va = continuous_sis_sampler(sis, T, λ, ρ, α; nsamples = 10^4, sites=1,
+        av, va = continuous_sis_sampler(sis, T, λ, ρ; α, nsamples = 10^4, sites=1,
         discard_dead_epidemics=true, rng = MersenneTwister(0))
-        av2, va2 = continuous_sis_sampler(sis, T, λ, ρ, α; nsamples = 10^4, sites=1,
+        av2, va2 = continuous_sis_sampler(sis, T, λ, ρ; α, nsamples = 10^4, sites=1,
         discard_dead_epidemics=true, rng = MersenneTwister(0))
         @test av2 == av && va2 == va  
     end
