@@ -28,7 +28,6 @@ struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}, M
         @assert all( length(μᵢⱼ) == T + 1 for μᵢⱼ in μ)
         @assert all( length(bᵢ) == T + 1 for bᵢ in b )
         @assert length(μ) == ne(g)
-        normalize!.(μ)
         return new{G,F,V,M2,M1}(g, w, ϕ, ψ, AtomicVector(μ), b, f)
     end
 end
