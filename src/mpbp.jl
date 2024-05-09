@@ -120,7 +120,7 @@ function onebpiter!(bp::MPBP, i::Integer, ::Type{U};
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
-    @assert all(normalization(a) ≈ 1 for a in A)
+    @assert all(float(normalization(a)) ≈ 1 for a in A)
     sumlogzᵢ₂ⱼ = 0.0
     for (j_ind, e_out) in enumerate(eout)
         B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc, periodic=is_periodic(bp))

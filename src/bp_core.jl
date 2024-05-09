@@ -104,6 +104,6 @@ end
 # also return normalization zᵢⱼ
 function pair_belief(Aᵢⱼ::AbstractMPEM2, Aⱼᵢ::AbstractMPEM2, ψᵢⱼ)
     A = pair_belief_as_mpem(Aᵢⱼ, Aⱼᵢ, ψᵢⱼ)
-    l = accumulate_L(A)
-    marginals(A; l), normalization(A; l)
+    l, logz = accumulate_L(A)
+    marginals(A; l), exp(logz)
 end

@@ -45,9 +45,9 @@
 
     z_msg = [normalization(A) for A in bp.μ]
 
-    for A in bp.μ
+    @test all(bp.μ) do A
         normalize!(A)
-        @test normalization(A) ≈ 1
+        float(normalization(A)) ≈ 1
     end
 end
 
