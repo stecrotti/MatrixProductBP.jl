@@ -25,10 +25,10 @@ rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = r
 rand_periodic_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = rand_periodic_tt(bondsizes, q1, q2)
 
 function marginalize(A::MPEM2{F}) where F
-    MPEM1{F}([@tullio b[m, n, xi] := a[m, n, xi, xj] for a in A])
+    MPEM1{F}([@tullio b[m, n, xi] := a[m, n, xi, xj] for a in A]; z = A.z)
 end
 function marginalize(A::PeriodicMPEM2{F}) where F
-    PeriodicMPEM1{F}([@tullio b[m, n, xi] := a[m, n, xi, xj] for a in A])
+    PeriodicMPEM1{F}([@tullio b[m, n, xi] := a[m, n, xi, xj] for a in A]; z = A.z)
 end
 
 # Matrix [Bᵗᵢⱼ(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 5-array B[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹]
@@ -64,11 +64,17 @@ end
 function mpem2(B::MPEM3{F}) where {F}
     C = Vector{Array{F,4}}(undef, length(B))
     qᵢᵗ = size(B[1], 3); qⱼᵗ = size(B[1], 4); qᵢᵗ⁺¹ = size(B[1], 5)
+    c = Logarithmic(one(F))
 
     B⁰ = B[begin]
     @cast M[(xᵢᵗ, xⱼᵗ, m), (n, xᵢᵗ⁺¹)] |= B⁰[m, n, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹]
     Bᵗ⁺¹_new = fill(1.0,1,1,1,1)  # initialize
     for t in Iterators.take(eachindex(B), length(B)-1)
+        mt = maximum(abs, M)
+        if !isnan(mt) && !isinf(mt) && !iszero(mt)
+            M ./= mt
+            c *= mt
+        end
         U, λ, V = svd(M)   
         m = length(λ)     
         @cast Cᵗ[m, k, xᵢᵗ, xⱼᵗ] := U[(xᵢᵗ, xⱼᵗ, m), k] k∈1:m, xᵢᵗ∈1:qᵢᵗ, xⱼᵗ∈1:qⱼᵗ
@@ -81,7 +87,7 @@ function mpem2(B::MPEM3{F}) where {F}
     end
     @cast Cᵀ[m,n,xᵢ,xⱼ] := Bᵗ⁺¹_new[m,n,xᵢ,xⱼ,1]
     C[end] = Cᵀ
-    return MPEM2{F}(C)
+    return MPEM2{F}(C; z = 1 / c)
 end
 
 struct PeriodicMPEM3{F<:Real}
@@ -112,11 +118,17 @@ end
 function mpem2(B::PeriodicMPEM3{F}) where {F}
     C = Vector{Array{F,4}}(undef, length(B))
     qᵢᵗ = size(B[1], 3); qⱼᵗ = size(B[1], 4); qᵢᵗ⁺¹ = size(B[1], 5)
+    c = Logarithmic(one(F))
 
     B⁰ = B[begin]
     @cast M[(xᵢᵗ, xⱼᵗ, m), (n, xᵢᵗ⁺¹)] |= B⁰[m, n, xᵢᵗ, xⱼᵗ, xᵢᵗ⁺¹]
     Bᵗ⁺¹_new = fill(1.0,1,1,1,1)  # initialize
     for t in eachindex(B)
+        mt = maximum(abs, M)
+        if !isnan(mt) && !isinf(mt) && !iszero(mt)
+            M ./= mt
+            c *= mt
+        end
         U, λ, V = svd(M)   
         m = length(λ)     
         @cast Cᵗ[m, k, xᵢᵗ, xⱼᵗ] := U[(xᵢᵗ, xⱼᵗ, m), k] k∈1:m, xᵢᵗ∈1:qᵢᵗ, xⱼᵗ∈1:qⱼᵗ
@@ -133,7 +145,7 @@ function mpem2(B::PeriodicMPEM3{F}) where {F}
             C[begin] = C⁰_
         end
     end
-    return PeriodicMPEM2{F}(C)
+    return PeriodicMPEM2{F}(C; z = 1 / c)
 end
 
 

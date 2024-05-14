@@ -102,7 +102,7 @@ end
 
 # compute ̃m{∂i∖j→i}(̅y_{∂i∖j},̅xᵢ)
 function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor, M2<:AbstractMPEM2}
-    @debug @assert all(normalization(a) ≈ 1 for a in μin)
+    @debug @assert all(float(normalization(a)) ≈ 1 for a in μin) "$([float(normalization(a)) for a in μin])"
     B = map(eachindex(ψout)) do k
         Bk = map(zip(wᵢ, μin[k], ψout[k])) do (wᵢᵗ, μₖᵢᵗ, ψᵢₖᵗ)
             Pxy = zeros(nstates(wᵢᵗ,1), size(μₖᵢᵗ, 3), qi)
@@ -119,9 +119,9 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
             @tullio B3[m1,m2,n1,n2,y,xᵢ] := Pyy[y,y1,y2,xᵢ] * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ]
             @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
         end |> M2
-        lz = normalize!(B)
         any(any(isnan, b) for b in B) && @error "NaN in tensor train"
         compress!(B; svd_trunc)
+        lz = normalize!(B)
         any(any(isnan, b) for b in B) && @error "NaN in tensor train"
         B, lz + lz1 + lz2, d1 + d2
     end
