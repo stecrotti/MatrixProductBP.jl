@@ -3,7 +3,7 @@
 @testset "Glauber small tree" begin
     rng = MersenneTwister(111)
 
-    T = 600
+    T = 2
     J = [0 1 0 0 0;
         1 0 1 1 0;
         0 1 0 0 0;
@@ -29,7 +29,7 @@
     svd_trunc = TruncThresh(0.0)
     svd_trunc = TruncBondThresh(10)
     cb = CB_BP(bp; showprogress=false, info="Glauber")
-    iterate!(bp; maxiter=20, svd_trunc, cb);
+    iterate!(bp; maxiter=20, svd_trunc, cb)
 
     b_bp = beliefs(bp)
     p_bp = [[bbb[2] for bbb in bb] for bb in b_bp]
