@@ -34,13 +34,14 @@ end
 # Matrix [Bᵗᵢⱼ(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 5-array B[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹]
 # The last matrix should have the same values no matter what xᵢᵀ⁺¹ is
 struct MPEM3{F<:Real}
-    tensors::Vector{Array{F,5}}
-    function MPEM3(tensors::Vector{Array{F,5}}) where {F<:Real}
+    tensors :: Vector{Array{F,5}}
+    z       :: Logarithmic{F}
+    function MPEM3(tensors::Vector{Array{F,5}}; z::Logarithmic{F}=Logarithmic(one(F))) where {F<:Real}
         size(tensors[1],1) == size(tensors[end],2) == 1 ||
             throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
         check_bond_dims(tensors) ||
             throw(ArgumentError("Matrix indices for matrix product non compatible"))
-        new{F}(tensors)
+        new{F}(tensors, z)
     end
 end
 
@@ -57,7 +58,7 @@ function TensorTrains.evaluate(B::MPEM3, x)
         M = M * B[t][:, :, x[t][1], x[t][2], x[t+1][1]]
     end
     M = M * B[end][:, :, x[end][1], x[end][2], 1]
-    return only(M)
+    return float( only(M) / B.z)
 end
 
 # convert mpem3 into mpem2 via a Left to Right sweep of SVD's
@@ -87,17 +88,18 @@ function mpem2(B::MPEM3{F}) where {F}
     end
     @cast Cᵀ[m,n,xᵢ,xⱼ] := Bᵗ⁺¹_new[m,n,xᵢ,xⱼ,1]
     C[end] = Cᵀ
-    return MPEM2{F}(C; z = 1 / c)
+    return MPEM2{F}(C; z = 1/c * B.z)
 end
 
 struct PeriodicMPEM3{F<:Real}
     tensors::Vector{Array{F,5}}
-    function PeriodicMPEM3(tensors::Vector{Array{F,5}}) where {F<:Real}
+    z       :: Logarithmic{F}
+    function PeriodicMPEM3(tensors::Vector{Array{F,5}}; z::Logarithmic{F}=Logarithmic(one(F))) where {F<:Real}
         size(tensors[1],1) == size(tensors[end],2) ||
             throw(ArgumentError("Number of rows of the first matrix should coincide with the number of columns of the last matrix"))
         check_bond_dims(tensors) ||
             throw(ArgumentError("Matrix indices for matrix product non compatible"))
-        new{F}(tensors)
+        new{F}(tensors, z)
     end
 end
 
@@ -112,7 +114,7 @@ function TensorTrains.evaluate(B::PeriodicMPEM3, x)
     for t in eachindex(B)
         M = M * B[t][:, :, x[t][1], x[t][2], x[mod1(t+1, Tp1)][1]]
     end
-    return tr(M)
+    return float( tr(M) / B.z )
 end
 
 function mpem2(B::PeriodicMPEM3{F}) where {F}
@@ -145,7 +147,7 @@ function mpem2(B::PeriodicMPEM3{F}) where {F}
             C[begin] = C⁰_
         end
     end
-    return PeriodicMPEM2{F}(C; z = 1 / c)
+    return PeriodicMPEM2{F}(C; z = 1/c * B.z)
 end
 
 

@@ -83,7 +83,7 @@ function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ,
     Aᵀ,Bᵀ = A[end], B[end]
     @tullio Bᵀ[m,n,xᵢᵀ,xⱼᵀ,xᵢᵀ⁺¹] = Aᵀ[m,n,yᵀ,xᵢᵀ] * ϕᵢ[end][xᵢᵀ]
     any(any(isnan, b) for b in B) && @error "NaN in tensor train"
-    return MPEM3(B)
+    return MPEM3(B; z = A.z)
 end
 
 function _f_bp_partial(A::PeriodicMPEM2, wᵢ::Vector{U}, ϕᵢ, 
@@ -97,7 +97,7 @@ function _f_bp_partial(A::PeriodicMPEM2, wᵢ::Vector{U}, ϕᵢ,
         @tullio Bᵗ[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹] = W[xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ,yᵗ] * Aᵗ[m,n,yᵗ,xᵢᵗ]
     end
     any(any(isnan, b) for b in B) && @error "NaN in tensor train"
-    return PeriodicMPEM3(B)
+    return PeriodicMPEM3(B; z = A.z)
 end
 
 # compute ̃m{∂i∖j→i}(̅y_{∂i∖j},̅xᵢ)
@@ -113,15 +113,17 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
     end
 
     function op((B1, lz1, d1), (B2, lz2, d2))
-        B = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
+        BB = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
             Pyy = zeros(nstates(wᵢᵗ,d1+d2), size(B₁ᵗ,3), size(B₂ᵗ,3), size(B₁ᵗ,4))
             @tullio avx=false Pyy[y,y1,y2,xᵢ] = prob_yy(wᵢᵗ,y,y1,y2,xᵢ,d1,d2) 
             @tullio B3[m1,m2,n1,n2,y,xᵢ] := Pyy[y,y1,y2,xᵢ] * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ]
             @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
-        end |> M2
+        end
+        B = M2(BB; z = B1.z * B2.z)
         any(any(isnan, b) for b in B) && @error "NaN in tensor train"
         compress!(B; svd_trunc)
-        lz = normalize!(B)
+        normalize_eachmatrix!(B)
+        lz = 0.0
         any(any(isnan, b) for b in B) && @error "NaN in tensor train"
         B, lz + lz1 + lz2, d1 + d2
     end
