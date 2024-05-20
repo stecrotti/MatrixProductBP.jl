@@ -109,10 +109,10 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
             @tullio avx=false Pxy[yₖ,xₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * ψᵢₖᵗ[xᵢ,xₖ]
             @tullio _[m,n,yₖ,xᵢ] := Pxy[yₖ,xₖ,xᵢ] * μₖᵢᵗ[m,n,xₖ,xᵢ] 
         end |> M2
-        Bk, 0.0, 1
+        Bk, 1
     end
 
-    function op((B1, lz1, d1), (B2, lz2, d2))
+    function op((B1, d1), (B2, d2))
         BB = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
             Pyy = zeros(nstates(wᵢᵗ,d1+d2), size(B₁ᵗ,3), size(B₂ᵗ,3), size(B₁ᵗ,4))
             @tullio avx=false Pyy[y,y1,y2,xᵢ] = prob_yy(wᵢᵗ,y,y1,y2,xᵢ,d1,d2) 
@@ -122,10 +122,9 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
         B = M2(BB; z = B1.z * B2.z)
         any(any(isnan, b) for b in B) && @error "NaN in tensor train"
         compress!(B; svd_trunc)
-        normalize_eachmatrix!(B)
-        lz = 0.0
+        normalize_eachmatrix!(B)    # keep this one?
         any(any(isnan, b) for b in B) && @error "NaN in tensor train"
-        B, lz + lz1 + lz2, d1 + d2
+        B, d1 + d2
     end
 
     Minit = [[float(prob_y0(wᵢ[t], y, xᵢ)) for _ in 1:1,
@@ -133,11 +132,10 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
                 y in 1:nstates(wᵢ[t],0),
                 xᵢ in 1:qi]
             for t=1:T+1]
-    init = (M2(Minit), 0.0, 0)
-    dest, (full, logzᵢ,)  = cavity(B, op, init)
-    (C, logzs) = unzip(dest)
-    sumlogzᵢ₂ⱼ = sum(logzs)
-    C, full, logzᵢ, sumlogzᵢ₂ⱼ
+    init = (M2(Minit), 0)
+    dest, (full,)  = cavity(B, op, init)
+    (C,) = unzip(dest)
+    C, full
 end
 
 # compute outgoing messages from node `i`
@@ -147,7 +145,8 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     ein, eout = inedges(g,i), outedges(g, i)
     wᵢ, ϕᵢ, dᵢ  = w[i], ϕ[i], length(ein)
     @assert wᵢ[1] isa U
-    C, full, logzᵢ, sumlogzᵢ₂ⱼ = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
+    C, full = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
+    sumlogzᵢ₂ⱼ = zero(F)
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
         μj = orthogonalize_right!(mpem2(B); svd_trunc)
@@ -155,7 +154,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     end
     B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
     bp.b[i] = B |> mpem2 |> marginalize
-    logzᵢ += normalize!(bp.b[i])
+    logzᵢ = normalize!(bp.b[i])
     bp.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
     nothing
 end
