@@ -119,12 +119,12 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
             @tullio B3[m1,m2,n1,n2,y,xᵢ] := Pyy[y,y1,y2,xᵢ] * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ]
             @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
         end
-        B = M2(BB; z = B1.z * B2.z)
-        any(any(isnan, b) for b in B) && @error "NaN in tensor train"
-        compress!(B; svd_trunc)
-        normalize_eachmatrix!(B)    # keep this one?
-        any(any(isnan, b) for b in B) && @error "NaN in tensor train"
-        B, d1 + d2
+        Bout = M2(BB; z = B1.z * B2.z)
+        any(any(isnan, b) for b in Bout) && @error "NaN in tensor train"
+        compress!(Bout; svd_trunc)
+        normalize_eachmatrix!(Bout)    # keep this one?
+        any(any(isnan, b) for b in Bout) && @error "NaN in tensor train"
+        Bout, d1 + d2
     end
 
     Minit = [[float(prob_y0(wᵢ[t], y, xᵢ)) for _ in 1:1,
@@ -133,7 +133,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
                 xᵢ in 1:qi]
             for t=1:T+1]
     init = (M2(Minit), 0)
-    dest, (full,)  = cavity(B, op, init)
+    dest, (full,) = cavity(B, op, init)
     (C,) = unzip(dest)
     C, full
 end
