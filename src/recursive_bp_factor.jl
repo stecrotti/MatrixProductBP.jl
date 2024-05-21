@@ -103,6 +103,8 @@ end
 # compute ̃m{∂i∖j→i}(̅y_{∂i∖j},̅xᵢ)
 function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, svd_trunc) where {U<:RecursiveBPFactor, M2<:AbstractMPEM2}
     @debug @assert all(float(normalization(a)) ≈ 1 for a in μin) "$([float(normalization(a)) for a in μin])"
+    
+    # Compute ̃m{j→i}(̅y_{j},̅xᵢ) for j∈∂i
     B = map(eachindex(ψout)) do k
         Bk = map(zip(wᵢ, μin[k], ψout[k])) do (wᵢᵗ, μₖᵢᵗ, ψᵢₖᵗ)
             Pxy = zeros(nstates(wᵢᵗ,1), size(μₖᵢᵗ, 3), qi)
@@ -112,6 +114,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
         Bk, 1
     end
 
+    # the operation that combines together two ̃m messages
     function op((B1, d1), (B2, d2))
         BB = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
             Pyy = zeros(nstates(wᵢᵗ,d1+d2), size(B₁ᵗ,3), size(B₂ᵗ,3), size(B₁ᵗ,4))
@@ -133,9 +136,10 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
                 xᵢ in 1:qi]
             for t=1:T+1]
     init = (M2(Minit), 0)
+    # compute all-but-one `op`s
     dest, (full,) = cavity(B, op, init)
     (C,) = unzip(dest)
-    C, full
+    C, full, B
 end
 
 # compute outgoing messages from node `i`
