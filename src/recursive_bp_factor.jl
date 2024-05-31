@@ -153,7 +153,7 @@ function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U};
     sumlogzᵢ₂ⱼ = zero(F)
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
-        μj = orthogonalize_right!(mpem2(B); svd_trunc)
+        μj = compress!(mpem2(B); svd_trunc, is_orthogonal=:left)
         sumlogzᵢ₂ⱼ += set_msg!(bp, μj, idx(e), damp, svd_trunc)
     end
     B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
