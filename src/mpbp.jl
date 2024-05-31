@@ -126,7 +126,7 @@ function onebpiter!(bp::MPBP, i::Integer, ::Type{U};
         B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc, periodic=is_periodic(bp))
         sumlogzᵢ₂ⱼ += logzᵢ₂ⱼ
         C = mpem2(B)
-        μj = orthogonalize_right!(C; svd_trunc)
+        μj = compress!(C; svd_trunc, is_orthogonal=:left)
         sumlogzᵢ₂ⱼ += normalize!(μj)
         μ[idx(e_out)] = μj
     end
@@ -150,7 +150,7 @@ function onebpiter_dummy_neighbor(bp::MPBP, i::Integer;
     A = μ[ein.|>idx]
     B, _ = f_bp_dummy_neighbor(A, w[i], ϕ[i], ψ[eout.|>idx]; svd_trunc, periodic=is_periodic(bp))
     C = mpem2(B)
-    return orthogonalize_right!(C; svd_trunc)
+    return compress!(C; svd_trunc, is_orthogonal=:left)
 end
 
 # A callback to print info and save stuff during the iterations 
