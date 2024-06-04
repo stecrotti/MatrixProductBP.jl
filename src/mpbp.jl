@@ -254,7 +254,7 @@ end
 
 autocorrelations(bp::MPBP; kw...) = autocorrelations((x,i)->x, bp; kw...)
 
-function means(f, bp::MPBP; sites=vertices(bp.g))
+function means(f, bp::MPBP{G,F,V,M2}; sites=vertices(bp.g)) where {G,F,V,M2}
     map(sites) do i
         expectation.(x->f(x, i), marginals(bp.b[i]))
     end

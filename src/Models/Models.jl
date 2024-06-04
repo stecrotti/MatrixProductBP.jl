@@ -5,7 +5,7 @@ import MatrixProductBP: exact_prob, getT, nstates, mpbp, compress!,
     beliefs, beliefs_tu, marginals, pair_belief, pair_beliefs,
     marginalize, cavity, onebpiter!, check_ψs, _compose,
     RecursiveBPFactor, nstates, prob_y, prob_xy, prob_yy, prob_y0, prob_y_partial,
-    prob_y_dummy, periodic_mpbp
+    prob_y_dummy, periodic_mpbp, mpbp_stationary
 using MatrixProductBP
 
 import IndexedGraphs: IndexedGraph, IndexedBiDiGraph, AbstractIndexedDiGraph, ne, nv, 
@@ -26,7 +26,7 @@ import Lazy: @forward
 
 export 
     Ising, Glauber, energy,
-    HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
+    HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp, mpbp_stationary,
     equilibrium_magnetization, equilibrium_observables, RandomRegular, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SIS_heterogeneous, SIS_heterogeneousFactor, SUSCEPTIBLE, INFECTIOUS, RECOVERED,
     kl_marginals, l1_marginals, roc, auc
