@@ -6,7 +6,7 @@ const PeriodicMPEM1{F} = PeriodicTensorTrain{F, 3}
 flat_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = flat_tt(bondsizes, q)
 flat_periodic_mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = flat_periodic_tt(bondsizes, q)
 
-# construct a flat mpem with given bond dimensions
+# construct a random mpem with given bond dimensions
 rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_tt(bondsizes, q)
 rand_periodic_mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = rand_periodic_tt(bondsizes, q)
 
@@ -41,7 +41,9 @@ struct MPEM3{F<:Real}
             throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
         check_bond_dims(tensors) ||
             throw(ArgumentError("Matrix indices for matrix product non compatible"))
-        new{F}(tensors, z)
+        all(size(At, 3) == size(At, 5) for At in tensors) ||
+            throw(ArgumentError("First and third variable indices should have matching ranges because they both represent `xᵢ`"))
+        return new{F}(tensors, z)
     end
 end
 
@@ -99,7 +101,9 @@ struct PeriodicMPEM3{F<:Real}
             throw(ArgumentError("Number of rows of the first matrix should coincide with the number of columns of the last matrix"))
         check_bond_dims(tensors) ||
             throw(ArgumentError("Matrix indices for matrix product non compatible"))
-        new{F}(tensors, z)
+        all(size(At, 3) == size(At, 5) for At in tensors) ||
+            throw(ArgumentError("First and third variable indices should have matching ranges because they both represent `xᵢ`"))
+        return new{F}(tensors, z)
     end
 end
 
