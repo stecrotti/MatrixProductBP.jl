@@ -45,9 +45,9 @@ mpem3from2(::Type{InfiniteUniformMPEM2{F}}) where F = InfiniteUniformMPEM3
 
 #### Naive MPBP
 
-function f_bp(A::Vector{InfiniteUniformMPEM2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, 
+function f_bp(A::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, 
     ψₙᵢ::Vector{Vector{Matrix{F}}}, j_index::Integer; showprogress=false, 
-    svd_trunc::SVDTrunc=TruncThresh(0.0), periodic=false) where {F,U<:BPFactor}
+    svd_trunc::SVDTrunc=TruncThresh(0.0), periodic=false) where {F,U<:BPFactor,M2<:InfiniteUniformMPEM2}
 
     @assert length(wᵢ) == 1
     @assert length(ϕᵢ) == 1
@@ -62,7 +62,7 @@ function f_bp(A::Vector{InfiniteUniformMPEM2}, wᵢ::Vector{U}, ϕᵢ::Vector{Ve
     @inbounds for xᵢᵗ in 1:q 
         for xₙᵢ₋ⱼᵗ in xin
             @views Aᵗ = kron(ones(1,1),ones(1,1),
-                (A[k].tensor[:,:,xₖᵗ,xᵢᵗ] .* ψₙᵢ[k][t][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in zip(notj,xₙᵢ₋ⱼᵗ))...)
+                (A[k].tensor[:,:,xₖᵗ,xᵢᵗ] .* ψₙᵢ[k][1][xᵢᵗ, xₖᵗ] for (k, xₖᵗ) in zip(notj,xₙᵢ₋ⱼᵗ))...)
             for xⱼᵗ in 1:qj, xᵢᵗ⁺¹ in 1:q
                 w = ϕᵢ[1][xᵢᵗ]
                 xₙᵢᵗ = [xₙᵢ₋ⱼᵗ[1:j_index-1]..., xⱼᵗ, xₙᵢ₋ⱼᵗ[j_index:end]...]
@@ -78,9 +78,9 @@ function f_bp(A::Vector{InfiniteUniformMPEM2}, wᵢ::Vector{U}, ϕᵢ::Vector{Ve
     return mpem3from2(eltype(A))(B), zero(F)
 end
 
-function f_bp_dummy_neighbor(A::Vector{InfiniteUniformMPEM2}, 
+function f_bp_dummy_neighbor(A::Vector{M2}, 
         wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
-        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0), periodic=false) where {F,U<:BPFactor}
+        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0), periodic=false) where {F,U<:BPFactor,M2<:InfiniteUniformMPEM2}
     @assert length(wᵢ) == 1
     @assert length(ϕᵢ) == 1
     q = length(ϕᵢ[1])
