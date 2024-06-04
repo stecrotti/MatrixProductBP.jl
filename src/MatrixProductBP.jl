@@ -35,11 +35,16 @@ using TensorTrains:
     marginals, twovar_marginals, normalization, normalize!,
     svd, _compose, accumulate_L, accumulate_R
 
+using TensorTrains.UniformTensorTrains:
+    InfiniteUniformTensorTrain, flat_infinite_uniform_tt
+
 
 export 
     SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh,
     PeriodicMPEM2, PeriodicMPEM3, PeriodicMPEM1,
-    MPEM1, MPEM2, MPEM3, mpem2, rand_mpem1, rand_mpem2, normalization, normalize!, marginalize,
+    MPEM1, MPEM2, MPEM3, mpem2, rand_mpem1, rand_mpem2, 
+    InfiniteUniformMPEM1, InfiniteUniformMPEM2, InfiniteUniformMPEM3,
+    normalization, normalize!, marginalize,
     orthogonalize_right!, orthogonalize_left!, compress!, twovar_marginals, evaluate,
     BPFactor, nstates, MPBP, mpbp, reset_messages!, reset_beliefs!, reset_observations!,
     reset!, is_free_dynamics, onebpiter!, CB_BP, iterate!, 
@@ -61,6 +66,7 @@ export
     draw_node_observations!, AtomicVector,
     RecursiveBPFactor, DampedFactor, RecursiveTraceFactor, GenericFactor,
     RestrictedRecursiveBPFactor,
+    mpbp_stationary,
     mean_with_uncertainty
 
 
@@ -74,6 +80,7 @@ include("test_factors.jl")
 include("infinite_graph.jl")
 include("exact.jl")
 include("sampling.jl")
+include("stationary.jl")
 
 include("Models/Models.jl")
 
