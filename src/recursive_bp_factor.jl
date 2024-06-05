@@ -143,8 +143,8 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
 end
 
 # compute outgoing messages from node `i`
-function onebpiter!(bp::MPBP{G,F}, i::Integer, ::Type{U}; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp::Real=0.0) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor}
+function onebpiter!(bp::MPBP{G,F,V,MsgType}, i::Integer, ::Type{U}; 
+    svd_trunc::SVDTrunc=default_truncator(MsgType), damp::Real=0.0) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor,V,MsgType}
     @unpack g, w, ϕ, ψ, μ = bp
     ein, eout = inedges(g,i), outedges(g, i)
     wᵢ, ϕᵢ, dᵢ  = w[i], ϕ[i], length(ein)
