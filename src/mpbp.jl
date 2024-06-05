@@ -114,8 +114,8 @@ is_periodic(bp::MPBP{G,F,V,<:MPEM2,<:MPEM1}) where {G,F,V}  = false
 is_periodic(bp::MPBP{G,F,V,<:PeriodicMPEM2,<:PeriodicMPEM1}) where {G,F,V} = true
 
 # compute outgoing messages from node `i`
-function onebpiter!(bp::MPBP, i::Integer, ::Type{U}; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6), damp=0.0) where {U<:BPFactor}
+function onebpiter!(bp::MPBP{G,F,V,MsgType}, i::Integer, ::Type{U}; 
+        svd_trunc::SVDTrunc=default_truncator(MsgType), damp=0.0) where {U<:BPFactor,G,F,V,MsgType}
     @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
@@ -132,18 +132,18 @@ function onebpiter!(bp::MPBP, i::Integer, ::Type{U};
     end
     dᵢ = length(ein)
     bp.b[i] = onebpiter_dummy_neighbor(bp, i; svd_trunc) |> marginalize
-    logzᵢ = log(normalization(bp.b[i]))
+    logzᵢ = real(log(normalization(bp.b[i])))
     bp.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
     nothing
 end
 
-function onebpiter!(bp::MPBP, i::Integer; svd_trunc::SVDTrunc=TruncThresh(1e-6))
+function onebpiter!(bp::MPBP{G,F,V,MsgType}, i::Integer; svd_trunc::SVDTrunc=default_truncator(MsgType)) where {G,F,V,MsgType}
     onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc, damp=0.0)
 end
 
 
-function onebpiter_dummy_neighbor(bp::MPBP, i::Integer; 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6))
+function onebpiter_dummy_neighbor(bp::MPBP{G,F,V,MsgType}, i::Integer; 
+        svd_trunc::SVDTrunc=default_truncator(MsgType)) where {G,F,V,MsgType}
     @unpack g, w, ϕ, ψ, μ = bp
     ein = inedges(g,i)
     eout = outedges(g, i)
@@ -182,10 +182,10 @@ function (cb::CB_BP)(bp::MPBP, it::Integer, svd_trunc::SVDTrunc)
     return Δ
 end
 
-function iterate!(bp::MPBP; maxiter::Integer=5, 
-        svd_trunc::SVDTrunc=TruncThresh(1e-6),
+function iterate!(bp::MPBP{G,F,V,MsgType}; maxiter::Integer=5, 
+        svd_trunc::SVDTrunc=default_truncator(MsgType),
         showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
-        nodes = collect(vertices(bp.g)), shuffle_nodes::Bool=true, damp=0.0)
+        nodes = collect(vertices(bp.g)), shuffle_nodes::Bool=true, damp=0.0) where {G,F,V,MsgType}
     for it in 1:maxiter
         Threads.@threads for i in nodes
             onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc, damp)
