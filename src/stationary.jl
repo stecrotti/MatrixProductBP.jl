@@ -204,3 +204,5 @@ function means(f, bp::MPBP{G,F,V,M2}; sites=vertices(bp.g)) where {G,F,V,M2<:Inf
         expectation.(x->f(x, i), real(marginals(bp.b[i])))
     end
 end
+
+default_truncator(::Type{<:InfiniteUniformMPEM2}) = TruncThresh(1e-6)

@@ -338,14 +338,13 @@ end
         m_bp = [only(m) for m in means(spin, bp)]
     
         m_exact = [0.39599264460505396, 0.0639884139080279, 0.6728494266992204, -0.029151110808061487]
-        @assert m_bp ≈ m_exact
+        @test m_bp ≈ m_exact
 
         bp_slow = MPBP(bp.g, [GenericFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
             deepcopy(collect(bp.μ)), deepcopy(bp.b), collect(bp.f))
         iterate!(bp_slow; tol=1e-14, maxiter=10)
         m_bp_slow = [only(m) for m in means(spin, bp_slow)]
-        @assert m_bp_slow ≈ m_exact
-        
+        @test m_bp_slow ≈ m_exact
     end
 
 end
