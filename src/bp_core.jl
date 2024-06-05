@@ -17,7 +17,7 @@ Base.broadcastable(b::BPFactor) = Ref(b)
 # ψᵢⱼ are the ones living on the outedges of node i
 function f_bp(A::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, 
         ψₙᵢ::Vector{Vector{Matrix{F}}}, j_index::Integer; showprogress=false, 
-        svd_trunc::SVDTrunc=TruncThresh(0.0), periodic=false) where {F,U<:BPFactor,M2<:AbstractMPEM2}
+        svd_trunc::SVDTrunc=default_truncator(M2), periodic=false) where {F,U<:BPFactor,M2<:AbstractMPEM2}
     T = length(A[1]) - 1
     @assert all(length(a) == T + 1 for a in A)
     @assert length(wᵢ) == T + 1
@@ -57,9 +57,9 @@ function f_bp(A::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}},
 end
 
 # compute outgoing message to dummy neighbor to get the belief
-function f_bp_dummy_neighbor(A::Vector{<:AbstractMPEM2}, 
+function f_bp_dummy_neighbor(A::Vector{M2}, 
         wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}}, ψₙᵢ::Vector{Vector{Matrix{F}}};
-        showprogress=false, svd_trunc::SVDTrunc=TruncThresh(0.0), periodic=false) where {F,U<:BPFactor}
+        showprogress=false, svd_trunc::SVDTrunc=default_truncator(M2), periodic=false) where {F,U<:BPFactor,M2<:AbstractMPEM2}
     q = length(ϕᵢ[1])
     T = length(ϕᵢ) - 1
     @assert all(length(a) == T + 1 for a in A)
