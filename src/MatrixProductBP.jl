@@ -66,7 +66,7 @@ export
     draw_node_observations!, AtomicVector,
     RecursiveBPFactor, DampedFactor, RecursiveTraceFactor, GenericFactor,
     RestrictedRecursiveBPFactor,
-    mpbp_stationary,
+    mpbp_stationary, mpbp_stationary_infinite_graph,
     mean_with_uncertainty
 
 

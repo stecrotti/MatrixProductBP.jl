@@ -120,7 +120,7 @@ function onebpiter!(bp::MPBP{G,F,V,MsgType}, i::Integer, ::Type{U};
     ein = inedges(g,i)
     eout = outedges(g, i)
     A = μ[ein.|>idx]
-    @assert all(float(normalization(a)) ≈ 1 for a in A)
+    @debug @assert all(float(normalization(a)) ≈ 1 for a in A)
     sumlogzᵢ₂ⱼ = 0.0
     for (j_ind, e_out) in enumerate(eout)
         B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc, periodic=is_periodic(bp))
@@ -177,7 +177,7 @@ function (cb::CB_BP)(bp::MPBP, it::Integer, svd_trunc::SVDTrunc)
     Δ = isempty(marg_new) ? NaN : maximum(maximum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
     push!(cb.Δs, Δ)
     push!(cb.m, marg_new)
-    next!(cb.prog, showvalues=[(:Δ,Δ), summary_compact(svd_trunc)])
+    next!(cb.prog, showvalues=[(:Δ,Δ), (:trunc, summary_compact(svd_trunc))])
     flush(stdout)
     return Δ
 end
