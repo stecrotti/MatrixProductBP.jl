@@ -206,3 +206,18 @@ function means(f, bp::MPBP{G,F,V,M2}; sites=vertices(bp.g)) where {G,F,V,M2<:Inf
 end
 
 default_truncator(::Type{<:InfiniteUniformMPEM2}) = TruncThresh(1e-6)
+
+function mpbp_stationary_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
+    ϕᵢ = fill(ones(qi), length(wᵢ));
+    ψₖᵢ = fill(ones(qi, qi), length(wᵢ)),
+    d::Int=1) where {U<:BPFactor}
+
+    T = length(wᵢ) - 1
+    @assert length(ϕᵢ) == T + 1
+    @assert length(ψₖᵢ) == T + 1
+    
+    g = InfiniteRegularGraph(k)
+    μ = flat_uniform_infinite_mpem2(qi, qi; d)
+    b = flat_uniform_infinite_mpem1(qi; d)
+    MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [0.0])
+end
