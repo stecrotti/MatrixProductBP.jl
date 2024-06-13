@@ -1,7 +1,7 @@
 name = "MatrixProductBP"
 uuid = "3d39929c-b583-45fa-b331-3f50b693a38a"
 authors = ["stecrotti <stefano.crotti@polito.it>"]
-version = "0.7.0"
+version = "0.8.0"
 
 [deps]
 CavityTools = "217fe2f1-7e3d-419f-9934-cd6900c2759a"
