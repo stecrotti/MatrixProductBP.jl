@@ -154,6 +154,7 @@ function onebpiter!(bp::MPBP{G,F,V,MsgType}, i::Integer, ::Type{U};
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
         μj = compress!(mpem2(B); svd_trunc, is_orthogonal=:left)
+        normalize_eachmatrix!(μj)
         sumlogzᵢ₂ⱼ += set_msg!(bp, μj, idx(e), damp, svd_trunc)
     end
     B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
