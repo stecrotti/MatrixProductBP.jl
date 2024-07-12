@@ -106,8 +106,8 @@ function f_bp_dummy_neighbor(A::Vector{M2},
 end
 
 function pair_belief_as_mpem(Aᵢⱼ::M2, Aⱼᵢ::M2, ψᵢⱼ) where {M2<:InfiniteUniformMPEM2}
-    @cast A[(aᵗ,bᵗ),(aᵗ⁺¹,bᵗ⁺¹),xᵢᵗ,xⱼᵗ] := Aᵢⱼ[aᵗ,aᵗ⁺¹,xᵢᵗ, xⱼᵗ] * 
-        Aⱼᵢ[bᵗ,bᵗ⁺¹,xⱼᵗ,xᵢᵗ] * ψᵢⱼ[xᵢᵗ, xⱼᵗ]
+    @cast A[(aᵗ,bᵗ),(aᵗ⁺¹,bᵗ⁺¹),xᵢᵗ,xⱼᵗ] := Aᵢⱼ.tensor[aᵗ,aᵗ⁺¹,xᵢᵗ, xⱼᵗ] * 
+        Aⱼᵢ.tensor[bᵗ,bᵗ⁺¹,xⱼᵗ,xᵢᵗ] * only(ψᵢⱼ)[xᵢᵗ, xⱼᵗ]
     return M2(A)
 end
 
@@ -197,7 +197,9 @@ function mpbp_stationary(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor
     return MPBP(g, w, ϕ, ψ, μ, b, f)
 end
 
-is_periodic(bp::MPBP{G,F,V,<:InfiniteUniformMPEM2,<:InfiniteUniformMPEM1}) where {G,F,V} = true
+const MPBPStationary = MPBP{<:AbstractIndexedDiGraph, <:Real, <:AbstractVector{<:BPFactor},<:InfiniteUniformMPEM2,<:InfiniteUniformMPEM1} where {G,F,V}
+
+is_periodic(bp::MPBPStationary) = true
 
 function means(f, bp::MPBP{G,F,V,M2}; sites=vertices(bp.g)) where {G,F,V,M2<:InfiniteUniformMPEM2}
     map(sites) do i
@@ -220,4 +222,19 @@ function mpbp_stationary_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
     μ = flat_uniform_infinite_mpem2(qi, qi; d)
     b = flat_uniform_infinite_mpem1(qi; d)
     MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [0.0])
+end
+
+function reset_messages!(bp::MPBPStationary)
+    for A in bp.μ
+        A.tensor .= 1
+        normalize!(A)
+    end
+    return nothing
+end
+function reset_beliefs!(bp::MPBPStationary)
+    for A in bp.b
+        A.tensor .= 1
+        normalize!(A)
+    end
+    return nothing
 end
