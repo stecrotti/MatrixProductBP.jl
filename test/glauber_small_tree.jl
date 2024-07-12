@@ -336,6 +336,8 @@ end
         spin(x, i) = 3-2x; spin(x) = spin(x, 0)
         iterate!(bp; tol=1e-14, maxiter=10)
         m_bp = [only(m) for m in means(spin, bp)]
+
+        reset!(bp, observations=false)
     
         m_exact = [0.39599264460505396, 0.0639884139080279, 0.6728494266992204, -0.029151110808061487]
         @test m_bp ≈ m_exact
