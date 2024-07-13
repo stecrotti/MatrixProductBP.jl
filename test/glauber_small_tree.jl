@@ -317,11 +317,8 @@ end
         iterate!(bp; tol=1e-14, maxiter=10)
         m_bp = [only(m) for m in means(spin, bp)]
 
-<<<<<<< HEAD
-=======
         pb, = pair_beliefs(bp)
 
->>>>>>> a0e0f59... reset!, fix pair beliefs
         reset!(bp, observations=false)
     
         m_exact = [0.39599264460505396, 0.0639884139080279, 0.6728494266992204, -0.029151110808061487]
