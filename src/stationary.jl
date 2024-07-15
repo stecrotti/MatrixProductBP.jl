@@ -215,6 +215,7 @@ function mpbp_stationary_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
     d::Int=1) where {U<:BPFactor}
 
     T = length(wᵢ) - 1
+    @assert T == 0
     @assert length(ϕᵢ) == T + 1
     @assert length(ψₖᵢ) == T + 1
     
@@ -222,6 +223,24 @@ function mpbp_stationary_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
     μ = flat_uniform_infinite_mpem2(qi, qi; d)
     b = flat_uniform_infinite_mpem1(qi; d)
     MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [0.0])
+end
+
+function mpbp_stationary_infinite_bipartite_graph(k::NTuple{2,Int}, wᵢ::Vector{Vector{U}},
+    qi::NTuple{2,Int},
+    ϕᵢ = [fill(ones(qi[i]), length(wᵢ[1])) for i in 1:2];
+    ψₖᵢ = [fill(ones(qi[i], qi[3-i]), length(wᵢ[1])) for i in 1:2],
+    d=(1, 1)) where {U<:BPFactor}
+
+    T = length(wᵢ[1]) - 1
+    @assert T == 0
+    @assert length(wᵢ[2]) == T + 1
+    @assert all(isequal(T+1), length.(ϕᵢ))
+    @assert all(isequal(T+1), length.(ψₖᵢ))
+
+    g = InfiniteBipartiteRegularGraph(k)
+    μ = [flat_uniform_infinite_mpem2(qi[i], qi[3-i]; d=d[i]) for i in 1:2]
+    b = [flat_uniform_infinite_mpem1(qi[i]; d=d[i]) for i in 1:2]
+    MPBP(g, wᵢ, ϕᵢ, ψₖᵢ, μ, b, zeros(2))
 end
 
 function reset_messages!(bp::MPBPStationary)
