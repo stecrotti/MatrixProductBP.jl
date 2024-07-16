@@ -242,12 +242,13 @@ expectation(f, p::Matrix{<:Real}) = sum(f(xi) * f(xj) * p[xi, xj] for xi in axes
 
 expectation(f, p::Vector{<:Real}) = sum(f(xi) * p[xi] for xi in eachindex(p); init=0.0)
 
-function autocorrelations(f, bp::MPBP; showprogress::Bool=false, sites=vertices(bp.g))
+function autocorrelations(f, bp::MPBP; showprogress::Bool=false, sites=vertices(bp.g),
+        maxdist = getT(bp))
     dt = showprogress ? 0.1 : Inf
     prog = Progress(nv(bp.g); dt, desc="Computing autocorrelations")
     map(sites) do i
         next!(prog)
-        expectation.(x->f(x, i), twovar_marginals(bp.b[i]))
+        expectation.(x->f(x, i), twovar_marginals(bp.b[i]; maxdist))
     end
 end
 
