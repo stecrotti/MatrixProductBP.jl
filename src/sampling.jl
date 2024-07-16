@@ -147,7 +147,8 @@ function pair_marginals(sms::SoftMarginSampler; showprogress::Bool=true)
 end
 
 function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true, 
-        sites=vertices(sms.bp.g))
+        sites=vertices(sms.bp.g), maxdist = getT(sms.bp))
+    1 ≤ maxdist ≤ getT(sms.bp) || throw(DomainError("Invalid value for maxdist: $maxdist"))
     @unpack bp, X, w = sms
     N = length(sites); T = getT(bp)
     r = [fill(zero(Measurement), T+1, T+1) for _ in 1:N]
@@ -158,7 +159,7 @@ function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true,
     prog = Progress(N, desc="Autocorrelations from Soft Margin"; dt)
 
     for (a,i) in pairs(sites)
-        for u in axes(r[a], 2), t in 1:u-1
+        for u in axes(r[a], 2), t in u-maxdist:u-1
             q = nstates(bp, i)
             mtu_avg = zeros(q, q)
             for (n, x) in enumerate(X)
