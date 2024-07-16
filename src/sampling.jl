@@ -159,7 +159,7 @@ function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true,
     prog = Progress(N, desc="Autocorrelations from Soft Margin"; dt)
 
     for (a,i) in pairs(sites)
-        for u in axes(r[a], 2), t in u-maxdist:u-1
+        for u in axes(r[a], 2), t in max(1,u-maxdist):u-1
             q = nstates(bp, i)
             mtu_avg = zeros(q, q)
             for (n, x) in enumerate(X)
