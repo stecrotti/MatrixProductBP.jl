@@ -22,6 +22,9 @@
 
     sms = sample(bp, 10; showprogress=false, rng)
     m = marginals(sms)
+    @test all(m) do mᵢ
+        mean.(mᵢ) ≈ mean_with_uncertainty.(mᵢ)
+    end
     pb = pair_marginals(sms)
 
     f(x,i) = x-1
