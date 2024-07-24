@@ -12,7 +12,7 @@ using UnPack: @unpack
 using Random: shuffle!, AbstractRNG, GLOBAL_RNG
 using SparseArrays: rowvals, nonzeros, nzrange, sparse
 using Distributions: Distributions, sample, sample!
-using Measurements: Measurement, ±
+using Measurements: Measurement, ±, value, uncertainty
 using Statistics: mean, std
 using Unzip: unzip
 using StatsBase: weights, proportions
@@ -56,7 +56,8 @@ export
     continuous_sis_sampler, simulate_queue_sis!,
     draw_node_observations!, AtomicVector,
     RecursiveBPFactor, DampedFactor, RecursiveTraceFactor, GenericFactor,
-    RestrictedRecursiveBPFactor
+    RestrictedRecursiveBPFactor,
+    mean_with_uncertainty
 
 
 include("utils.jl")
