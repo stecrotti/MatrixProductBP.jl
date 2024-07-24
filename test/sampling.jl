@@ -25,6 +25,7 @@
     @test all(m) do mᵢ
         mean.(mᵢ) ≈ mean_with_uncertainty.(mᵢ)
     end
+    @test mean.(m) ≈ mean_with_uncertainty.(m)
     pb = pair_marginals(sms)
 
     f(x,i) = x-1
