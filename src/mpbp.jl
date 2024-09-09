@@ -126,7 +126,7 @@ function onebpiter!(bp::MPBP{G,F,V,MsgType}, i::Integer, ::Type{U};
         B, logzᵢ₂ⱼ = f_bp(A, w[i], ϕ[i], ψ[eout.|>idx], j_ind; svd_trunc, periodic=is_periodic(bp))
         sumlogzᵢ₂ⱼ += logzᵢ₂ⱼ
         C = mpem2(B)
-        μj = compress!(C; svd_trunc, is_orthogonal=:left)
+        μj = compress!(C; svd_trunc, is_orthogonal=:left, init=μ[idx(e_out)])
         sumlogzᵢ₂ⱼ += normalize!(μj)
         μ[idx(e_out)] = μj
     end
