@@ -41,7 +41,10 @@
     f_bethe = bethe_free_energy(bp)
     Z_bp = exp(-f_bethe)
 
-    f(x,i) = 2x-3
+    f(x, args...) = 2x-3
+
+    a_bp = alternate_marginals(bp)
+    a_exact = exact_alternate_marginals(bp)
 
     r_bp = autocorrelations(f, bp)
     r_exact = exact_autocorrelations(f, bp; p_exact)
@@ -52,12 +55,18 @@
     pb_bp = pair_beliefs(bp)[1]
     pb_bp2 = marginals.(pair_beliefs_as_mpem(bp)[1])
 
+    m = [[vec(sum(pt, dims=2)) for pt in pp] for pp in pb_bp]
+
     @testset "Observables" begin
         @test Z_exact ≈ Z_bp
         @test p_ex ≈ p_bp
+        @test a_bp ≈ a_exact
         @test r_bp ≈ r_exact
         @test c_bp ≈ c_exact
         @test pb_bp ≈ pb_bp2
+        for (i,j,id) in edges(bp.g)
+            @test b_bp[i] ≈ m[id]
+        end
     end
 
     # observe everything and check that the free energy corresponds to the posterior of sample `X`

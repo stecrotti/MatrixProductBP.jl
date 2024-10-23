@@ -223,8 +223,8 @@ function _pair_beliefs!(b, f, bp::MPBP{G,F}) where {G,F}
     for j in 1:N
         dⱼ = length(nzrange(X, j))
         for k in nzrange(X, j)
-            ji = k          # idx of message i→j
-            ij = vals[k]    # idx of message j→i
+            ij = k          # idx of message i→j
+            ji = vals[k]    # idx of message j→i
             μᵢⱼ = bp.μ[ij]; μⱼᵢ = bp.μ[ji]
             bᵢⱼ, zᵢⱼ = f(μᵢⱼ, μⱼᵢ, bp.ψ[ij])
             logz[j] += (1/dⱼ- 1/2) * log(zᵢⱼ)
@@ -258,6 +258,25 @@ function means(f, bp::MPBP; sites=vertices(bp.g))
     map(sites) do i
         expectation.(x->f(x, i), marginals(bp.b[i]))
     end
+end
+
+# return p(xᵢᵗ,xⱼᵗ⁺¹) per each directed edge i->j
+function alternate_marginals(bp::MPBP{G,F,V,M2}) where {G,F,V,M2}
+    pbs = pair_beliefs_as_mpem(bp)[1]
+    tvs = twovar_marginals.(pbs)
+
+    return map(tvs) do tv
+        map(1:size(tv,1)-1) do t
+            tvt = tv[t,t+1]
+            dropdims(sum(tvt; dims=(2,3)); dims=(2,3))
+        end
+    end
+end
+
+# return <f(xᵢᵗ)f(xⱼᵗ⁺¹)> per each directed edge i->j
+function alternate_correlations(f, bp::MPBP{G,F,V,M2}) where {G,F,V,M2}
+    am = alternate_marginals(bp)
+    return [expectation.(f, amij) for amij in am]
 end
 
 covariance(r::Matrix{<:Real}, μ::Vector{<:Real}) = r .- μ*μ'

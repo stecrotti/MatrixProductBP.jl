@@ -82,6 +82,52 @@ end
 
 exact_marginal_expectations(bp; m_exact = exact_marginals(bp)) = exact_marginal_expectations((x,i)->x, bp; m_exact)
 
+function pair_marginals(bp::MPBP{G,F}; p = exact_prob(bp)[1]) where {G,F}
+    T = getT(bp); N = nv(bp.g)
+    qs = Tuple(nstates(bp,i) for t=1:T+1, i=1:N)
+    m = [zeros(fill(nstates(bp,i),nstates(bp,j),T+1)...) for (i,j) in edges(bp.g)]
+    prog = Progress(prod(qs), desc="Computing exact marginals")
+    X = zeros(Int, T+1, N)
+    for x in 1:prod(qs)
+        X .= _int_to_matrix(x, qs, (T+1,N))
+        for (i,j,id) in edges(bp.g)
+            m[id][X[:,i]...,X[:,j]...] += p[x]
+        end
+        next!(prog)
+    end
+    @assert all(sum(pᵢ) ≈ 1 for pᵢ in m)
+    return m
+end
+
+function exact_alternate_marginals(bp::MPBP{G,F}; p_exact = exact_prob(bp)[1]) where {G,F}
+    m = pair_marginals(bp; p = p_exact)
+    T = getT(bp)
+    pp = [[zeros(nstates(bp,i),nstates(bp,j)) for t in 1:T] for (i,j) in edges(bp.g)]
+    for (i,j,id) in edges(bp.g)
+        for t in 1:T
+            for xᵢᵗ in 1:nstates(bp,i)
+                for xⱼᵗ⁺¹ in 1:nstates(bp,j)
+                    indices1 = [s==t ? xᵢᵗ : Colon() for s in 1:T+1]
+                    indices2 = [s==t+1 ? xⱼᵗ⁺¹ : Colon() for s in 1:T+1]
+                    pp[id][t][xᵢᵗ,xⱼᵗ⁺¹] = sum(m[i][indices1...,indices2...])
+                end
+            end
+        end
+    end
+    return pp
+end
+
+function exact_alternate_marginal_expectations(f, bp::MPBP{G,F}; 
+        m_exact = exact_alternate_marginals(bp)) where {G,F}
+    map(eachindex(m_exact)) do i
+        expectation.(x->f(x,i), m_exact[i])
+    end
+end
+function exact_alternate_marginal_expectations(bp; m_exact = exact_alternate_marginals(bp)) 
+    return exact_alternate_marginal_expectations((x,i)->x, bp; m_exact)
+end
+
+
 function exact_autocorrelations(f, bp::MPBP{G,F}; 
         p_exact = exact_prob(bp)[1]) where {G,F}
     m = site_marginals(bp; p = p_exact)
