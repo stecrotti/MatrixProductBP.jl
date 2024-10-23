@@ -14,7 +14,7 @@
     bp = mpbp(sis)
     rng = MersenneTwister(111)
     X, _ = onesample(bp; rng)
-    
+
     draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
     @testset "SIS small tree" begin
