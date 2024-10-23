@@ -41,7 +41,7 @@ using TensorTrains.UniformTensorTrains:
 
 export 
     SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh,
-    PeriodicMPEM2, PeriodicMPEM3, PeriodicMPEM1,
+    PeriodicMPEM2, PeriodicMPEM3, PeriodicMPEM1, getT,
     MPEM1, MPEM2, MPEM3, mpem2, rand_mpem1, rand_mpem2, 
     InfiniteUniformMPEM1, InfiniteUniformMPEM2, InfiniteUniformMPEM3,
     normalization, normalize!, marginalize,
