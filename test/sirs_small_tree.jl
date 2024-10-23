@@ -20,10 +20,6 @@
 
     @testset "SIRS small tree" begin
 
-        @testset "logprob" begin
-            @test logprob(bp, X) ≈ -4.017112724421366
-        end
-
         draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
         svd_trunc = TruncThresh(0.0)

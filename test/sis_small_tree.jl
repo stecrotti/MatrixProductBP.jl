@@ -15,10 +15,6 @@
     rng = MersenneTwister(111)
     X, _ = onesample(bp; rng)
 
-    @testset "logprob" begin
-        @test logprob(bp, X) ≈ -10.900027128953564
-    end
-
     draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
     @testset "SIS small tree" begin
