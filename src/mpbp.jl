@@ -260,6 +260,12 @@ function means(f, bp::MPBP; sites=vertices(bp.g))
     end
 end
 
+# return <f(xᵢᵗ)f(xⱼᵗ)> per each directed edge i->j
+function pair_correlations(f, bp::MPBP{G,F,V,M2}) where {G,F,V,M2}
+    am = pair_beliefs(bp)[1]
+    return [expectation.(f, amij) for amij in am]
+end
+
 # return p(xᵢᵗ,xⱼᵗ⁺¹) per each directed edge i->j
 function alternate_marginals(bp::MPBP{G,F,V,M2}) where {G,F,V,M2}
     pbs = pair_beliefs_as_mpem(bp)[1]
