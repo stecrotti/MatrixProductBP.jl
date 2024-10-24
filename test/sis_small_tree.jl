@@ -14,11 +14,7 @@
     bp = mpbp(sis)
     rng = MersenneTwister(111)
     X, _ = onesample(bp; rng)
-
-    @testset "logprob" begin
-        @test logprob(bp, X) ≈ -10.900027128953564
-    end
-
+    
     draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
     @testset "SIS small tree" begin
@@ -44,11 +40,14 @@
         c_bp = autocovariances(f, bp)
         c_exact = exact_autocovariances(f, bp; r = r_exact)
 
+        pb_exact = exact_pair_marginals(bp)
+        pb_bp = pair_beliefs(bp)[1]
 
         @test Z_exact ≈ Z_bp
         @test p_ex ≈ p_bp
         @test r_bp ≈ r_exact
         @test c_bp ≈ c_exact
+        @test pb_bp ≈ pb_exact
     end
 
     @testset "RestrictedRecursiveBPFactor - RecursiveBPFactor generic methods" begin

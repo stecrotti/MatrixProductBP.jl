@@ -53,6 +53,7 @@ export
     pair_observations_nondirected, pair_obs_undirected_to_directed,
     exact_prob, exact_marginals, site_marginals, exact_autocorrelations,
     exact_autocovariances, exact_marginal_expectations, 
+    exact_pair_marginals, exact_pair_marginal_expectations,
     exact_alternate_marginals, exact_alternate_marginal_expectations,
     SoftMarginSampler, onesample!, onesample, sample!, sample, marginals, pair_marginals,
     continuous_sis_sampler, simulate_queue_sis!,

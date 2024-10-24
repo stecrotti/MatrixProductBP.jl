@@ -43,9 +43,6 @@
 
     f(x, args...) = 2x-3
 
-    a_bp = alternate_marginals(bp)
-    a_exact = exact_alternate_marginals(bp)
-
     r_bp = autocorrelations(f, bp)
     r_exact = exact_autocorrelations(f, bp; p_exact)
 
@@ -55,7 +52,10 @@
     pb_bp = pair_beliefs(bp)[1]
     pb_bp2 = marginals.(pair_beliefs_as_mpem(bp)[1])
 
-    m = [[vec(sum(pt, dims=2)) for pt in pp] for pp in pb_bp]
+    pb_exact = exact_pair_marginals(bp)
+
+    a_bp = alternate_correlations(f, bp)
+    a_exact = exact_alternate_marginal_expectations(f, bp)
 
     @testset "Observables" begin
         @test Z_exact ≈ Z_bp
@@ -63,10 +63,8 @@
         @test a_bp ≈ a_exact
         @test r_bp ≈ r_exact
         @test c_bp ≈ c_exact
+        @test pb_bp ≈ pb_exact
         @test pb_bp ≈ pb_bp2
-        for (i,j,id) in edges(bp.g)
-            @test b_bp[i] ≈ m[id]
-        end
     end
 
     # observe everything and check that the free energy corresponds to the posterior of sample `X`
@@ -112,11 +110,20 @@
     c_bp = autocovariances(f, bp2)
     c_exact = exact_autocovariances(f, bp2; r = r_exact)
 
+    pb_bp = pair_beliefs(bp2)[1]
+    pb_exact = exact_pair_marginals(bp2)
+
+    a_bp = alternate_marginals(bp2)
+    a_exact = exact_alternate_marginals(bp2)
+
+
     @testset "Glauber small tree - DampedFactor" begin
         @test Z_exact ≈ Z_bp
         @test p_ex ≈ p_bp
         @test r_bp ≈ r_exact
         @test c_bp ≈ c_exact
+        @test pb_bp ≈ pb_exact
+        @test a_bp ≈ a_exact
     end
 
     ## Generic Factor
