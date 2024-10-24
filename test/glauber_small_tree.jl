@@ -54,6 +54,9 @@
 
     pb_exact = exact_pair_marginals(bp)
 
+    pc_bp = pair_correlations(f, bp)
+    pc_exact = exact_pair_marginal_expectations(f, bp)
+
     a_bp = alternate_correlations(f, bp)
     a_exact = exact_alternate_marginal_expectations(f, bp)
 
@@ -63,6 +66,7 @@
         @test a_bp ≈ a_exact
         @test r_bp ≈ r_exact
         @test c_bp ≈ c_exact
+        @test pc_bp ≈ pc_exact
         @test pb_bp ≈ pb_exact
         @test pb_bp ≈ pb_bp2
     end
