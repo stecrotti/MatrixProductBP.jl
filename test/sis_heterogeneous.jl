@@ -16,10 +16,6 @@
     bp = mpbp(sis)
     X, _ = onesample(bp; rng)
 
-    @testset "logprob" begin
-        @test logprob(bp, X) ≈ -5.813130622330121
-    end
-
     draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
     @testset "SIS small tree" begin

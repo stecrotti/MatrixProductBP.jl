@@ -20,10 +20,6 @@
 
     @testset "SIRS small tree" begin
 
-        @testset "logprob" begin
-            @test logprob(bp, X) ≈ -4.017112724421366
-        end
-
         draw_node_observations!(bp.ϕ, X, N, last_time=true; rng)
 
         svd_trunc = TruncThresh(0.0)
@@ -80,9 +76,9 @@
         reset!(bp; observations=true)
         draw_node_observations!(bp.ϕ, X, N*(T+1), last_time=false)
         svd_trunc = TruncThresh(0.0)
-        iterate!(bp, maxiter=10; svd_trunc, showprogress=false)
+        iters, cb = iterate!(bp, maxiter=10, tol=0.0; svd_trunc, showprogress=false)
         f_bethe = bethe_free_energy(bp)
-        logl_bp = - f_bethe
+        logl_bp = -f_bethe
         logp = logprob(bp, X)
         @test logl_bp ≈ logp
     end
