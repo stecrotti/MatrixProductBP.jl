@@ -177,7 +177,8 @@ function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true,
 end
 
 function autocovariances(f, sms::SoftMarginSampler; showprogress::Bool=true,
-        sites=vertices(sms.bp.g), r = autocorrelations(f, sms; showprogress, sites), 
+        sites=vertices(sms.bp.g), maxdist = getT(sms.bp), 
+        r = autocorrelations(f, sms; showprogress, sites, maxdist), 
         μ = means(f, sms; sites))
     @assert length(μ) == size(r, 1)
     return covariance.(r, μ)
