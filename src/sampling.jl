@@ -100,7 +100,7 @@ function TensorTrains.marginals(sms::SoftMarginSampler; showprogress::Bool=true,
 
     @threads for a in eachindex(sites)
         i = sites[a]
-        x = x = zeros(Int, length(X))
+        x = zeros(Int, length(X))
         for t in 1:T+1
             x .= [xx[i, t] for xx in X]
             mit_avg = is_free ? proportions(x, nstates(bp,i)) : proportions(x, nstates(bp,i), wv)
@@ -160,19 +160,20 @@ function autocorrelations(f, sms::SoftMarginSampler; showprogress::Bool=true,
 
     @threads for a in eachindex(sites)
         i = sites[a]
-        for u in axes(r[a], 2), t in max(1,u-maxdist):u-1
-            q = nstates(bp, i)
-            mtu_avg = zeros(q, q)
-            for (n, x) in enumerate(X)
-                mtu_avg[x[i,t], x[i,u]] += wv[n]
-            end
-            mtu_avg ./= wv.sum
-            mtu_var = mtu_avg .* (1 .- mtu_avg) ./ nsamples
-            r[a][t,u] = expectation(x->f(x, i), mtu_avg .± sqrt.( mtu_var ))  
+        q = nstates(bp, i)
+        linear = LinearIndices((1:q, 1:q))
+        x = zeros(Int, length(X))
+        for u in 1:T+1, t in max(1,u-maxdist):u-1
+            x .= [linear[xx[i,t],xx[i,u]] for xx in X]
+            mitu_avg_linear = proportions(x, q^2, wv)
+            mitu_avg = reshape(mitu_avg_linear, linear.indices...)
+            mitu_var = mitu_avg .* (1 .- mitu_avg) ./ nsamples
+            r[a][t,u] = expectation(x->f(x, i), mitu_avg .± sqrt.( mitu_var ))  
         end
         next!(prog)
     end
-    r
+
+    return r
 end
 
 function autocovariances(f, sms::SoftMarginSampler; showprogress::Bool=true,
