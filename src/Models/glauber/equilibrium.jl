@@ -9,14 +9,13 @@ struct ErdosRenyi{T<:Real}
     c :: T      # mean connectivity
 end
 
-function iterate_fixedpoint(f, init; maxiter=10^3, tol=1e-16, damp=0.0)
+function iterate_fixedpoint(f, init; maxiter=10^3, atol=0, rtol=1e-16, damp=0.0)
     x = init
     err = Inf
     for _ in 1:maxiter
         xnew = f(x)
-        abs(xnew) < tol && return 0.0
-        err = abs((x-xnew)/x) 
-        err < tol && return x
+        err = abs(x - xnew)
+        err ≤ max(atol, rtol*max(abs(x), abs(xnew))) && return x
         x = (1-damp)*xnew + damp*x
     end
     error("Fixed point iterations did not converge. err=$err")
@@ -26,7 +25,7 @@ function equilibrium_observables(g::RandomRegular, J::Real; β::Real=1.0, h::Rea
         maxiter=10^3, tol=1e-16, init=100.0*(sign(h)+rand()), damp=0.0)
     k = g.k
     f(u) = (k-1)/β *atanh(tanh(β*u)*tanh(β*J)) + h
-    ustar = iterate_fixedpoint(f, init; maxiter, tol, damp)
+    ustar = iterate_fixedpoint(f, init; maxiter, rtol=tol, atol=tol, damp)
     m = tanh(β*(h + (ustar-h)*k/(k-1)))
     r = (1 + tanh(β*ustar)^2/tanh(β*J)) / (1/tanh(β*J) + tanh(β*ustar)^2)
     e = -k/2*J*r - m*h
