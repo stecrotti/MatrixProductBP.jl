@@ -19,6 +19,7 @@ function iterate_fixedpoint(f, init; maxiter=10^3, atol=0, rtol=1e-16, damp=0.0)
         x = (1-damp)*xnew + damp*x
     end
     @warn "Fixed point iterations did not converge. err=$err"
+    return x
 end
 
 function equilibrium_observables(g::RandomRegular, J::Real; β::Real=1.0, h::Real=0.0,
