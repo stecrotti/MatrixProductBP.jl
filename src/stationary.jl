@@ -175,8 +175,7 @@ function set_msg!(bp::MPBP{G,F,V,M2}, μj::M2, edge_id, damp, svd_trunc) where {
     @assert 0 ≤ damp < 1
     logzᵢ₂ⱼ = normalize!(μj)
     if damp > 0 
-        compress!(μj; svd_trunc)
-        normalize!(μj)
+        @warn "Damping not yet implemented for infinite messages"
     end
     bp.μ[edge_id] = μj
     logzᵢ₂ⱼ
