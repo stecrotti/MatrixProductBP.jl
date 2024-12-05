@@ -144,4 +144,20 @@
         @test r_bp ≈ r_exact
         @test c_bp ≈ c_exact
     end
+
+    @testset "SIS small tree - stationary" begin
+        sis = SIS(g, λ, ρ, 0; γ, α)
+        bp = mpbp_stationary(sis)
+    
+        iterate!(bp; tol=1e-14, maxiter=10)
+        local f(x,i) = x-1
+        m_bp = [only(m) for m in means(f, bp)]
+
+        bp_slow = MPBP(bp.g, [GenericFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
+            deepcopy(collect(bp.μ)), deepcopy(bp.b), collect(bp.f))
+        iterate!(bp_slow; tol=1e-14, maxiter=10, damp=0.5)
+        m_bp_slow = [only(m) for m in means(f, bp_slow)]
+        @test m_bp_slow ≈ m_bp
+    end
+
 end
