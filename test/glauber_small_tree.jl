@@ -331,10 +331,11 @@ end
         ising = Ising(J, h, β)
         gl = Glauber(ising, 0)
         bp = mpbp_stationary(gl)
+        @test is_periodic(bp)
         svd_trunc = TruncVUMPS(12)
     
         spin(x, i) = 3-2x; spin(x) = spin(x, 0)
-        iterate!(bp; tol=1e-14, maxiter=10, svd_trunc)
+        iterate!(bp; tol=1e-14, maxiter=10, svd_trunc, cb=CB_BPVUMPS(bp))
         m_bp = [only(m) for m in means(spin, bp)]
 
         pb, = pair_beliefs(bp)
@@ -345,6 +346,7 @@ end
         iterate!(bp_slow; tol=1e-14, maxiter=10, svd_trunc)
         m_bp_slow = [only(m) for m in means(spin, bp_slow)]
         @test m_bp_slow ≈ m_bp
+        reset!(bp)
     end
 
 end
