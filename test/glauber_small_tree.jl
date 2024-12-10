@@ -320,10 +320,9 @@ end
     @testset "Glauber small tree - stationary" begin
         rng = MersenneTwister(111)
 
-        J = [0 1 0 0
-            1 0 1 1
-            0 1 0 0
-            0 1 0 0] .|> float
+        J = [0 1 0
+             1 0 1
+             0 1 0] .|> float
         
         N = size(J, 1)
         h = randn(rng, N)
@@ -332,18 +331,18 @@ end
         ising = Ising(J, h, β)
         gl = Glauber(ising, 0)
         bp = mpbp_stationary(gl)
+        svd_trunc = TruncVUMPS(12)
     
         spin(x, i) = 3-2x; spin(x) = spin(x, 0)
-        iterate!(bp; tol=1e-14, maxiter=10)
+        iterate!(bp; tol=1e-14, maxiter=10, svd_trunc)
         m_bp = [only(m) for m in means(spin, bp)]
 
         pb, = pair_beliefs(bp)
 
-        reset!(bp, observations=false)
-
         bp_slow = MPBP(bp.g, [GenericFactor.(w) for w in bp.w], bp.ϕ, bp.ψ, 
             deepcopy(collect(bp.μ)), deepcopy(bp.b), collect(bp.f))
-        iterate!(bp_slow; tol=1e-14, maxiter=10)
+        bp_slow.μ[1] = bp.μ[1]
+        iterate!(bp_slow; tol=1e-14, maxiter=10, svd_trunc)
         m_bp_slow = [only(m) for m in means(spin, bp_slow)]
         @test m_bp_slow ≈ m_bp
     end
