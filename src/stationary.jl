@@ -206,8 +206,6 @@ function means(f, bp::MPBP{G,F,V,M2}; sites=vertices(bp.g)) where {G,F,V,M2<:Inf
     end
 end
 
-default_truncator(::Type{<:InfiniteUniformMPEM2}) = TruncThresh(1e-6)
-
 function mpbp_stationary_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
     ϕᵢ = fill(ones(qi), length(wᵢ));
     ψₖᵢ = fill(ones(qi, qi), length(wᵢ)),
@@ -255,4 +253,43 @@ function reset_beliefs!(bp::MPBPStationary)
         normalize!(A)
     end
     return nothing
+end
+
+default_truncator(::Type{<:InfiniteUniformMPEM2}) = TruncVUMPS(4)
+    
+struct CB_BPVUMPS{TP<:ProgressUnknown, F, M2<:InfiniteUniformMPEM2}
+    prog :: TP
+    m    :: Vector{Vector{Vector{Float64}}} 
+    Δs   :: Vector{Float64}     # convergence error on marginals
+    A    :: Vector{Vector{M2}}     
+    εs   :: Vector{Float64}     # convergence error on messages
+    f    :: F
+
+    function CB_BPVUMPS(bp::MPBPStationary{G, T, V, M2}; showprogress::Bool=true, f::F=(x,i)->x, info="") where {G, T, V, M2, F}
+        dt = showprogress ? 0.1 : Inf
+        isempty(info) || (info *= "\n")
+        prog = ProgressUnknown(desc=info*"Running MPBP: iter", dt=dt, showspeed=true)
+        TP = typeof(prog)
+        m = [means(f, bp)]
+        Δs = zeros(0)
+        A = [deepcopy(bp.μ.v)]
+        εs = zeros(0)
+        new{TP,F,M2}(prog, m, Δs, A, εs, f)
+    end
+end
+
+function (cb::CB_BPVUMPS)(bp::MPBPStationary, it::Integer, svd_trunc::SVDTrunc)
+    marg_new = means(cb.f, bp)
+    marg_old = cb.m[end]
+    Δ = isempty(marg_new) ? NaN : maximum(maximum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
+    push!(cb.Δs, Δ)
+    push!(cb.m, marg_new)
+    A_new = bp.μ
+    A_old = cb.A[end]
+    ε = isempty(A_new) ? NaN : maximum(abs, 1 - dot(Anew, Aold) for (Anew, Aold) in zip(A_new, A_old))
+    push!(cb.εs, ε)
+    push!(cb.A, deepcopy(bp.μ))
+    next!(cb.prog, showvalues=[(:Δ,Δ), (:trunc, summary_compact(svd_trunc))])
+    flush(stdout)
+    return Δ
 end
