@@ -40,7 +40,7 @@ function mpem2(B::InfiniteUniformMPEM3{F}) where {F}
     return InfiniteUniformMPEM2{F}(D; z = B.z)
 end
 
-mpem3from2(::Type{InfiniteUniformMPEM2{F}}) where F = InfiniteUniformMPEM3
+mpem3from2(::Type{<:InfiniteUniformMPEM2}) = InfiniteUniformMPEM3
 
 
 #### Naive MPBP
