@@ -20,6 +20,7 @@ using LogExpFunctions: logistic, logsumexp
 using .Threads: SpinLock, lock, unlock, @threads
 using Lazy: @forward
 using CavityTools: cavity
+using ExponentialQueues: ExponentialQueue
 using LogarithmicNumbers: ULogarithmic, Logarithmic
 using LinearAlgebra: I, tr
 using Kronecker: kronecker
