@@ -255,9 +255,9 @@ function reset_beliefs!(bp::MPBPStationary)
     return nothing
 end
 
-default_truncator(::Type{<:InfiniteUniformMPEM2}) = TruncVUMPS(4)
+default_truncator(::Type{<:InfiniteUniformMPEM2}) = TruncInfinite(4)
     
-struct CB_BPVUMPS{TP<:ProgressUnknown, F, M2<:InfiniteUniformMPEM2}
+struct CB_BPStationary{TP<:ProgressUnknown, F, M2<:InfiniteUniformMPEM2}
     prog :: TP
     m    :: Vector{Vector{Vector{Float64}}} 
     Δs   :: Vector{Float64}     # convergence error on marginals
@@ -265,7 +265,7 @@ struct CB_BPVUMPS{TP<:ProgressUnknown, F, M2<:InfiniteUniformMPEM2}
     εs   :: Vector{Float64}     # convergence error on messages
     f    :: F
 
-    function CB_BPVUMPS(bp::MPBPStationary{G, T, V, M2}; showprogress::Bool=true, f::F=(x,i)->x, info="") where {G, T, V, M2, F}
+    function CB_BPStationary(bp::MPBPStationary{G, T, V, M2}; showprogress::Bool=true, f::F=(x,i)->x, info="") where {G, T, V, M2, F}
         dt = showprogress ? 0.1 : Inf
         isempty(info) || (info *= "\n")
         prog = ProgressUnknown(desc=info*"Running MPBP: iter", dt=dt, showspeed=true)
@@ -278,7 +278,7 @@ struct CB_BPVUMPS{TP<:ProgressUnknown, F, M2<:InfiniteUniformMPEM2}
     end
 end
 
-function (cb::CB_BPVUMPS)(bp::MPBPStationary, it::Integer, svd_trunc::SVDTrunc)
+function (cb::CB_BPStationary)(bp::MPBPStationary, it::Integer, svd_trunc::SVDTrunc)
     marg_new = means(cb.f, bp)
     marg_old = cb.m[end]
     Δ = isempty(marg_new) ? NaN : maximum(maximum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))

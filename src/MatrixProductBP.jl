@@ -34,7 +34,7 @@ using TensorTrains:
     orthogonalize_right!, orthogonalize_left!, compress!,
     marginals, twovar_marginals, normalization, normalize!,
     svd, _compose, accumulate_L, accumulate_R,
-    InfiniteUniformTensorTrain, flat_infinite_uniform_tt, TruncVUMPS, dot
+    InfiniteUniformTensorTrain, flat_infinite_uniform_tt, TruncInfinite, dot
     
     
 
@@ -66,7 +66,7 @@ export
     RecursiveBPFactor, DampedFactor, RecursiveTraceFactor, GenericFactor,
     RestrictedRecursiveBPFactor,
     mpbp_stationary, mpbp_stationary_infinite_graph, mpbp_stationary_infinite_bipartite_graph,
-    CB_BPVUMPS, TruncVUMPS,
+    CB_BPStationary, TruncInfinite,
     mean_with_uncertainty
 
 

@@ -332,10 +332,10 @@ end
         gl = Glauber(ising, 0)
         bp = mpbp_stationary(gl)
         @test is_periodic(bp)
-        svd_trunc = TruncVUMPS(12)
+        svd_trunc = TruncInfinite(12)
     
         spin(x, i) = 3-2x; spin(x) = spin(x, 0)
-        iterate!(bp; tol=1e-14, maxiter=10, svd_trunc, cb=CB_BPVUMPS(bp))
+        iterate!(bp; tol=1e-14, maxiter=10, svd_trunc, cb=CB_BPStationary(bp))
         m_bp = [only(m) for m in means(spin, bp)]
 
         pb, = pair_beliefs(bp)

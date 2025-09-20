@@ -148,7 +148,7 @@
     @testset "SIS small tree - stationary" begin
         sis = SIS(g, λ, ρ, 0; γ, α)
         bp = mpbp_stationary(sis)
-        svd_trunc = TruncVUMPS(10)
+        svd_trunc = TruncInfinite(10)
     
         iterate!(bp; tol=1e-14, maxiter=10, svd_trunc)
         local f(x,i) = x-1
