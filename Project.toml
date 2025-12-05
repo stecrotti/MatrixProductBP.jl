@@ -1,11 +1,12 @@
 name = "MatrixProductBP"
 uuid = "3d39929c-b583-45fa-b331-3f50b693a38a"
-authors = ["stecrotti <stefano.crotti@polito.it>"]
 version = "0.9.0"
+authors = ["stecrotti <stefano.crotti@polito.it>"]
 
 [deps]
 CavityTools = "217fe2f1-7e3d-419f-9934-cd6900c2759a"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+ExponentialQueues = "8f3a112f-b142-4e59-ac86-373e9eb88260"
 IndexedGraphs = "8a731c18-cfb7-4915-927e-cc26b56b67cd"
 InvertedIndices = "41ab1584-1d38-5bbf-9106-f11c6c58b48f"
 Kronecker = "2c470bb0-bcc8-11e8-3dad-c9649493f05e"
@@ -30,6 +31,7 @@ Unzip = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 [compat]
 CavityTools = "0.3, 1"
 Distributions = "0.25"
+ExponentialQueues = "1.1.0"
 IndexedGraphs = "0.5, 0.6"
 InvertedIndices = "1"
 Kronecker = "0.5"

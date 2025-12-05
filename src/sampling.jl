@@ -1,5 +1,5 @@
 import ProgressMeter: @showprogress
-import CavityTools: ExponentialQueue
+import ExponentialQueues: ExponentialQueue
 
 # as in https://doi.org/10.1103/PhysRevLett.114.248701
 # draw samples from the prior and weight them with their likelihood
