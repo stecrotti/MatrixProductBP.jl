@@ -19,6 +19,22 @@ function (fᵢ::GenericGlauberFactor)(xᵢᵗ⁺¹::Integer,
     return 1 / (1 + exp(2E))
 end
 
+struct DampedGlauberFactor{F<:BPFactor, U<:Real} <: BPFactor
+    w :: F
+    p :: U
+end
+
+function DampedGlauberFactor(J::Vector{T}, h::T, β::T, p::U) where {T<:Real, U<:Real}
+    @assert 0 ≤ p ≤ 1
+    DampedGlauberFactor(GenericGlauberFactor(J, h, β), p)
+end
+
+function (fᵢ::DampedGlauberFactor)(xᵢᵗ⁺¹::Integer, 
+        xₙᵢᵗ::AbstractVector{<:Integer}, 
+        xᵢᵗ::Integer)
+    return fᵢ.p * (xᵢᵗ⁺¹ == xᵢᵗ) + (1 - fᵢ.p) * fᵢ.w(xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) 
+end
+
 struct HomogeneousGlauberFactor{T<:Real} <: RecursiveBPFactor 
     βJ :: T
     βh :: T

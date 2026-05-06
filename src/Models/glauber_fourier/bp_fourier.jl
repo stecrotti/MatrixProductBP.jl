@@ -19,7 +19,7 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
     wᵢᵗ = wᵢ[1]
     K, σ, P = wᵢᵗ.K, wᵢᵗ.σ, wᵢᵗ.P
     J, β = float.(wᵢᵗ.J), wᵢᵗ.β
-    scale = 1 + ceil(dᵢ/4) / (dᵢ+1)   # = (dᵢ + 1 + ceil(dᵢ/4)) / (dᵢ+1)
+    scale = wᵢᵗ.scale
 
     μ_fourier = [fourier_tensor_train_spin(μ, K, P*scale, σ) for μ in μin]
 

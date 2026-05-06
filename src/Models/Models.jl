@@ -40,7 +40,7 @@ import OffsetArrays: OffsetArray, OffsetVector
 
 export
     Ising, Glauber, energy,
-    HomogeneousGlauberFactor, GenericGlauberFactor, PMJGlauberFactor, mpbp,
+    HomogeneousGlauberFactor, GenericGlauberFactor, DampedGlauberFactor, PMJGlauberFactor, mpbp,
     equilibrium_magnetization, equilibrium_observables, RandomRegular, ErdosRenyi, CB_Pop,
     SIS, SISFactor, SIRS, SIRSFactor, SIS_heterogeneous, SIS_heterogeneousFactor, SUSCEPTIBLE, INFECTIOUS, RECOVERED,
     kl_marginals, l1_marginals, roc, auc,
