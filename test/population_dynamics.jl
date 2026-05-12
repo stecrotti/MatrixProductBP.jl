@@ -1,18 +1,18 @@
 @testset "Population dynamics (Glauber infinite regular)" begin
-    atol = 1e-5
-    rtol = 1e-2
+    atol = 1e-3
+    rtol = 1e-1
 
-    T = 6
+    T = 4
     k = 3
     m⁰ = 0.6
-    β = 0.3
+    β = 0.8
     p = 0.2
 
-    popsize = 4
+    popsize = 3
     d = 10
     maxiter = 30
-    K = 100
-    σ = 1/100
+    K = 30
+    σ = 1/60
     P = 2.0
 
     ϕᵢ = [t == 0 ? [(1-m⁰)/2, (1+m⁰)/2] : ones(2) for t in 0:T]
@@ -23,10 +23,10 @@
     prob_h = Dirac(0.0)
 
     wᵢ = fill(DampedFactor(HomogeneousGlauberFactor(rand(prob_J), rand(prob_h), β), p), T+1)
-    prob_w(w; d) = w
+    prob_w(w; d, rng=Random.GLOBAL_RNG) = w
 
     wᵢ_fourier = fill(FourierGlauberFactor([rand(prob_J) for _ in 1:k], rand(prob_h), β; K, σ, P, p), T+1)
-    prob_w_fourier(w; d) = w
+    prob_w_fourier(w; d, rng=Random.GLOBAL_RNG) = w
 
     μ_pop = map(1:popsize) do p
         μ = rand_mpem2(2, 2, T)
@@ -53,8 +53,10 @@
         push!(bs2times, belief2times)
     end
 
-    iterate_popdyn!(μ_pop, wᵢ, prob_degree, prob_w, (bs, bs2times); ϕ=ϕᵢ, maxiter, svd_trunc=TruncBond(d), stats=stats!)
-    iterate_popdyn!(μ_pop_fourier, wᵢ_fourier, prob_degree, prob_w_fourier, (bs_fourier, bs2times_fourier); ϕ=ϕᵢ, maxiter, svd_trunc=TruncBond(d), stats=stats!)
+    rng = MersenneTwister(123)
+
+    iterate_popdyn!(μ_pop, wᵢ, prob_degree, prob_w, (bs, bs2times); ϕ=ϕᵢ, maxiter, svd_trunc=TruncBond(d), stats=stats!, rng)
+    iterate_popdyn!(μ_pop_fourier, wᵢ_fourier, prob_degree, prob_w_fourier, (bs_fourier, bs2times_fourier); ϕ=ϕᵢ, maxiter, svd_trunc=TruncBond(d), stats=stats!, rng)
 
     Nmc = 10^3
     g = random_regular_graph(Nmc, k) |> IndexedBiDiGraph

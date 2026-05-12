@@ -38,7 +38,7 @@ function DampedFactor(w::FourierBPFactor, p::Float64)
     return FourierGlauberFactor(w.J, w.h, w.β, w.K, w.σ, w.P, w.scale, p)
 end
 
-Base.convert(::Type{<:AbstractTensorTrain{F1,N}}, A::TT) where {F1<:Number,N,TT<:AbstractTensorTrain} = 
+ttconvert(::Type{<:AbstractTensorTrain{F1,N}}, A::TT) where {F1<:Number,N,TT<:AbstractTensorTrain} = 
     TensorTrain([F1.(a) for a in A]; z = A.z)
 
 function mpbp_fourier(bp::MPBP; K=100, σ=1/100, P=2.0, kw...)   # does not handle DampedFactor yet
