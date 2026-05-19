@@ -73,7 +73,8 @@ end
 function _f_bp_partial(A::MPEM2, wᵢ::Vector{U}, ϕᵢ, 
         d::Integer, prob::Function, qj, j) where {U<:RecursiveBPFactor}
     q = length(ϕᵢ[1])
-    B = [zeros(size(a,1), size(a,2), q, qj, q) for a in A]
+    F = eltype(A)
+    B = [zeros(F, size(a,1), size(a,2), q, qj, q) for a in A]
     for t in Iterators.take(eachindex(A), length(A)-1)
         Aᵗ,Bᵗ = A[t], B[t]
         W = zeros(q,q,qj,size(Aᵗ,3))
@@ -109,12 +110,11 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
         Bk = map(zip(wᵢ, μin[k], ψout[k])) do (wᵢᵗ, μₖᵢᵗ, ψᵢₖᵗ)
             Pxy = zeros(nstates(wᵢᵗ,1), size(μₖᵢᵗ, 3), qi)
             @tullio avx=false Pxy[yₖ,xₖ,xᵢ] = prob_xy(wᵢᵗ,yₖ,xₖ,xᵢ,k) * ψᵢₖᵗ[xᵢ,xₖ]
-            @tullio _[m,n,yₖ,xᵢ] := Pxy[yₖ,xₖ,xᵢ] * μₖᵢᵗ[m,n,xₖ,xᵢ] 
+            @tullio _[m,n,yₖ,xᵢ] := Pxy[yₖ,xₖ,xᵢ] * μₖᵢᵗ[m,n,xₖ,xᵢ]
         end |> M2
         Bk, 1
     end
 
-    # the operation that combines together two ̃m messages
     function op((B1, d1), (B2, d2))
         BB = map(zip(wᵢ,B1,B2)) do (wᵢᵗ,B₁ᵗ,B₂ᵗ)
             Pyy = zeros(nstates(wᵢᵗ,d1+d2), size(B₁ᵗ,3), size(B₂ᵗ,3), size(B₁ᵗ,4))
@@ -122,46 +122,47 @@ function compute_prob_ys(wᵢ::Vector{U}, qi::Int, μin::Vector{M2}, ψout, T, s
             @tullio B3[m1,m2,n1,n2,y,xᵢ] := Pyy[y,y1,y2,xᵢ] * B₁ᵗ[m1,n1,y1,xᵢ] * B₂ᵗ[m2,n2,y2,xᵢ]
             @cast _[(m1,m2),(n1,n2),y,xᵢ] := B3[m1,m2,n1,n2,y,xᵢ]
         end
-        Bout = M2(BB; z = B1.z * B2.z)
-        any(any(isnan, b) for b in Bout) && @error "NaN in tensor train"
-        compress!(Bout; svd_trunc)
-        normalize_eachmatrix!(Bout)    # keep this one?
-        any(any(isnan, b) for b in Bout) && @error "NaN in tensor train"
-        Bout, d1 + d2
+        BB = M2(BB; z = B1.z * B2.z)
+        any(any(isnan, b) for b in BB) && @error "NaN in tensor train"
+        compress!(BB; svd_trunc)
+        normalize_eachmatrix!(BB)    # keep this one?
+        any(any(isnan, b) for b in BB) && @error "NaN in tensor train"
+        BB, d1 + d2
     end
-
-    Minit = [[float(prob_y0(wᵢ[t], y, xᵢ)) for _ in 1:1,
+    
+    F = elem_type(M2)
+    Minit = [[F(prob_y0(wᵢ[t], y, xᵢ)) for _ in 1:1,
                 _ in 1:1,
                 y in 1:nstates(wᵢ[t],0),
                 xᵢ in 1:qi]
             for t=1:T+1]
     init = (M2(Minit), 0)
-    # compute all-but-one `op`s
-    dest, (full,) = cavity(B, op, init)
+    dest, (full,)  = cavity(B, op, init)
     (C,) = unzip(dest)
     C, full, B
 end
 
 # compute outgoing messages from node `i`
 function onebpiter!(bp::MPBP{G,F,V,MsgType}, i::Integer, ::Type{U}; 
-    svd_trunc::SVDTrunc=default_truncator(MsgType), damp::Real=0.0) where {G<:AbstractIndexedDiGraph,F<:Real,U<:RecursiveBPFactor,V,MsgType}
+    svd_trunc::SVDTrunc=default_truncator(MsgType), damp::Real=0.0) where {G<:AbstractIndexedDiGraph,F<:Number,U<:RecursiveBPFactor,V,MsgType}
     @unpack g, w, ϕ, ψ, μ = bp
     ein, eout = inedges(g,i), outedges(g, i)
-    wᵢ, ϕᵢ, dᵢ  = w[i], ϕ[i], length(ein)
+    wᵢ, ϕᵢ, dᵢ  = [x for x in w[i]], ϕ[i], length(ein)
     @assert wᵢ[1] isa U
     C, full = compute_prob_ys(wᵢ, nstates(bp,i), μ[ein.|>idx], ψ[eout.|>idx], getT(bp), svd_trunc)
     sumlogzᵢ₂ⱼ = zero(F)
     for (j,e) = enumerate(eout)
         B = f_bp_partial_ij(C[j], wᵢ, ϕᵢ, dᵢ - 1, nstates(bp, dst(e)), j)
-        μj = compress!(mpem2(B); svd_trunc, is_orthogonal=:left)
+        μj = compress!(mpem2(B); svd_trunc)
         normalize_eachmatrix!(μj)
-        sumlogzᵢ₂ⱼ += set_msg!(bp, μj, idx(e), damp, svd_trunc)
+        sumlogzᵢ₂ⱼ += real(set_msg!(bp, μj, idx(e), damp, svd_trunc))
     end
     B = f_bp_partial_i(full, wᵢ, ϕᵢ, dᵢ)
     bp.b[i] = B |> mpem2 |> marginalize
     logzᵢ = normalize!(bp.b[i])
-    bp.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
-    nothing
+    bp.f[i] = real((dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ)
+    # nothing
+    return logzᵢ
 end
 
 # write message to destination after applying damping
@@ -169,7 +170,7 @@ function set_msg!(bp::MPBP{G,F,V,M2}, μj::M2, edge_id, damp, svd_trunc) where {
     @assert 0 ≤ damp < 1
     μ_old = bp.μ[edge_id]
     logzᵢ₂ⱼ = normalize!(μj)
-    if damp > 0 
+    if damp > 0
         μj = _compose(x->x*damp/(1-damp), μj, μ_old)
         compress!(μj; svd_trunc)
         normalize!(μj)
@@ -180,10 +181,10 @@ end
 
 # adds a further transition xᵢᵗ->xᵢᵗ⁺¹ with probability `p` and rescales all other
 #  transitions by `1-p`. Does nothing for `p=0`
-struct DampedFactor{T<:RecursiveBPFactor,F<:Real} <: RecursiveBPFactor
+struct DampedFactor{T<:RecursiveBPFactor,F<:Number} <: RecursiveBPFactor
     w :: T      # factor
     p :: F      # probability of staying in previous state        
-    function DampedFactor(w::T, p::F) where {T<:RecursiveBPFactor,F<:Real}
+    function DampedFactor(w::T, p::F) where {T<:RecursiveBPFactor,F<:Number}
         @assert 0 ≤ p ≤ 1
         new{T,F}(w, p)
     end

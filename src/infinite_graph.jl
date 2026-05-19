@@ -22,16 +22,16 @@ check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::InfiniteRegularGraph) = tru
 function mpbp_infinite_graph(k::Integer, wᵢ::Vector{U}, qi::Int,
     ϕᵢ = fill(ones(qi), length(wᵢ));
     ψₖᵢ = fill(ones(qi, qi), length(wᵢ)),
-    d::Int=1, bondsizes=[1; fill(d, length(wᵢ)-1); 1]) where {U<:BPFactor}
+    d::Int=1, bondsizes=[1; fill(d, length(wᵢ)-1); 1], elem_type::Type{F}=Float64) where {U<:BPFactor, F<:Number}
 
     T = length(wᵢ) - 1
     @assert length(ϕᵢ) == T + 1
     @assert length(ψₖᵢ) == T + 1
     
     g = InfiniteRegularGraph(k)
-    μ = flat_mpem2(qi, qi, T; d, bondsizes)
-    b = flat_mpem1(qi, T; d, bondsizes)
-    MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [0.0])
+    μ = flat_mpem2(elem_type, qi, qi, T; d, bondsizes)
+    b = flat_mpem1(elem_type, qi, T; d, bondsizes)
+    MPBP(g, [wᵢ], [ϕᵢ], [ψₖᵢ], [μ], [b], [zero(elem_type)])
 end
 
 function _pair_beliefs!(b, f, bp::MPBP{G,F}) where {G<:InfiniteRegularGraph,F}

@@ -1,4 +1,4 @@
-struct GenericGlauberFactor{T<:Real}  <: BPFactor 
+struct GenericGlauberFactor{T<:Real} <: BPFactor 
     βJ :: Vector{T}      
     βh :: T
 end
@@ -14,13 +14,29 @@ function (fᵢ::GenericGlauberFactor)(xᵢᵗ⁺¹::Integer,
     @assert all(x ∈ 1:2 for x in xₙᵢᵗ)
     @assert length(xₙᵢᵗ) == length(fᵢ.βJ)
 
-    hⱼᵢ = sum( Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.βJ))
+    hⱼᵢ = sum((Jᵢⱼ * potts2spin(xⱼᵗ) for (xⱼᵗ,Jᵢⱼ) in zip(xₙᵢᵗ, fᵢ.βJ));init=0.0)
     E = - potts2spin(xᵢᵗ⁺¹) * (hⱼᵢ + fᵢ.βh)
     return 1 / (1 + exp(2E))
 end
 
+struct DampedGlauberFactor{F<:BPFactor, U<:Real} <: BPFactor
+    w :: F
+    p :: U
+end
+
+function DampedGlauberFactor(J::Vector{T}, h::T, β::T, p::U) where {T<:Real, U<:Real}
+    @assert 0 ≤ p ≤ 1
+    DampedGlauberFactor(GenericGlauberFactor(J, h, β), p)
+end
+
+function (fᵢ::DampedGlauberFactor)(xᵢᵗ⁺¹::Integer, 
+        xₙᵢᵗ::AbstractVector{<:Integer}, 
+        xᵢᵗ::Integer)
+    return fᵢ.p * (xᵢᵗ⁺¹ == xᵢᵗ) + (1 - fᵢ.p) * fᵢ.w(xᵢᵗ⁺¹, xₙᵢᵗ, xᵢᵗ) 
+end
+
 struct HomogeneousGlauberFactor{T<:Real} <: RecursiveBPFactor 
-    βJ :: T     
+    βJ :: T
     βh :: T
 end
 
@@ -40,7 +56,7 @@ function prob_y(wᵢ::HomogeneousGlauberFactor, xᵢᵗ⁺¹, xᵢᵗ, zᵗ, d)
     return 1 / (1 + exp(2E))
 end
 
-prob_xy(wᵢ::HomogeneousGlauberFactor, yₖ, xₖ, xᵢ) = (yₖ != xₖ)
+prob_xy(wᵢ::HomogeneousGlauberFactor, yₖ, xₖ, xᵢ) = (yₖ == xₖ)
 prob_yy(wᵢ::HomogeneousGlauberFactor, y, y1, y2, xᵢ) = (y == y1 + y2 - 1)
 
 function (wᵢ::HomogeneousGlauberFactor)(xᵢᵗ⁺¹::Integer, 
@@ -120,7 +136,7 @@ end
 # seems to be type stable
 function glauber_factors(ising::Ising, T::Integer)
     β = ising.β
-    map(1:nv(ising.g)) do i
+    x = map(1:nv(ising.g)) do i
         ei = inedges(ising.g, i)
         ∂i = idx.(ei)
         J = ising.J[∂i]
@@ -132,23 +148,24 @@ function glauber_factors(ising::Ising, T::Integer)
             else
                 PMJGlauberFactor(Int.(sign.(J)), β*abs(Jᵢ), β*h)
             end
-        elseif all(isinteger, J)
+        elseif all(isinteger, J) || length(J)==0
             IntegerGlauberFactor(Int.(J), h, β)
         else
             GenericGlauberFactor(J, h, β)
         end
         fill(wᵢᵗ, T + 1)
     end
+    convert(Vector{Vector{mapreduce(eltype, typejoin, x)}}, x)
 end
 
 struct IntegerGlauberFactor{T<:Real}  <: RecursiveBPFactor 
     J :: Vector{Int}      
     h :: T
     β :: T
-    K :: Int
+    K :: Int    # maximum possible value for local field (+1)
 end
 
-IntegerGlauberFactor(J,h,β) = IntegerGlauberFactor(J, h, β, sum(abs,J) + 1)
+IntegerGlauberFactor(J,h,β) = IntegerGlauberFactor(J, h, β, Int(sum(abs,J) + 1))
 
 
 nstates(w::IntegerGlauberFactor, l::Integer) = 2w.K-1

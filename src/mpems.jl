@@ -1,27 +1,37 @@
+elem_type(::Type{<:AbstractTensorTrain{F,N}}) where {F,N} = F
+
 const AbstractMPEM1{F} = AbstractTensorTrain{F, 3}
-const MPEM1{F} = TensorTrain{F, 3}
-const PeriodicMPEM1{F} = PeriodicTensorTrain{F, 3}
+const MPEM1{F} = TensorTrain{F, 3, T, Z} where {T, Z}
+const PeriodicMPEM1{F} = PeriodicTensorTrain{F, 3, T, Z} where {T, Z}
 
 # construct a flat mpem with given bond dimensions
-flat_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = flat_tt(bondsizes, q)
+flat_mpem1(::Type{F}, q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) where F = flat_tt(F, bondsizes, q)
+flat_mpem1(q::Int, T::Int; kw...) = flat_mpem1(Float64, q, T; kw...)
+flat_fourier_mpem1(K::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1]) = flat_fourier_tt(bondsizes, K)
 flat_periodic_mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = flat_periodic_tt(bondsizes, q)
 
 # construct a random mpem with given bond dimensions
-rand_mpem1(q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_tt(bondsizes, q)
+rand_mpem1(::Type{F}, q::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) where F = rand_tt(F, bondsizes, q)
+rand_mpem1(q::Int, T::Int; kw...) = rand_mpem1(Float64, q, T; kw...)
+rand_fourier_mpem1(K::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1]) = rand_fourier_tt(bondsizes, K)
 rand_periodic_mpem1(q::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = rand_periodic_tt(bondsizes, q)
 
 nstates(A::AbstractMPEM1) = size(A[1], 3)
 
 const AbstractMPEM2{F} = AbstractTensorTrain{F, 4}
 const MPEM2{F} = TensorTrain{F, 4}
-const PeriodicMPEM2{F} = PeriodicTensorTrain{F, 4}
+const PeriodicMPEM2{F} = PeriodicTensorTrain{F, 4, T, Z} where {T, Z}
 
 # construct a flat mpem with given bond dimensions
-flat_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = flat_tt(bondsizes, q1, q2)
+flat_mpem2(::Type{F}, q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) where F = flat_tt(F, bondsizes, q1, q2)
+flat_mpem2(q1::Int, q2::Int, T::Int; kw...) = flat_mpem2(Float64, q1, q2, T; kw...)
+flat_fourier_mpem2(q1::Int, q2::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1]) = flat_fourier_tt(bondsizes, q1, q2)
 flat_periodic_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = flat_periodic_tt(bondsizes, q1, q2)
 
 # construct a flat mpem with given bond dimensions
-rand_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) = rand_tt(bondsizes, q1, q2)
+rand_mpem2(::Type{F}, q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=[1; fill(d, T); 1]) where F = rand_tt(F, bondsizes, q1, q2)
+rand_mpem2(q1::Int, q2::Int, T::Int; kw...) = rand_mpem2(Float64, q1, q2, T; kw...)
+rand_fourier_mpem2(q1::Int, q2::Int, T::Int; d::Int=1, bondsizes=[1; fill(d, T); 1]) = rand_fourier_tt(bondsizes, q1, q2)
 rand_periodic_mpem2(q1::Int, q2::Int, T::Int; d::Int=2, bondsizes=fill(d, T+1)) = rand_periodic_tt(bondsizes, q1, q2)
 
 function marginalize(A::MPEM2{F}) where F
@@ -33,10 +43,10 @@ end
 
 # Matrix [Bᵗᵢⱼ(xᵢᵗ⁺¹,xᵢᵗ,xⱼᵗ)]ₘₙ is stored as a 5-array B[m,n,xᵢᵗ,xⱼᵗ,xᵢᵗ⁺¹]
 # The last matrix should have the same values no matter what xᵢᵀ⁺¹ is
-struct MPEM3{F<:Real}
+struct MPEM3{F<:Number}
     tensors :: Vector{Array{F,5}}
-    z       :: Logarithmic{F}
-    function MPEM3(tensors::Vector{Array{F,5}}; z::Logarithmic{F}=Logarithmic(one(F))) where {F<:Real}
+    z       :: Logarithmic{F1} where {F1}
+    function MPEM3(tensors::Vector{Array{F,5}}; z::Logarithmic{F1}=Logarithmic(one(F))) where {F<:Number, F1}
         size(tensors[1],1) == size(tensors[end],2) == 1 ||
             throw(ArgumentError("First matrix must have 1 row, last matrix must have 1 column"))
         check_bond_dims(tensors) ||
@@ -94,7 +104,7 @@ function mpem2(B::MPEM3{F}) where {F}
 end
 
 struct PeriodicMPEM3{F<:Real}
-    tensors::Vector{Array{F,5}}
+    tensors :: Vector{Array{F,5}}
     z       :: Logarithmic{F}
     function PeriodicMPEM3(tensors::Vector{Array{F,5}}; z::Logarithmic{F}=Logarithmic(one(F))) where {F<:Real}
         size(tensors[1],1) == size(tensors[end],2) ||
@@ -154,8 +164,7 @@ function mpem2(B::PeriodicMPEM3{F}) where {F}
     return PeriodicMPEM2{F}(C; z = 1/c * B.z)
 end
 
-
-mpem3from2(::Type{<:MPEM2}) = MPEM3
-mpem3from2(::Type{<:PeriodicMPEM2}) = PeriodicMPEM3
+mpem3from2(::Type{MPEM2{F}}) where F = MPEM3
+mpem3from2(::Type{PeriodicMPEM2{F}}) where F = PeriodicMPEM3
 
 default_truncator(::Type{<:AbstractMPEM2}) = TruncThresh(1e-6)

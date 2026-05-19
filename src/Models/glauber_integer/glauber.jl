@@ -1,6 +1,10 @@
 # maps (1,2) -> (1,-1)
-potts2spin(x) = 3-2x
-spin2potts(σ) = (3-σ)/2
+# potts2spin(x, i=0) = 3-2x
+# spin2potts(σ, i=0) = (3-σ)/2
+
+# maps interval (1,q) -> (-1,1)
+potts2spin(x, i=0; q=2) = (x-1)/(q-1)*2 - 1
+spin2potts(σ, i=0; q=2) = (σ+1)/2*(q-1) + 1
 
 # Ising model with xᵢ ∈ {1,2} mapped onto spins {+1,-1}
 struct Ising{F<:AbstractFloat}

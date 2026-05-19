@@ -1,9 +1,9 @@
 module MatrixProductBP
 
 using InvertedIndices: Not
-using ProgressMeter: Progress, ProgressUnknown, next!
+using ProgressMeter: Progress, ProgressUnknown, next!, @showprogress
 using TensorCast: @reduce, @cast, TensorCast
-using LoopVectorization
+# using LoopVectorization
 using Tullio: @tullio
 using IndexedGraphs: IndexedGraphs, AbstractIndexedDiGraph, IndexedGraph, IndexedBiDiGraph,
     nv, ne, edges, vertices, inedges, outedges, src, dst, idx, neighbors, IndexedEdge,
@@ -16,7 +16,7 @@ using Measurements: Measurement, ±, value, uncertainty
 using Statistics: mean, std
 using Unzip: unzip
 using StatsBase: weights, proportions
-using LogExpFunctions: logistic, logsumexp
+using LogExpFunctions: logistic, logsumexp, logaddexp, logsubexp
 using .Threads: SpinLock, lock, unlock, @threads
 using Lazy: @forward
 using CavityTools: cavity
@@ -35,9 +35,6 @@ using TensorTrains:
     marginals, twovar_marginals, normalization, normalize!,
     svd, _compose, accumulate_L, accumulate_R,
     InfiniteUniformTensorTrain, flat_infinite_uniform_tt, TruncVUMPS, dot
-    
-    
-
 export 
     SVDTrunc, TruncBond, TruncThresh, TruncBondMax, TruncBondThresh,
     PeriodicMPEM2, PeriodicMPEM3, PeriodicMPEM1, getT,
@@ -46,7 +43,7 @@ export
     normalization, normalize!, marginalize,
     orthogonalize_right!, orthogonalize_left!, compress!, twovar_marginals, evaluate,
     BPFactor, nstates, MPBP, mpbp, reset_messages!, reset_beliefs!, reset_observations!,
-    reset!, is_free_dynamics, onebpiter!, CB_BP, iterate!, 
+    reset!, is_free_dynamics, onebpiter!, CB_BP, iterate!, set_msg!, 
     pair_beliefs, pair_beliefs_as_mpem, beliefs_tu, autocorrelations,
     autocovariances, means, 
     pair_correlations, alternate_marginals, alternate_correlations,
@@ -65,9 +62,12 @@ export
     draw_node_observations!, AtomicVector,
     RecursiveBPFactor, DampedFactor, RecursiveTraceFactor, GenericFactor,
     RestrictedRecursiveBPFactor,
+    convert_msg_beliefs,
     mpbp_stationary, mpbp_stationary_infinite_graph, mpbp_stationary_infinite_bipartite_graph,
     CB_BPVUMPS, TruncVUMPS,
-    mean_with_uncertainty
+    mean_with_uncertainty,
+    convert_msg_beliefs,
+    onebpiter_popdyn!, iterate_popdyn!
 
 
 include("utils.jl")
@@ -81,7 +81,9 @@ include("infinite_graph.jl")
 include("exact.jl")
 include("sampling.jl")
 include("stationary.jl")
+include("population_dynamics.jl")
 
 include("Models/Models.jl")
+using .Models: potts2spin, spin2potts, f_bp_partial_i, f_bp_partial_ij, compute_prob_ys, FourierBPFactor, FourierGlauberFactor
 
-end # end module
+end

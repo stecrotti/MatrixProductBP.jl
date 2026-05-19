@@ -53,7 +53,8 @@ function f_bp(A::Vector{M2}, wᵢ::Vector{U}, ϕᵢ::Vector{Vector{F}},
         Bᵗ
     end
 
-    mpem3from2(eltype(A))(B), 0.0
+    # mpem3from2(eltype(A))(B), 0.0
+    MPEM3(B), 0.0
 end
 
 # compute outgoing message to dummy neighbor to get the belief
@@ -89,7 +90,8 @@ function f_bp_dummy_neighbor(A::Vector{M2},
         Bᵗ
     end
 
-    mpem3from2(eltype(A))(B), 0.0
+    # mpem3from2(eltype(A))(B), 0.0
+    MPEM3(B), 0.0
 end
 
 function pair_belief_as_mpem(Aᵢⱼ::M2, Aⱼᵢ::M2, ψᵢⱼ) where {M2<:AbstractMPEM2}

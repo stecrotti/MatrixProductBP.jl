@@ -21,3 +21,10 @@ function Base.setindex!(a::AtomicVector, x, i::Int)
     unlock(a.s)
     x
 end
+
+function Base.resize!(a::AtomicVector, n::Int)
+    lock(a.s)
+    resize!(a.v, n)
+    unlock(a.s)
+    a
+end

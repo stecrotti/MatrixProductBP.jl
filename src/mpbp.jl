@@ -1,4 +1,4 @@
-struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}, M2<:AbstractMPEM2, M1<:AbstractMPEM1}
+struct MPBP{G<:AbstractIndexedDiGraph, F<:Number, V<:AbstractVector{<:BPFactor}, M2<:AbstractMPEM2, M1<:AbstractMPEM1}
     g     :: G                              # graph
     w     :: Vector{V}                      # factors, one per variable
     ϕ     :: Vector{Vector{Vector{F}}}      # vertex-dependent factors
@@ -12,7 +12,7 @@ struct MPBP{G<:AbstractIndexedDiGraph, F<:Real, V<:AbstractVector{<:BPFactor}, M
             ψ::Vector{Vector{Matrix{F}}},
             μ::Vector{M2},
             b::Vector{M1},
-            f::Vector{F}) where {G<:AbstractIndexedDiGraph, F<:Real, 
+            f::Vector{F}) where {G<:AbstractIndexedDiGraph, F<:Number,
             V<:AbstractVector{<:BPFactor}, M2<:AbstractMPEM2, M1<:AbstractMPEM1}
     
         @assert issymmetric(g)
@@ -57,15 +57,32 @@ function check_ψs(ψ::Vector{<:Vector{<:Matrix{<:Real}}}, g::IndexedBiDiGraph)
     return true
 end
 
-function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{<:Vector{<:BPFactor}},
-        q::AbstractVector{Int}, T::Int; 
+function mpbp(::Type{F}, g::IndexedBiDiGraph{Int}, w::Vector{Vector{BPF}},
+        q::AbstractVector{Int}, T::Int;
         d::Int=1,
         bondsizes=[1; fill(d, T); 1],
         ϕ = [[ones(q[i]) for t in 0:T] for i in vertices(g)],
         ψ = [[ones(q[i],q[j]) for t in 0:T] for (i,j) in edges(g)],
-        μ = [flat_mpem2(q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
-        b = [flat_mpem1(q[i], T; d, bondsizes) for i in vertices(g)],
-        f = zeros(nv(g)))
+        μ = [flat_mpem2(F, q[i],q[j], T; d, bondsizes) for (i,j) in edges(g)],
+        b = [flat_mpem1(F, q[i], T; d, bondsizes) for i in vertices(g)],
+        f = zeros(nv(g))) where {F<:Number, BPF<:BPFactor}
+    return MPBP(g, w, ϕ, ψ, μ, b, f)
+end
+function mpbp(g::IndexedBiDiGraph{Int}, w::Vector{Vector{BPF}},
+    q::AbstractVector{Int}, T::Int; kw...) where BPF <: BPFactor
+    return mpbp(Float64, g, w, q, T; kw...)
+end
+
+# this function converts the messages and beliefs in a MPBP object to a different element type
+function convert_msg_beliefs(::Type{F}, bp::MPBP) where F<:Number
+    g = deepcopy(bp.g)
+    w = deepcopy(bp.w)
+    ϕ = deepcopy(bp.ϕ)
+    ψ = deepcopy(bp.ψ)
+    μ = [[F.(μᵗ) for μᵗ in μ] |> TensorTrain for μ in bp.μ]
+    b = [[F.(bᵗ) for bᵗ in b] |> TensorTrain for b in bp.b]
+    f = F.(bp.f)
+
     return MPBP(g, w, ϕ, ψ, μ, b, f)
 end
 
@@ -132,8 +149,8 @@ function onebpiter!(bp::MPBP{G,F,V,MsgType}, i::Integer, ::Type{U};
     end
     dᵢ = length(ein)
     bp.b[i] = onebpiter_dummy_neighbor(bp, i; svd_trunc) |> marginalize
-    logzᵢ = real(log(normalization(bp.b[i])))
-    bp.f[i] = (dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ
+    logzᵢ = log(normalization(bp.b[i]))
+    bp.f[i] = real((dᵢ/2-1)*logzᵢ - (1/2)*sumlogzᵢ₂ⱼ)
     nothing
 end
 
@@ -154,10 +171,10 @@ function onebpiter_dummy_neighbor(bp::MPBP{G,F,V,MsgType}, i::Integer;
 end
 
 # A callback to print info and save stuff during the iterations 
-struct CB_BP{TP<:ProgressUnknown, F}
+struct CB_BP{TP<:ProgressUnknown, F, U}
     prog :: TP
-    m    :: Vector{Vector{Vector{Float64}}} 
-    Δs   :: Vector{Float64}
+    m    :: Vector{Vector{Vector{U}}} 
+    Δs   :: Vector{U}
     f    :: F
 
     function CB_BP(bp::MPBP; showprogress::Bool=true, f::F=(x,i)->x, info="") where F
@@ -165,14 +182,15 @@ struct CB_BP{TP<:ProgressUnknown, F}
         isempty(info) || (info *= "\n")
         prog = ProgressUnknown(desc=info*"Running MPBP: iter", dt=dt)
         TP = typeof(prog)
-        m = [means(f, bp)]
-        Δs = zeros(0)
-        new{TP,F}(prog, m, Δs, f)
+        m = [means(f, bp)] .|> real
+        U = typeof(bp.f[1])
+        Δs = zeros(U,0)
+        new{TP,F,U}(prog, m, Δs, f)
     end
 end
 
 function (cb::CB_BP)(bp::MPBP, it::Integer, svd_trunc::SVDTrunc)
-    marg_new = means(cb.f, bp)
+    marg_new = means(cb.f, bp) .|> real
     marg_old = cb.m[end]
     Δ = isempty(marg_new) ? NaN : maximum(maximum(abs, mn .- mo) for (mn, mo) in zip(marg_new, marg_old))
     push!(cb.Δs, Δ)
@@ -186,21 +204,27 @@ function iterate!(bp::MPBP{G,F,V,MsgType}; maxiter::Integer=5,
         svd_trunc::SVDTrunc=default_truncator(MsgType),
         showprogress=true, cb=CB_BP(bp; showprogress), tol=1e-10, 
         nodes = collect(vertices(bp.g)), shuffle_nodes::Bool=true, damp=0.0) where {G,F,V,MsgType}
+    for μ in bp.μ
+        normalize!(μ)
+    end
     for it in 1:maxiter
         Threads.@threads for i in nodes
-            onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc, damp)
+            # onebpiter!(bp, i, eltype(bp.w[i]); svd_trunc, damp)
+            onebpiter!(bp, i, typeof(bp.w[i][1]); svd_trunc, damp)
         end
         Δ = cb(bp, it, svd_trunc)
         Δ < tol && return it, cb
         shuffle_nodes && sample!(nodes, collect(vertices(bp.g)), replace=false)
+        # println("Iteration $(it) completed")
     end
     return maxiter, cb
 end
 
 # compute joint beliefs for all pairs of neighbors
 # return also logzᵢⱼ contributions to logzᵢ
-function pair_beliefs(bp::MPBP{G,F}) where {G,F}
-    b = [[zeros(nstates(bp,i),nstates(bp,j)) for _ in 0:getT(bp)] for (i,j) in edges(bp.g)]
+function pair_beliefs(bp::MPBP)
+    F = elem_type(typeof(bp.μ[1])) 
+    b = [[zeros(F, nstates(bp,i),nstates(bp,j)) for _ in 0:getT(bp)] for (i,j) in edges(bp.g)]
     return _pair_beliefs!(b, pair_belief, bp)
 end
 
@@ -216,7 +240,7 @@ function pair_beliefs_as_mpem(bp::MPBP{G,F,V,M2}) where {G,F,V,M2}
 end
 
 function _pair_beliefs!(b, f, bp::MPBP{G,F}) where {G,F}
-    logz = zeros(nv(bp.g))
+    logz = zeros(eltype(bp.μ[1]), nv(bp.g))
     X = bp.g.X
     N = nv(bp.g)
     vals = nonzeros(X)
@@ -285,7 +309,7 @@ function alternate_correlations(f, bp::MPBP{G,F,V,M2}) where {G,F,V,M2}
     return [expectation.(f, amij) for amij in am]
 end
 
-covariance(r::Matrix{<:Real}, μ::Vector{<:Real}) = r .- μ*μ'
+covariance(r::Matrix{<:Number}, μ::Vector{<:Number}) = r .- μ*μ'
 
 function autocovariances(f, bp::MPBP; sites=vertices(bp.g), kw...)
     μ = means(f, bp; sites)
